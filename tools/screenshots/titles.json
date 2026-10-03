@@ -1,0 +1,9 @@
+{
+  "en": ["Refactor the export module", "Write unit tests for login", "Update the changelog"],
+  "ru": ["Рефакторинг модуля экспорта", "Тесты для входа", "Обновить changelog"],
+  "es": ["Refactorizar el módulo de exportación", "Escribir pruebas del inicio de sesión", "Actualizar el changelog"],
+  "de": ["Export-Modul überarbeiten", "Unit-Tests für den Login schreiben", "Changelog aktualisieren"],
+  "fr": ["Refactoriser le module d'export", "Écrire des tests pour la connexion", "Mettre à jour le changelog"],
+  "pt": ["Refatorar o módulo de exportação", "Escrever testes do login", "Atualizar o changelog"],
+  "zh": ["重构导出模块", "为登录编写单元测试", "更新更新日志"]
+}

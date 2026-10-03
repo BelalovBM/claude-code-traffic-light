@@ -1,0 +1,22 @@
+# Build output: made by build.ps1 and tools\make-release.ps1, attached to the GitHub release instead.
+bin/
+Release/
+Source/
+
+# Working files of the tests and screenshots, and the kit for checking another computer.
+work/
+PC_Self_Check/
+selfcheck-*/
+
+# The author's own notes, design material and the Russian copy of the README.
+UI/
+README.ru.md
+PUBLISH.md
+
+# A private ntfy topic noted down by hand: it works like a password.
+topic.txt
+
+# Written by the program next to the exe, and by tools\ntfy-docker\setup.ps1 (the address of a home server).
+config.json*
+*.log
+tools/ntfy-docker/.env

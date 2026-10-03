@@ -1,0 +1,36 @@
+# Own ntfy server for Claude Code Traffic Light.
+# Start it with setup.ps1 (it writes .env, starts the container and creates the user and the access rules).
+name: claude-ntfy
+
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: claude-ntfy
+    command: serve
+    restart: unless-stopped
+    ports:
+      - "${NTFY_PORT:-18081}:80"
+    environment:
+      # The address the phone uses; it appears in the links the server hands out.
+      NTFY_BASE_URL: ${NTFY_BASE_URL}
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      # Nothing is open by default: only the user created by setup.ps1 can read, and anonymous clients
+      # may only write to the answer topics (the Allow/Deny buttons on the phone cannot sign in).
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      # The program keeps a stream open and reconnects after network changes; the defaults are tight for that.
+      NTFY_VISITOR_REQUEST_LIMIT_BURST: "200"
+      NTFY_VISITOR_REQUEST_LIMIT_REPLENISH: "1s"
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 -O - http://localhost:80/v1/health | grep -q healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  ntfy-data:
+    # Created by setup.ps1; outside the project so that "docker compose down -v" cannot wipe users and messages.
+    external: true
+    name: claude-ntfy-data

@@ -1,0 +1,64 @@
+# Builds the program from the sources of the repository and, for a v* tag, attaches it to the release. Once SignPath
+# Foundation has accepted the project, the commented block has the file signed first.
+name: build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The compiler of the same SDK as on the author's computer, so the file here is byte for byte the one built there.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.313'
+
+      - name: Build (the same sources give the same file)
+        shell: pwsh
+        env:
+          TRAFFICLIGHT_SDK: '9.0.313'
+        run: ./tools/make-release.ps1 -NoStart
+
+      - name: Show the checksums (compare with SHA256SUMS.txt of the author's build)
+        shell: pwsh
+        run: Get-Content Release/SHA256SUMS.txt
+
+      - name: Upload the unsigned file
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned
+          path: bin/ClaudeCodeTrafficLight.exe
+
+      # --- Switch this block on after SignPath Foundation has accepted the project (see PUBLISH.md) ---
+      # - name: Sign with SignPath
+      #   uses: signpath/github-action-submit-signing-request@v1
+      #   with:
+      #     api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+      #     organization-id: '<SIGNPATH_ORGANIZATION_ID>'
+      #     project-slug: 'ClaudeCodeTrafficLight'
+      #     signing-policy-slug: 'release-signing'
+      #     github-artifact-id: '${{ steps.upload-unsigned.outputs.artifact-id }}'
+      #     wait-for-completion: true
+      #     output-artifact-directory: 'signed'
+      # After signing, take signed/ClaudeCodeTrafficLight.exe for the release instead of the one in Release/ and
+      # recompute SHA256SUMS.txt.
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          # Versions 0.x are betas.
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          files: |
+            Release/ClaudeCodeTrafficLight.exe
+            Release/SHA256SUMS.txt
+            Source/*.zip

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Template for .signpath/artifact-configuration.xml in the repository: tells SignPath what to sign in the uploaded
+     artifact (a zip with the exe). Check the element names against https://docs.signpath.io before use. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="ClaudeCodeTrafficLight.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
