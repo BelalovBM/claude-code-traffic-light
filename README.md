@@ -14,6 +14,8 @@ A tray traffic light for [Claude Code](https://claude.com/claude-code) on Window
 
 It works with Claude Code in the console and in the VS Code extension, and shows every running session at once. The icon shows the most urgent state.
 
+![Two sessions at work; one asks a question in a panel near the tray, is answered, goes on and finishes](docs/demo.gif)
+
 
 ## Quick start
 
