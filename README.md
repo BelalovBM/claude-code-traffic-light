@@ -17,7 +17,7 @@ It works with Claude Code in the console and in the VS Code extension, and shows
 
 ## Quick start
 
-1. Download `ClaudeCodeTrafficLight.exe` from the [latest release](https://github.com/BelalovBM/claude-code-traffic-light/releases/latest) and run it. No administrator rights are needed.
+1. Download `ClaudeCodeTrafficLight.exe` from the [releases page](https://github.com/BelalovBM/claude-code-traffic-light/releases) and run it. No administrator rights are needed.
 2. Answer **Yes** to "Connect to Claude Code". The app adds hooks to `~/.claude/settings.json` (the original is backed up once as `settings.json.trafficlight.bak`).
 3. Start Claude Code as usual. Sessions started before connecting need a restart.
 
