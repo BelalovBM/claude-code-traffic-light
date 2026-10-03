@@ -109,6 +109,15 @@ To only disconnect from Claude Code and keep the program, use **Disconnect** on 
 
 The program collects nothing and sends nothing about you or how you use it: no telemetry, no update checks. It uses the network only when you set up the phone: then it sends notifications to the ntfy server you chose (ntfy.sh or your own) and listens there for your answers. What the notifications contain (the name of a session, the text of a request) is described on the Phone and Permission prompts pages. Everything else stays on the computer: the settings, the log and the requests journal sit next to the program and are removed by **Remove everything**.
 
+## Code signing policy
+
+Releases are built by GitHub Actions from the tagged source code (`.github/workflows/build.yml`); the build is deterministic, so anyone can build the same commit and get a byte-identical file. Signing of the release files through [SignPath Foundation](https://signpath.org) has been requested; until it is granted, the files are unsigned. Once it is: free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Committers and reviewers: [BelalovBM](https://github.com/BelalovBM)
+- Approvers (every signing request is approved by hand): [BelalovBM](https://github.com/BelalovBM)
+
+Privacy: this program does not transfer any information to other networked systems unless the user sets it up to (the phone notifications through ntfy); see [Privacy](#privacy).
+
 ## Self-check
 
 `ClaudeCodeTrafficLight.exe --selfcheck` shows the program with made-up sessions, takes a picture of every window (settings pages in both themes, the tray menu, the request panel, a notification) and writes `report.txt` with the Windows version, the scale of each monitor and the theme, all into a `selfcheck-<date>` folder next to the program. It needs no Claude Code and changes nothing on the computer. It takes about 40 seconds; leave the mouse and keyboard alone meanwhile. Pictures of the menu and the notification are taken from the screen, so a bit of the desktop around them may be in them.
