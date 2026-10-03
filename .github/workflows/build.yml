@@ -52,10 +52,24 @@ jobs:
       # After signing, take signed/ClaudeCodeTrafficLight.exe for the release instead of the one in Release/ and
       # recompute SHA256SUMS.txt.
 
+      # The text of the release is the section of CHANGELOG.md for this version ("## 0.9.0 ..." up to the next "## ").
+      - name: Release notes from the changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $lines = Get-Content CHANGELOG.md
+          $start = [array]::FindIndex($lines, [Predicate[string]]{ param($l) $l -match "^## $([regex]::Escape($version))\b" })
+          if ($start -lt 0) { "See CHANGELOG.md." | Set-Content release-notes.md; exit 0 }
+          $end = [array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l -match '^## ' })
+          if ($end -lt 0) { $end = $lines.Count }
+          $lines[($start + 1)..($end - 1)] | Set-Content release-notes.md
+
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           # Versions 0.x are betas.
           prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
           files: |
