@@ -15,6 +15,7 @@
 | `tests\approve-real.ps1` | То же против настоящего сервера ntfy с паролем (нужен Docker; аргументы: режим `basic` или `token`, токен) |
 | `tests\uninstall-test.ps1`, `tests\hooktoggle.ps1` | «Удалить всё» и добавление/удаление хука подтверждений в песочнице |
 | `screenshots\make-screenshots.ps1` | Снимает интерфейс на демо-данных в `UI\<язык>-<тема>\` (все наборы или `-Sets en-dark,ru-light`) |
+| `screenshots\make-gif.ps1` | Анимация для README (`docs\demo.gif`): снимки окон программы в песочнице с выдуманными сессиями, склейка `make-gif.py` (нужен Python с Pillow) |
 | `ntfy-docker\setup.ps1` | Свой сервер ntfy в Docker для программы: закрытый, с пользователем и нужными правилами доступа (подробности в `ntfy-docker\README.md`) |
 | `baseline.md` | Замеры до и после изменений |
 
