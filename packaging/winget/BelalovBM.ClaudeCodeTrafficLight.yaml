@@ -1,5 +1,5 @@
-# Manifest for https://github.com/microsoft/winget-pkgs. Before sending the three files of this folder there, put the
-# SHA-256 of the released exe (from SHA256SUMS.txt of the release) in place of <SHA256> in the installer file.
+# Manifest for https://github.com/microsoft/winget-pkgs (version 0.9.0). For a new version: update PackageVersion,
+# the download address and InstallerSha256 (from SHA256SUMS.txt of that release) in all three files.
 PackageIdentifier: BelalovBM.ClaudeCodeTrafficLight
 PackageVersion: 0.9.0
 DefaultLocale: en-US
