@@ -8,6 +8,8 @@ using System.Reflection;
 [assembly: AssemblyVersion("0.9.0.0")]
 [assembly: AssemblyFileVersion("0.9.0.0")]
 [assembly: AssemblyInformationalVersion("0.9.0-beta")]
+// The unit tests (tests\, run by tools\run-tests.ps1 and on every GitHub build) check the logic of internal classes.
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("ClaudeCodeTrafficLight.Tests")]
 
 namespace Semaphore
 {

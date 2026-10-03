@@ -46,7 +46,7 @@ namespace Semaphore
             Log.Write(registered ? "Shortcut " + Current + " is set" : "Shortcut " + Current + " is taken by another program");
         }
 
-        static bool Parse(string text, out uint mods, out uint key)
+        internal static bool Parse(string text, out uint mods, out uint key)
         {
             mods = 0; key = 0;
             if (string.IsNullOrEmpty(text)) return false;

@@ -156,7 +156,7 @@ namespace Semaphore
 
         // A question with one question and 2-10 single-choice options can be answered from the panel and (the first
         // three) by buttons on the phone; anything else (several questions, multi-select) is left to the normal prompt.
-        static bool ReadQuestion(IDictionary<string, object> input, out string question, out List<string> options, out List<string> descriptions)
+        internal static bool ReadQuestion(IDictionary<string, object> input, out string question, out List<string> options, out List<string> descriptions)
         {
             question = null;
             options = null;

@@ -4,7 +4,9 @@ name: build
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -26,6 +28,11 @@ jobs:
         env:
           TRAFFICLIGHT_SDK: '9.0.313'
         run: ./tools/make-release.ps1 -NoStart
+
+      # A failed check stops the build here, before anything is released.
+      - name: Unit tests
+        shell: pwsh
+        run: ./tools/run-tests.ps1
 
       - name: Show the checksums (compare with SHA256SUMS.txt of the author's build)
         shell: pwsh

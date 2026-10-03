@@ -18,7 +18,10 @@ namespace Semaphore
 
         public static HookEvent Parse(string json)
         {
-            var d = Json.Parse(json) as IDictionary<string, object>;
+            // Anything that is not a JSON object (a cut-off message, a stray write to the pipe) is no event.
+            IDictionary<string, object> d;
+            try { d = Json.Parse(json) as IDictionary<string, object>; }
+            catch (ArgumentException) { return null; }
             if (d == null) return null;
             var e = new HookEvent
             {

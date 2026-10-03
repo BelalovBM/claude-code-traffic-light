@@ -29,7 +29,7 @@ if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 $top = Join-Path $stage "ClaudeCodeTrafficLight-$ver-source"
 New-Item -ItemType Directory -Force $top | Out-Null
 # The same as the repository holds (see .gitignore): the author's notes and a home server's address stay out.
-foreach ($d in 'src', 'lang', 'tools', 'docs', 'packaging', '.github') { Copy-Item (Join-Path $root $d) (Join-Path $top $d) -Recurse }
+foreach ($d in 'src', 'lang', 'tests', 'tools', 'docs', 'packaging', '.github') { Copy-Item (Join-Path $root $d) (Join-Path $top $d) -Recurse }
 foreach ($f in 'build.ps1', 'LICENSE', 'README.md', 'CHANGELOG.md', 'DONATE.md', '.gitignore', '.gitattributes') { Copy-Item (Join-Path $root $f) (Join-Path $top $f) }
 Remove-Item (Join-Path $top 'tools\ntfy-docker\.env') -ErrorAction SilentlyContinue
 Add-Type -AssemblyName System.IO.Compression.FileSystem

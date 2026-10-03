@@ -88,7 +88,7 @@ namespace Semaphore
         // Reads the value of the top-level "hook_event_name" without a JSON parser or a regular
         // expression: both cost noticeable start-up time in a process that lives for a few milliseconds.
         // An escaped copy of the key inside a string (\"hook_event_name\") does not match.
-        static string EventName(string payload)
+        internal static string EventName(string payload)
         {
             int key = payload.IndexOf("\"hook_event_name\"", StringComparison.Ordinal);
             if (key < 0) return null;
