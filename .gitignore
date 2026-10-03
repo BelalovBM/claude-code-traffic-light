@@ -8,8 +8,9 @@ work/
 PC_Self_Check/
 selfcheck-*/
 
-# The author's own notes, design material and the Russian copy of the README.
+# The author's own notes, design material, manual test cases and the Russian copy of the README.
 UI/
+TestCases/
 README.ru.md
 PUBLISH.md
 
