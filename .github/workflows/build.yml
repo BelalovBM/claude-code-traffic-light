@@ -77,8 +77,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
-          # Versions 0.x are betas.
-          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          # A normal release even for 0.x: GitHub hides pre-releases from the repository page and from /releases/latest.
+          # The version number and the README say it is a beta.
+          prerelease: false
+          make_latest: true
           files: |
             Release/ClaudeCodeTrafficLight.exe
             Release/SHA256SUMS.txt
