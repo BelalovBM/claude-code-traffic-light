@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code Traffic Light: tray status and notifications for Claude Code on Windows</title>
+<meta name="description" content="A free Windows tray app for Claude Code: see which session is working, waiting for you or done, answer permission prompts without switching windows, and get phone notifications through ntfy when you are away.">
+<link rel="canonical" href="https://belalovbm.github.io/claude-code-traffic-light/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Claude Code Traffic Light">
+<meta property="og:description" content="Every Claude Code session in the Windows tray: see which one works, waits or is done, and answer its prompts without switching windows.">
+<meta property="og:url" content="https://belalovbm.github.io/claude-code-traffic-light/">
+<meta property="og:image" content="https://belalovbm.github.io/claude-code-traffic-light/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --back: #f6f6f7; --card: #ffffff; --fore: #1d1d1f; --muted: #5a5a63; --line: #dcdce0;
+    --accent: #0969da; --accent-fore: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --back: #1c1c1e; --card: #26262a; --fore: #ededf0; --muted: #a5a5ad; --line: #3a3a40; --accent: #4493f8; --accent-fore: #0d1117; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--back); color: var(--fore); font: 17px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 0 16px 48px; }
+  header { padding: 56px 0 28px; }
+  h1 { font-size: 44px; line-height: 1.15; margin: 0 0 14px; }
+  h2 { font-size: 26px; margin: 44px 0 14px; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 21px; color: var(--muted); max-width: 720px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 8px; }
+  .button { display: inline-block; padding: 11px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid var(--line); color: var(--fore); background: var(--card); }
+  .button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fore); }
+  .small { font-size: 15px; color: var(--muted); }
+  .demo { display: block; width: 100%; max-width: 760px; height: auto; margin: 28px auto 0; border-radius: 12px; border: 1px solid var(--line); }
+  .lamps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; padding: 0; list-style: none; }
+  .lamps li { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .dot { flex: none; width: 28px; height: 28px; }
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .feature { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .feature h3 { margin: 0 0 6px; font-size: 18px; }
+  .feature p { margin: 0; color: var(--muted); font-size: 16px; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; overflow-wrap: anywhere; }
+  a { color: var(--accent); }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
+  @media (max-width: 600px) { h1 { font-size: 34px; } .lead { font-size: 18px; } header { padding-top: 36px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Claude Code Traffic Light</h1>
+    <p class="lead">A small Windows tray app that shows every Claude Code session at a glance: which one is working, which one waits for you, which one is done. Answer its permission prompts without switching windows, and get a push on your phone only when you are away.</p>
+    <div class="buttons">
+      <a class="button primary" href="https://github.com/BelalovBM/claude-code-traffic-light/releases">Download for Windows</a>
+      <a class="button" href="https://github.com/BelalovBM/claude-code-traffic-light">Source code on GitHub</a>
+    </div>
+    <p class="small">Free and open source (GPL-3.0). One portable .exe, no installer, no administrator rights, no telemetry. Beta 0.9.</p>
+    <img class="demo" src="demo.gif" width="760" height="470" alt="Two Claude Code sessions in the tray menu; one asks a question in a panel near the tray, is answered, goes on and finishes">
+  </header>
+
+  <h2>What the colours mean</h2>
+  <ul class="lamps">
+    <li><img class="dot" src="lamps/working.png" width="28" height="28" alt="">working</li>
+    <li><img class="dot" src="lamps/compacting.png" width="28" height="28" alt="">compacting the conversation</li>
+    <li><img class="dot" src="lamps/waiting.png" width="28" height="28" alt="">waiting for you</li>
+    <li><img class="dot" src="lamps/idle.png" width="28" height="28" alt="">done, ready for the next task</li>
+  </ul>
+  <p class="small">With several sessions open, the tray icon shows the most urgent state; the tray menu lists every session, named after its chat.</p>
+
+  <h2>Features</h2>
+  <div class="features">
+    <div class="feature"><h3>All sessions, one icon</h3><p>Console and VS Code sessions alike. Bring a session's window to the front from the menu, mute one session, or pause everything for an hour.</p></div>
+    <div class="feature"><h3>Answer without switching</h3><p>A panel near the tray shows the permission prompt or the question with its answer options. Click, or press Win+Alt+C and answer from the keyboard.</p></div>
+    <div class="feature"><h3>Phone, only when away</h3><p>Pushes through ntfy (ntfy.sh or your own server) only when you did not react on the computer or the screen is locked. Answering prompts from the phone is optional.</p></div>
+    <div class="feature"><h3>No false "done"</h3><p>When Claude only stops to wait for its own background task, such as a build or tests, the session stays yellow and nothing is reported as finished.</p></div>
+    <div class="feature"><h3>Out of Claude's way</h3><p>Driven by Claude Code hooks that exit within milliseconds. If the app is not running, the hooks simply do nothing.</p></div>
+    <div class="feature"><h3>Fits your Windows</h3><p>7 languages, light, dark and system theme, high contrast, display scaling and several monitors.</p></div>
+  </div>
+
+  <h2>Get started</h2>
+  <p>1. Download <code>ClaudeCodeTrafficLight.exe</code> from the <a href="https://github.com/BelalovBM/claude-code-traffic-light/releases">releases page</a> and run it.<br>
+  2. Answer <strong>Yes</strong> to "Connect to Claude Code": the app adds its hooks to <code>~/.claude/settings.json</code> and keeps a backup of the original.<br>
+  3. Start Claude Code as usual.</p>
+  <p class="small">Requires Windows 10 or 11 (the .NET Framework it needs is part of Windows). The file is not code-signed, so Windows SmartScreen may warn on the first start: <strong>More info → Run anyway</strong>. Each release is built by GitHub Actions from the tagged source, reproducibly, and lists its SHA-256 checksum in <code>SHA256SUMS.txt</code>.</p>
+
+  <h2>Privacy</h2>
+  <p>The program collects nothing and sends nothing about you: no telemetry, no update checks. It uses the network only if you set up phone notifications, and then only to the ntfy server you chose. This page has no counters or trackers either.</p>
+
+  <footer>
+    <p>Claude Code Traffic Light is an independent open-source project, not affiliated with Anthropic. Claude and Claude Code are products of Anthropic.<br>
+    © 2026 BelalovBM · <a href="https://github.com/BelalovBM/claude-code-traffic-light/blob/main/LICENSE">GPL-3.0</a> · <a href="https://github.com/BelalovBM/claude-code-traffic-light/issues">Report a problem</a> · <a href="https://github.com/BelalovBM/claude-code-traffic-light/blob/main/DONATE.md">Support the project</a></p>
+  </footer>
+</main>
+</body>
+</html>
