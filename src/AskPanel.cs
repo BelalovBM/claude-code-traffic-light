@@ -47,7 +47,7 @@ namespace Semaphore
         readonly ToolTip tips = new ToolTip { ShowAlways = true, AutoPopDelay = 20000 };
 
         public AskPanel(Approvals.Request request, AskSession session,
-            Action<int> pick, Action<bool> decide, Action other, Action dismiss, bool readOnly = false)
+            Action<int> pick, Action<string> decide, Action other, Action dismiss, bool readOnly = false)
         {
             Token = request.Token;
             SessionId = request.SessionId;
@@ -201,15 +201,24 @@ namespace Semaphore
                 var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = Ui.Pad(0, 4, 0, 0) };
                 var allow = Choice(Loc.T("approve.push.allow"));
                 allow.Width = (ContentWidth - Ui.S(10)) / 2;
-                allow.Click += (s, e) => { decide(true); Close(); };
+                allow.Click += (s, e) => { decide("allow"); Close(); };
                 answerControls.Add(allow);
                 var deny = Choice(Loc.T("approve.push.deny"));
                 deny.Width = (ContentWidth - Ui.S(10)) / 2;
-                deny.Click += (s, e) => { decide(false); Close(); };
+                deny.Click += (s, e) => { decide("deny"); Close(); };
                 answerControls.Add(deny);
                 buttons.Controls.Add(allow);
                 buttons.Controls.Add(deny);
                 flow.Controls.Add(buttons);
+                // Claude Code's own second answer: allow, and add its rule so the same request is not asked again.
+                if (!string.IsNullOrEmpty(request.RulesText))
+                {
+                    var always = Choice(Loc.T("approve.always"));
+                    always.Click += (s, e) => { decide("always"); Close(); };
+                    answerControls.Add(always);
+                    flow.Controls.Add(always);
+                    flow.Controls.Add(Line(request.RulesText, true, 8, 2, 0));
+                }
             }
 
             var later = new LinkLabel

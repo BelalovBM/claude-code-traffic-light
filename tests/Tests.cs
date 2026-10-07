@@ -198,6 +198,24 @@ namespace Semaphore.Tests
             Check("multi-select is left to the window", !Readable("{\"questions\":[{\"question\":\"P\",\"multiSelect\":true,\"options\":[" + Options(3) + "]}]}"));
             Check("two questions are left to the window",
                 !Readable("{\"questions\":[{\"question\":\"A\",\"multiSelect\":false,\"options\":[" + Options(2) + "]},{\"question\":\"B\",\"multiSelect\":false,\"options\":[" + Options(2) + "]}]}"));
+
+            // "Allow and don't ask again": Claude Code's suggestions are offered only when every one can be put in words.
+            HookEvent e = HookEvent.Parse("{\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"npm test\"},"
+                + "\"permission_suggestions\":[{\"type\":\"addRules\",\"rules\":[{\"toolName\":\"Bash\",\"ruleContent\":\"npm test:*\"}],\"behavior\":\"allow\",\"destination\":\"localSettings\"}]}");
+            string rules = Approvals.DescribeRules(e.PermissionSuggestions);
+            Check("a suggested rule is described", rules != null && rules.Contains("Bash(npm test:*)"), rules);
+            Check("a folder is described", Rules("[{\"type\":\"addDirectories\",\"directories\":[\"D:\\\\Work\"],\"destination\":\"session\"}]") != null);
+            Check("accepting edits is described", Rules("[{\"type\":\"setMode\",\"mode\":\"acceptEdits\",\"destination\":\"session\"}]") != null);
+            Check("another mode is not offered", Rules("[{\"type\":\"setMode\",\"mode\":\"bypassPermissions\",\"destination\":\"session\"}]") == null);
+            Check("a deny rule is not offered", Rules("[{\"type\":\"addRules\",\"rules\":[{\"toolName\":\"Bash\"}],\"behavior\":\"deny\",\"destination\":\"session\"}]") == null);
+            Check("an unknown kind among known ones is not offered",
+                Rules("[{\"type\":\"setMode\",\"mode\":\"acceptEdits\",\"destination\":\"session\"},{\"type\":\"replaceRules\",\"destination\":\"session\"}]") == null);
+            Check("no suggestions, nothing offered", Rules("[]") == null && Approvals.DescribeRules(null) == null);
+        }
+
+        static string Rules(string json)
+        {
+            return Approvals.DescribeRules(Json.Parse(json) as System.Collections.IList);
         }
 
         // ---- settings ----

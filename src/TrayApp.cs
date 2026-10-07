@@ -408,6 +408,22 @@ namespace Semaphore
             }, null);
         }
 
+        // The request was answered (here, on the phone or in the window of Claude Code): Claude goes on at once, so the
+        // session works again, unless it still asks something else.
+        public void RequestSettled(string sessionId)
+        {
+            ui.Post(_ =>
+            {
+                Session s = store.Find(sessionId);
+                if (s == null || s.State != State.Waiting) return;
+                if (approvals.Waiting().Any(r => r.SessionId == sessionId)) return;
+                Change change = store.Apply(new HookEvent { Name = "PostToolUse", SessionId = sessionId });
+                Log.Write("[" + s.ShortId + "] answered, working again");
+                if (change != null) Notify(change);
+                Refresh();
+            }, null);
+        }
+
         void OnMessage(string text)
         {
             try
@@ -1059,7 +1075,7 @@ namespace Semaphore
             };
             askPanel = new AskPanel(r, who,
                 index => { MarkReacted(s); approvals.AnswerOption(token, index); },
-                allow => { MarkReacted(s); approvals.Answer(token, allow); },
+                verb => { MarkReacted(s); approvals.Answer(token, verb); },
                 () => { MarkReacted(s); askDismissed.Add(token); if (s != null) Native.FocusSession(s); },
                 () => { MarkReacted(s); askDismissed.Add(token); },
                 token.StartsWith("orphan:"));

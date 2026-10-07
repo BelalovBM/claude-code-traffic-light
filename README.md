@@ -70,14 +70,14 @@ This was tested against the official ntfy image with a normal user, an access to
 
 When Claude Code asks permission to run a command or change a file, you can answer without going back to its window, in two ways. Both are off by default and are switched on in **Settings → Permission prompts**:
 
-- **On this computer:** a small panel near the tray shows the request in full (a command, or a question with its answers) with **Allow** / **Deny** or one button per answer. It does not take the keyboard focus. **Later** closes it; the tray menu entry of that session opens it again. A typed answer ("Other") is not possible there: the panel offers to open the session window.
+- **On this computer:** a small panel near the tray shows the request in full (a command, or a question with its answers) with **Allow** / **Deny** or one button per answer. When Claude Code offers a rule so it does not ask again, there is also **Allow and don't ask again**, with that rule shown under it (on the phone: **Always**). The panel does not take the keyboard focus. **Later** closes it; the tray menu entry of that session opens it again. A typed answer ("Other") is not possible there: the panel offers to open the session window.
 - **From the phone (experimental, needs ntfy):** the phone gets a push with the same buttons.
 
 A question with answer options (a single question, one choice) works the same way: the options become the buttons or menu items (the phone shows at most three), and the chosen answer goes back to Claude Code. Questions of other shapes stay on the screen.
 
 Think before enabling it:
 - Whoever can tap **Allow** lets Claude Code act on your computer. Security rests on secret topic names on the ntfy server (they work like passwords), and the push contains the tool name and the command or file path. The ntfy server sees each request and your answer. Your own ntfy server with a password is safer than the public one.
-- A fresh secret reply topic and a one-time token per request are used, so an old or guessed token does nothing. An answer applies once and never creates a permanent rule.
+- A fresh secret reply topic and a one-time token per request are used, so an old or guessed token does nothing. Allow and Deny apply once; only **Always** adds a permanent rule, and only the one Claude Code itself offered for that request, shown in the push.
 - Nothing is ever approved without a valid answer: on timeout, if you answer on the computer first, if the session is muted (for the phone) or the app is not running, Claude Code simply shows its normal prompt.
 - The feature adds a `PermissionRequest` hook to Claude Code's settings only while it is switched on.
 

@@ -42,6 +42,11 @@
   .feature p { margin: 0; color: var(--muted); font-size: 16px; }
   code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; overflow-wrap: anywhere; }
   a { color: var(--accent); }
+  .phone { display: grid; grid-template-columns: minmax(0, 300px) 1fr; gap: 28px; align-items: start; }
+  .phone img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); }
+  .phone ul { margin: 0; padding-left: 20px; }
+  .phone li { margin-bottom: 8px; }
+  @media (max-width: 600px) { .phone { grid-template-columns: 1fr; } .phone img { max-width: 300px; margin: 0 auto; } }
   footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
   @media (max-width: 600px) { h1 { font-size: 34px; } .lead { font-size: 18px; } header { padding-top: 36px; } }
 </style>
@@ -76,6 +81,21 @@
     <div class="feature"><h3>No false "done"</h3><p>When Claude only stops to wait for its own background task, such as a build or tests, the session stays yellow and nothing is reported as finished.</p></div>
     <div class="feature"><h3>Out of Claude's way</h3><p>Driven by Claude Code hooks that exit within milliseconds. If the app is not running, the hooks simply do nothing.</p></div>
     <div class="feature"><h3>Fits your Windows</h3><p>7 languages, light, dark and system theme, high contrast, display scaling and several monitors.</p></div>
+  </div>
+
+  <h2>On your phone</h2>
+  <div class="phone">
+    <img src="phone-ntfy.jpg" width="591" height="1054" loading="lazy" alt="The ntfy app on a phone: Claude Code asks permission to run npm test with Allow, Always and Deny buttons, answered with Allow; Claude asks which test runner to set up, answered with the first option; a task finished in 12 minutes">
+    <div>
+      <p>Pushes arrive in the free <a href="https://ntfy.sh/">ntfy</a> app (Android and iPhone), from ntfy.sh or your own server.</p>
+      <ul>
+        <li><strong>Permission prompts</strong> come with Allow and Deny, and with Always when Claude Code offers a rule so it does not ask again; the push says what that rule allows.</li>
+        <li><strong>Questions</strong> with answer options get a button for each of the first three answers.</li>
+        <li><strong>Finished tasks</strong> are reported only when they ran long enough for you to look away.</li>
+        <li>Answer on the computer first, and the phone is told the buttons no longer work.</li>
+      </ul>
+      <p class="small">Answering from the phone is off until you turn it on. The topic name is random and secret, and buttons work once, only for the request still waiting.</p>
+    </div>
   </div>
 
   <h2>Get started</h2>

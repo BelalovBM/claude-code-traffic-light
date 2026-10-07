@@ -15,6 +15,8 @@ namespace Semaphore
         public long ProcessStart;
         public IDictionary<string, object> ToolInput;
         public string ToolFile;
+        // The rules Claude Code offers as "allow and don't ask again" for a permission prompt.
+        public System.Collections.IList PermissionSuggestions;
 
         public static HookEvent Parse(string json)
         {
@@ -63,6 +65,8 @@ namespace Semaphore
                 e.ToolInput = input;
                 e.ToolInputText = Describe(input);
             }
+            object suggestions;
+            if (d.TryGetValue("permission_suggestions", out suggestions)) e.PermissionSuggestions = suggestions as System.Collections.IList;
             return e;
         }
 

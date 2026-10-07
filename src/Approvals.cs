@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -29,13 +32,17 @@ namespace Semaphore
             public string Question;
             public List<string> Options, Descriptions;
             public IDictionary<string, object> Input;
+            // Claude Code's own "allow and don't ask again" rules for this prompt, and what they say in words;
+            // null when there are none, or when they are of a kind this program does not know how to describe.
+            public System.Collections.IList Rules;
+            public string RulesText;
             // The push with the buttons went out, so a second "waiting" push would only repeat it.
             public bool Pushed;
             public DateTime PushedAt;
             // The answer (if any) was given on this computer, not on the phone.
             public bool ByComputer;
             public DateTime Deadline;
-            public string Result; // "allow", "deny", "pick:<n>", or null for "ask on the computer"
+            public string Result; // "allow", "always", "deny", "pick:<n>", or null for "ask on the computer"
             public bool Used;
             public readonly ManualResetEvent Done = new ManualResetEvent(false);
         }
@@ -106,7 +113,16 @@ namespace Semaphore
                 using (pipe)
                 {
                     string payload = Encoding.UTF8.GetString(ReadMessage(pipe));
-                    WriteMessage(pipe, Decide(payload));
+                    uint pid;
+                    Process hook = null;
+                    try { if (GetNamedPipeClientProcessId(pipe.SafePipeHandle, out pid)) hook = Process.GetProcessById((int)pid); }
+                    catch { }
+                    using (hook)
+                    {
+                        string reply = Decide(payload, hook);
+                        // A hook that Claude Code has stopped takes no reply.
+                        if (hook == null || !HasExited(hook)) WriteMessage(pipe, reply);
+                    }
                 }
             }
             catch (Exception ex) { Log.Write("Approval request failed: " + ex.Message); }
@@ -121,6 +137,7 @@ namespace Semaphore
         {
             string outcome;
             if (result == "allow") outcome = Loc.T("journal.allowed") + " " + Loc.T(p.ByComputer ? "journal.pc" : "journal.phone");
+            else if (result == "always") outcome = Loc.T("journal.always") + " " + Loc.T(p.ByComputer ? "journal.pc" : "journal.phone");
             else if (result == "deny") outcome = Loc.T("journal.denied") + " " + Loc.T(p.ByComputer ? "journal.pc" : "journal.phone");
             else if (result != null && result.StartsWith("pick:", StringComparison.Ordinal) && p.Options != null)
             {
@@ -148,6 +165,8 @@ namespace Semaphore
         {
             public string Token, SessionId, Tool, Summary, Question;
             public List<string> Options, Descriptions;
+            // What "allow and don't ask again" would add, in words; null when that answer is not offered.
+            public string RulesText;
             public bool Pushed;
             public DateTime PushedAt;
             // When the program stops waiting for an answer (default: no deadline known).
@@ -207,16 +226,79 @@ namespace Semaphore
                         list.Add(new Request
                         {
                             Token = p.Token, SessionId = p.SessionId, Tool = p.Tool, Summary = p.Summary,
-                            Question = p.Question, Options = p.Options, Descriptions = p.Descriptions, Pushed = p.Pushed, PushedAt = p.PushedAt, Deadline = p.Deadline,
+                            Question = p.Question, Options = p.Options, Descriptions = p.Descriptions, RulesText = p.RulesText,
+                            Pushed = p.Pushed, PushedAt = p.PushedAt, Deadline = p.Deadline,
                         });
             return list;
         }
 
-        // An answer given in the tray menu; works like a button on the phone, once.
-        public void Answer(string token, bool allow)
+        // An answer given on this computer ("allow", "always" or "deny"); works like a button on the phone, once.
+        public void Answer(string token, string verb)
         {
             MarkByComputer(token);
-            Resolve((allow ? "allow:" : "deny:") + token);
+            Resolve(verb + ":" + token);
+        }
+
+        // Claude Code's suggestions, in words, one line per rule with where it is kept. Null when there is nothing to
+        // offer, or when any of them is of a kind not described here: nothing is ever added that was not shown.
+        internal static string DescribeRules(System.Collections.IList suggestions)
+        {
+            if (suggestions == null || suggestions.Count == 0) return null;
+            var lines = new List<string>();
+            foreach (object o in suggestions)
+            {
+                var s = o as IDictionary<string, object>;
+                if (s == null) return null;
+                string type = Text(s, "type"), where;
+                switch (Text(s, "destination"))
+                {
+                    case "session": where = Loc.T("always.where.session"); break;
+                    case "localSettings": where = Loc.T("always.where.local"); break;
+                    case "projectSettings": where = Loc.T("always.where.project"); break;
+                    case "userSettings": where = Loc.T("always.where.user"); break;
+                    default: return null;
+                }
+                string what;
+                if (type == "addRules" && Text(s, "behavior") == "allow")
+                {
+                    var rules = s.ContainsKey("rules") ? s["rules"] as System.Collections.IList : null;
+                    if (rules == null || rules.Count == 0) return null;
+                    var names = new List<string>();
+                    foreach (object r in rules)
+                    {
+                        var rule = r as IDictionary<string, object>;
+                        string tool = rule == null ? null : Text(rule, "toolName");
+                        if (string.IsNullOrEmpty(tool)) return null;
+                        string content = Text(rule, "ruleContent");
+                        names.Add(string.IsNullOrEmpty(content) ? tool : tool + "(" + content + ")");
+                    }
+                    what = string.Join(", ", names);
+                }
+                else if (type == "addDirectories")
+                {
+                    var dirs = s.ContainsKey("directories") ? s["directories"] as System.Collections.IList : null;
+                    if (dirs == null || dirs.Count == 0) return null;
+                    var names = new List<string>();
+                    foreach (object d in dirs)
+                    {
+                        if (!(d is string) || ((string)d).Length == 0) return null;
+                        names.Add((string)d);
+                    }
+                    what = Loc.T("always.dirs", string.Join(", ", names));
+                }
+                else if (type == "setMode" && Text(s, "mode") == "acceptEdits")
+                    what = Loc.T("always.mode.edits");
+                else
+                    return null;
+                lines.Add(what + " — " + where);
+            }
+            return string.Join("\n", lines);
+        }
+
+        static string Text(IDictionary<string, object> d, string key)
+        {
+            object v;
+            return d.TryGetValue(key, out v) ? v as string : null;
         }
 
         public void AnswerOption(string token, int index)
@@ -259,7 +341,7 @@ namespace Semaphore
         }
 
         // The reply the hook turns into JSON: "allow", "deny|message" or "" (ask on the computer).
-        string Decide(string payload)
+        string Decide(string payload, Process hook)
         {
             HookEvent e = HookEvent.Parse(payload);
             if (e == null || e.Name != "PermissionRequest") return "";
@@ -290,6 +372,11 @@ namespace Semaphore
                 p.Input = e.ToolInput;
                 p.Summary = p.Question;
             }
+            else
+            {
+                p.RulesText = DescribeRules(e.PermissionSuggestions);
+                if (p.RulesText != null) p.Rules = e.PermissionSuggestions;
+            }
             lock (gate) pending[p.Token] = p;
             // Claude Code reports "waiting" a few seconds after it asks; the request itself is known at once, so the
             // session turns red and the pop-up appears now, not after that delay.
@@ -298,6 +385,8 @@ namespace Semaphore
             string id = Short(e.SessionId);
             Log.Write("[" + id + "] approval requested: " + p.Tool);
             bool pushed = false;
+            // Claude Code stops the hook when the prompt is answered in its own window; nothing else tells about that.
+            bool hookGone = false;
             try
             {
                 if (ctx.Phone)
@@ -321,6 +410,13 @@ namespace Semaphore
                     TimeSpan left = deadline - DateTime.Now;
                     if (left <= TimeSpan.Zero) break;
                     if (p.Done.WaitOne((int)Math.Min(1000, left.TotalMilliseconds))) break;
+                    if (hook != null && HasExited(hook))
+                    {
+                        hookGone = true;
+                        p.ByComputer = true;
+                        Log.Write("[" + id + "] approval: the hook was stopped, the prompt was answered in the window");
+                        break;
+                    }
                     bool open;
                     lock (gate) open = p.Result == null;
                     if (ctx.Phone && !pushed && open && app.ScreenLocked)
@@ -338,6 +434,9 @@ namespace Semaphore
 
             string result;
             lock (gate) result = p.Result;
+            // Answered: Claude Code goes on at once, so the session works again now, not only when the command ends
+            // (a long build would otherwise stay red, and a "waiting" push would follow).
+            if (result != null || hookGone) app.RequestSettled(e.SessionId);
             Record(p, string.IsNullOrEmpty(ctx.Label) ? "?" : ctx.Label, result, result == null && DateTime.Now >= deadline);
             if (p.Pushed && ctx.Phone)
                 FollowUp(p, result, result == null && DateTime.Now >= deadline, string.IsNullOrEmpty(ctx.Label) ? "" : ctx.Label,
@@ -346,6 +445,7 @@ namespace Semaphore
             if (result != null && result.StartsWith("pick:", StringComparison.Ordinal) && p.Options != null)
                 return "answer|" + AnswerJson(p, int.Parse(result.Substring(5), CultureInfo.InvariantCulture));
             if (result == "allow") return "allow";
+            if (result == "always") return "always|" + new JavaScriptSerializer().Serialize(p.Rules);
             if (result == "deny") return "deny|" + Loc.T("approve.denied.message");
             return "";
         }
@@ -390,6 +490,17 @@ namespace Semaphore
                 for (int i = 0; i < Math.Min(3, p.Options.Count); i++)
                     buttons.Add(Button(Clip((i + 1) + ") " + p.Options[i], 30), replyUrl, "pick:" + p.Token + ":" + i));
                 actions = buttons.ToArray();
+            }
+            else if (p.RulesText != null)
+            {
+                // The third button is Claude Code's own "don't ask again"; the push says what it adds.
+                body += "\n\n" + Loc.T("always.push.note", p.RulesText);
+                actions = new object[]
+                {
+                    Button(Loc.T("approve.push.allow"), replyUrl, "allow:" + p.Token),
+                    Button(Loc.T("approve.push.always"), replyUrl, "always:" + p.Token),
+                    Button(Loc.T("approve.push.deny"), replyUrl, "deny:" + p.Token),
+                };
             }
             else
             {
@@ -565,7 +676,7 @@ namespace Semaphore
             if (colon <= 0) return;
             string verb = message.Substring(0, colon);
             string token = message.Substring(colon + 1);
-            if (verb != "allow" && verb != "deny" && verb != "pick") return;
+            if (verb != "allow" && verb != "always" && verb != "deny" && verb != "pick") return;
 
             // "pick:<token>:<option number>"
             int option = -1;
@@ -582,6 +693,8 @@ namespace Semaphore
                 if (!pending.TryGetValue(token, out p) || p.Used) return;
                 // A question takes only a chosen option, a permission prompt only allow or deny.
                 if (verb == "pick" ? p.Options == null || option < 0 || option >= p.Options.Count : p.Options != null) return;
+                // "Don't ask again" only where Claude Code offered it.
+                if (verb == "always" && p.Rules == null) return;
                 p.Used = true;
                 p.Result = verb == "pick" ? "pick:" + option : verb;
                 p.Done.Set();
@@ -589,6 +702,15 @@ namespace Semaphore
         }
 
         // ---- helpers ----
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool GetNamedPipeClientProcessId(SafePipeHandle pipe, out uint clientProcessId);
+
+        static bool HasExited(Process p)
+        {
+            try { return p.HasExited; }
+            catch { return false; }
+        }
 
         static string Clip(string text, int max)
         {

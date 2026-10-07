@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.1 (beta)
+
+**New**
+- **Allow and don't ask again.** When Claude Code offers a rule so it does not ask again (its own second answer, such as "Yes, allow npm test for this project"), the panel near the tray has that answer too, with the rule shown under it, and the phone gets a third button, **Always**. The rule is exactly the one Claude Code offered; nothing else is added.
+
+**Fixed**
+- After a permission prompt was answered, the light stayed red until the command finished: a long build or test run looked like a session waiting for you, and a "waiting" push could follow a minute later. The session is now yellow again right after the answer: from the panel, the phone, or the Claude Code window itself.
+
 ## 0.9.0 (beta)
 
 The first public version. A beta: everything described works and was tested, but not yet on many different computers.

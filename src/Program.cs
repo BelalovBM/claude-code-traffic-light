@@ -118,6 +118,8 @@ namespace Semaphore
             string decision;
             if (reply == "allow")
                 decision = "{\"behavior\":\"allow\"}";
+            else if (reply != null && reply.StartsWith("always|", StringComparison.Ordinal))
+                decision = "{\"behavior\":\"allow\",\"updatedPermissions\":" + reply.Substring(7) + "}";
             else if (reply != null && reply.StartsWith("answer|", StringComparison.Ordinal))
                 decision = "{\"behavior\":\"allow\",\"updatedInput\":" + reply.Substring(7) + "}";
             else if (reply != null && reply.StartsWith("deny|", StringComparison.Ordinal))
