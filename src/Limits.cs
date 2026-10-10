@@ -29,6 +29,8 @@ namespace Semaphore
         public long WeekResetMs { get; set; }
         public Dictionary<string, double> FiveCost { get; set; }
         public Dictionary<string, double> WeekCost { get; set; }
+        // Which way of counting the use these costs were made with (see UsageMath.CostVersion).
+        public int CostVersion { get; set; }
 
         [ScriptIgnore] public DateTime At { get { return Ms(AtMs); } }
         [ScriptIgnore] public DateTime FiveReset { get { return Ms(FiveResetMs); } }
@@ -61,12 +63,17 @@ namespace Semaphore
     // The arithmetic, apart from files, so that it can be tested.
     static class UsageMath
     {
-        // Tokens weighted roughly as they are priced: reading from the cache is cheap, writing to it a little dearer than
-        // plain input, the reply dearest. Across two different weeks this followed the official weekly figure to about 1%.
+        // Tokens weighted as the official figures showed them to count: writing to the cache a little dearer than plain
+        // input, the reply dearest, and reading the cache very cheap (a fortieth). With the reads at a tenth, as they
+        // are priced, the percent per unit drifted by a tenth over one long session, whose use is mostly reads of a
+        // large context; at a fortieth, every exact figure of two 5-hour windows and two weeks agreed to about 3%.
         internal static double Cost(long input, long cacheWrite, long cacheRead, long output)
         {
-            return input + 1.25 * cacheWrite + 0.1 * cacheRead + 5.0 * output;
+            return input + 1.25 * cacheWrite + 0.025 * cacheRead + 5.0 * output;
         }
+
+        // Raised when Cost changes: the use stored with older figures is counted again.
+        internal const int CostVersion = 2;
 
         internal sealed class Sample
         {
@@ -184,6 +191,7 @@ namespace Semaphore
             try
             {
                 ScanTranscripts();
+                RecountOld();
                 ReadClaudeJson();
                 LimitsSnapshot s = Compute(DateTime.UtcNow);
                 snapshot = s;
@@ -392,8 +400,7 @@ namespace Semaphore
             UsageAnchor a = ParseCache(text);
             if (a == null) return;
             lock (gate) if (anchors.Any(x => x.AtMs == a.AtMs)) return;
-            if (a.Five.HasValue && a.FiveReset > a.At) a.FiveCost = CostByModel(a.FiveReset.AddHours(-5), a.At);
-            if (a.Week.HasValue && a.WeekReset > a.At) a.WeekCost = CostByModel(a.WeekReset.AddDays(-7), a.At);
+            Recount(a);
             lock (gate)
             {
                 anchors.Add(a);
@@ -408,6 +415,28 @@ namespace Semaphore
         }
 
         static string Fmt(double? v) { return v.HasValue ? v.Value.ToString("0", CultureInfo.InvariantCulture) : "?"; }
+
+        // The use in each window up to the figure, counted the current way; a window that began before the transcripts
+        // still kept here cannot be counted, and that figure then only gives the percentage, not the weights.
+        void Recount(UsageAnchor a)
+        {
+            DateTime kept = DateTime.UtcNow.AddDays(-KeepDays);
+            DateTime five = a.FiveReset.AddHours(-5), week = a.WeekReset.AddDays(-7);
+            a.FiveCost = a.Five.HasValue && a.FiveReset > a.At && five >= kept ? CostByModel(five, a.At) : null;
+            a.WeekCost = a.Week.HasValue && a.WeekReset > a.At && week >= kept ? CostByModel(week, a.At) : null;
+            a.CostVersion = UsageMath.CostVersion;
+        }
+
+        // Figures saved with an older way of counting are counted again, once, after the transcripts were read.
+        void RecountOld()
+        {
+            List<UsageAnchor> old;
+            lock (gate) old = anchors.Where(x => x.CostVersion < UsageMath.CostVersion).ToList();
+            if (old.Count == 0) return;
+            foreach (UsageAnchor a in old) Recount(a);
+            SaveAnchors();
+            Log.Write("Usage limits: " + old.Count + " saved figure(s) counted again the current way");
+        }
 
         // The block "cachedUsageUtilization" of ~/.claude.json. Only that block is parsed: the file has keys that differ
         // only in letter case, which a parser of the whole file refuses.

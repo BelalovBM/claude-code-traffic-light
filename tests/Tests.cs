@@ -264,7 +264,7 @@ namespace Semaphore.Tests
 
         static void UsageLimits()
         {
-            Check("the reply weighs most, reading the cache least", UsageMath.Cost(0, 0, 0, 1) == 5 && UsageMath.Cost(0, 0, 10, 0) == 1);
+            Check("the reply weighs most, reading the cache least", UsageMath.Cost(0, 0, 0, 1) == 5 && UsageMath.Cost(0, 0, 40, 0) == 1);
 
             // Two models, the dearer one counted 1.5 times: the fit finds that from the anchors alone.
             DateTime now = DateTime.UtcNow;
