@@ -207,6 +207,7 @@ usage.2=The icon shows the most urgent state: red if any session waits for you, 
 usage.3=Phone: on the Phone page, scan the QR code with the ntfy app to get a push when Claude waits for you or finishes a long task.
 usage.4=Permission prompts: on that page you can allow answering from a panel near the tray or from the phone, without going back to the window.
 usage.5=To silence a single session, untick "Notifications for this session" in its tray menu entry.
+usage.6=Claude usage limits at the top of the menu: exact right after /usage, an estimate in between (marked "≈") from the session transcripts on this computer. Claude Code itself gives the current figures only on /usage, and the program does not contact Anthropic. To refresh them, run /usage.
 status.compacting=Compacting context
 wiz.blue=Compacting the conversation (can take a few minutes)
 toast.compact.start.title=Compacting context

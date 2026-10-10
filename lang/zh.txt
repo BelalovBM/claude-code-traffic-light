@@ -207,6 +207,7 @@ usage.2=图标显示最紧急的状态：有会话在等你时为红色，否则
 usage.3=手机：在“手机”页面用 ntfy 应用扫描二维码，即可在 Claude 等待你或完成长任务时收到推送。
 usage.4=权限请求：在该页面可以允许通过托盘旁的面板或手机回答，无需回到窗口。
 usage.5=要让单个会话静音，请在托盘菜单中取消勾选该会话的“此会话的通知”。
+usage.6=菜单顶部显示 Claude 用量限制：刚运行 /usage 后为准确值，两次之间为根据此电脑会话记录的估算（标记“≈”）。Claude Code 只在 /usage 时给出当前数字，本程序不联系 Anthropic。要刷新，请运行 /usage。
 status.compacting=正在压缩上下文
 wiz.blue=正在压缩对话（可能需要几分钟）
 toast.compact.start.title=正在压缩上下文

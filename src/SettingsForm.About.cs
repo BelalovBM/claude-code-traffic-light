@@ -60,7 +60,7 @@ namespace Semaphore
             p.Controls.Add(StatusRow(Level.Waiting, Loc.T("wiz.red")));
             p.Controls.Add(StatusRow(Level.Idle, Loc.T("wiz.green")));
             p.Controls.Add(Header(Loc.T("sec.usage")));
-            for (int i = 1; i <= 5; i++)
+            for (int i = 1; i <= 6; i++)
                 p.Controls.Add(Plain("•  " + Loc.T("usage." + i)));
 
             // The donation text, the address and its QR code sit together in one card.

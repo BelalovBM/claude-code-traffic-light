@@ -207,6 +207,7 @@ usage.2=Das Symbol zeigt den dringendsten Zustand: Rot, wenn eine Sitzung auf Si
 usage.3=Handy: Scannen Sie auf der Seite „Handy“ den QR-Code mit der ntfy-App, um eine Nachricht zu erhalten, wenn Claude wartet oder eine lange Aufgabe beendet.
 usage.4=Berechtigungsanfragen: Auf dieser Seite können Sie das Antworten in einem Panel am Tray oder am Handy erlauben, ohne zum Fenster zurückzugehen.
 usage.5=Um eine einzelne Sitzung stummzuschalten, entfernen Sie im Tray-Menü bei ihr das Häkchen „Benachrichtigungen für diese Sitzung“.
+usage.6=Claude-Nutzungslimits oben im Menü: genau direkt nach /usage, dazwischen eine Schätzung (Zeichen „≈“) aus den Sitzungsprotokollen auf diesem Computer. Claude Code selbst liefert die aktuellen Werte nur bei /usage, und das Programm kontaktiert Anthropic nicht. Zum Aktualisieren /usage aufrufen.
 status.compacting=Kontext wird komprimiert
 wiz.blue=Gespräch wird komprimiert (kann einige Minuten dauern)
 toast.compact.start.title=Kontext wird komprimiert
