@@ -132,6 +132,14 @@ namespace Semaphore
         // The turn ended on an API error (the kind, and what Claude showed): the session waits for the user, but not
         // with a question. Null otherwise.
         public string Failure, FailureText;
+        // What Claude said last when it finished (for the "done" notice), from the Stop event.
+        public string Summary;
+        // How full the context is: the tokens of the last reply's input and its model, read from the transcript; when
+        // that was read, and whether the "almost full" warning was given for this fill.
+        public long ContextTokens;
+        public string ContextModel;
+        public DateTime ContextChecked;
+        public bool ContextWarned;
         public string HostName;
         public long HostHwnd;
         public int ProcessId;
@@ -326,6 +334,8 @@ namespace Semaphore
                 s.FailureText = e.LastMessage;
             }
             else s.Failure = s.FailureText = null;
+            if (e.Name == "Stop") s.Summary = e.LastMessage;
+            else if (e.Name == "UserPromptSubmit") s.Summary = null;
             // Any event but Stop means the session acts again: whatever background wait there was is over.
             if (e.Name != "Stop") s.BackgroundUntil = DateTime.MinValue;
             else if (old == State.Working || old == State.Compacting)

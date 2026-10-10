@@ -124,6 +124,58 @@ namespace Semaphore
             return l;
         }
 
+        // ---- the context of each session ----
+
+        // On the tray timer: how full each session's context is, read again after the session reported something. Near
+        // the point where Claude compacts it on its own, one notice on this computer: finishing the step first, or a
+        // /compact chosen by the user, keeps the details that an automatic one may lose.
+        void CheckContexts()
+        {
+            foreach (Session s in store.All)
+            {
+                if (s.LastEvent > s.ContextChecked)
+                {
+                    s.ContextChecked = DateTime.Now;
+                    long tokens;
+                    string model;
+                    if (TitleReader.ReadContext(s.TranscriptPath, out tokens, out model))
+                    {
+                        s.ContextTokens = tokens;
+                        s.ContextModel = model;
+                    }
+                }
+                int percent = ContextPercent(s);
+                if (percent < 0) continue;
+                if (percent < 50) s.ContextWarned = false;
+                if (percent < 90 || s.ContextWarned) continue;
+                s.ContextWarned = true;
+                Log.Write("[" + s.ShortId + "] context " + percent + "% of the compaction point");
+                if (Config.ContextWarn && !Paused && !IsMuted(s))
+                {
+                    Session full = s;
+                    Balloon(Loc.T("toast.context.title"), WithLabel(SessionLabel(s), Loc.T("toast.context.text", percent)), Level.Compacting, 9000,
+                        () => Native.FocusSession(full));
+                }
+            }
+        }
+
+        // The context as a share of the point where this model gets compacted, or -1 when that point is not known yet.
+        int ContextPercent(Session s)
+        {
+            long limit = usage.ContextLimit(s.ContextModel);
+            if (limit <= 0 || s.ContextTokens <= 0) return -1;
+            return (int)Math.Min(100, Math.Round(100.0 * s.ContextTokens / limit));
+        }
+
+        // "Context: 412k tokens · 43% of the compaction point", or the tokens alone while that point is unknown.
+        string ContextLine(Session s)
+        {
+            if (s.ContextTokens <= 0) return null;
+            string k = Math.Round(s.ContextTokens / 1000.0).ToString("0", CultureInfo.InvariantCulture);
+            int percent = ContextPercent(s);
+            return percent < 0 ? Loc.T("menu.session.context", k) : Loc.T("menu.session.context.pct", k, percent);
+        }
+
         // On the tray timer: pushes for a step reached, a limit that ran out by the estimate, and one that is back.
         void CheckLimits()
         {

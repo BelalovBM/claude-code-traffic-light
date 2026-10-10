@@ -166,6 +166,7 @@ namespace Semaphore
         public void Start()
         {
             LoadAnchors();
+            LoadContextLimits();
             timer = new Timer(_ => Update(), null, 1000, 30000);
         }
 
@@ -213,6 +214,7 @@ namespace Semaphore
                     offsets.TryGetValue(path, out from);
                     if (info.Length < from) from = 0;
                     if (info.Length == from) continue;
+                    currentPath = path;
                     offsets[path] = ReadFrom(path, from);
                 }
                 catch (IOException) { }
@@ -222,6 +224,7 @@ namespace Semaphore
             {
                 foreach (string key in entries.Where(kv => kv.Value.At < since).Select(kv => kv.Key).ToList()) entries.Remove(key);
             }
+            SaveContextLimits();
             scanned = true;
         }
 
@@ -259,9 +262,13 @@ namespace Semaphore
 
         void Line(string line)
         {
+            NoteCompaction(line);
             if (line.IndexOf("\"usage\"", StringComparison.Ordinal) < 0 || line.IndexOf("\"role\":\"assistant\"", StringComparison.Ordinal) < 0) return;
             Match model = ModelRx.Match(line);
             if (!model.Success) return;
+            if (currentPath != null && !model.Groups[1].Value.StartsWith("<", StringComparison.Ordinal)
+                && line.IndexOf("\"isSidechain\":true", StringComparison.Ordinal) < 0)
+                lastModel[currentPath] = model.Groups[1].Value;
             // The usage and the time come after the reply text, so the last match of each is the real one.
             long input = 0, write = 0, readCache = 0, output = 0;
             foreach (Match m in NumRx.Matches(line))
@@ -285,6 +292,65 @@ namespace Semaphore
             string key = model.Groups[2].Value + "|" + (req.Count > 0 ? req[req.Count - 1].Groups[1].Value : "");
             var e = new Entry { At = at, Model = model.Groups[1].Value, Cost = UsageMath.Cost(input, write, readCache, output) };
             lock (gate) entries[key] = e;
+        }
+
+        // ---- the context window: where Claude Code compacts on its own, per model ----
+
+        // The size of the context at which each model was last compacted automatically: the point to measure "how
+        // full" against. Learnt from the transcripts (Claude Code notes it in each compaction), kept between runs.
+        readonly Dictionary<string, long> contextLimits = new Dictionary<string, long>();
+        readonly Dictionary<string, string> lastModel = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string currentPath;
+        bool contextChanged;
+        static readonly Regex PreTokensRx = new Regex("\"preTokens\":(\\d+)", RegexOptions.Compiled);
+
+        static string ContextPath { get { return Path.Combine(AppPaths.DataDir, "context-limits.json"); } }
+
+        // The context size at which this model gets compacted, or 0 when no automatic compaction of it was seen.
+        public long ContextLimit(string model)
+        {
+            long v;
+            lock (gate) return model != null && contextLimits.TryGetValue(model, out v) ? v : 0;
+        }
+
+        void NoteCompaction(string line)
+        {
+            if (line.IndexOf("\"compactMetadata\"", StringComparison.Ordinal) < 0 || line.IndexOf("\"trigger\":\"auto\"", StringComparison.Ordinal) < 0) return;
+            Match m = PreTokensRx.Match(line);
+            string model;
+            if (!m.Success || currentPath == null || !lastModel.TryGetValue(currentPath, out model)) return;
+            long tokens = long.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
+            lock (gate)
+            {
+                long old;
+                if (contextLimits.TryGetValue(model, out old) && old == tokens) return;
+                contextLimits[model] = tokens;
+            }
+            contextChanged = true;
+        }
+
+        void LoadContextLimits()
+        {
+            try
+            {
+                if (!File.Exists(ContextPath)) return;
+                var d = new JavaScriptSerializer().Deserialize<Dictionary<string, long>>(File.ReadAllText(ContextPath, Encoding.UTF8));
+                if (d != null) lock (gate) foreach (var kv in d) contextLimits[kv.Key] = kv.Value;
+            }
+            catch (Exception ex) { Log.Write("context-limits.json could not be read: " + ex.Message); }
+        }
+
+        void SaveContextLimits()
+        {
+            if (!contextChanged || AppPaths.Disabled) return;
+            contextChanged = false;
+            try
+            {
+                string json;
+                lock (gate) json = new JavaScriptSerializer().Serialize(contextLimits);
+                File.WriteAllText(ContextPath, json, new UTF8Encoding(false));
+            }
+            catch (Exception ex) { Log.Write("context-limits.json could not be written: " + ex.Message); }
         }
 
         Dictionary<string, double> CostByModel(DateTime from, DateTime to)

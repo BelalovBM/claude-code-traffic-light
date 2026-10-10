@@ -108,6 +108,7 @@ namespace Semaphore
                 DiscoverSessions();
                 CheckLongWaiting();
                 CheckLongBackground();
+                CheckContexts();
                 CheckLimits();
                 Refresh();
             };
@@ -553,6 +554,8 @@ namespace Semaphore
                     Session finished = c.Session;
                     string doneTitle = Loc.T("toast.done.title");
                     string doneText = label.Length > 0 ? Loc.T("toast.done.body", label) : Loc.T("toast.done.plain");
+                    string summary = SummaryLine(finished.Summary);
+                    if (summary.Length > 0) doneText += "\n" + summary;
                     bool shownDone = Toasts.Show("done-" + finished.Id, doneTitle, doneText, LampFile(Level.Idle), null, 7000,
                         args => ui.Post(_ => { MarkReacted(finished); Native.FocusSession(finished); }, null),
                         () => ui.Post(_ => MarkReacted(finished), null));
@@ -572,6 +575,9 @@ namespace Semaphore
                     string body = remote.Length > 0
                         ? Loc.T("remote.done.body", remote, Duration(took))
                         : Loc.T("remote.done.plain", Duration(took));
+                    // What Claude said leaves the computer only where chat details may (the same setting as titles).
+                    string said = Config.RemoteDetails ? SummaryLine(c.Session.Summary) : "";
+                    if (said.Length > 0) body += "\n" + said;
                     AfterGrace(c.Session, () => true, () => Notifier.Dispatch(Config, Loc.T("toast.done.title"), body, false));
                 }
             }
@@ -952,6 +958,9 @@ namespace Semaphore
                     text += " · ❓ " + Loc.T("menu.session.waitwin");
                 }
                 if (muted) text += " 🔕";
+                // A context near the compaction point is worth seeing without opening the session.
+                int contextPercent = ContextPercent(s);
+                if (contextPercent >= 80) text += " · " + Loc.T("menu.context.short", contextPercent);
                 // '&' would otherwise be taken as a menu mnemonic marker.
                 var item = new GuardedItem(text.Replace("&", "&&"));
                 item.ForeColor = Theme.Fore;
@@ -975,6 +984,14 @@ namespace Semaphore
                 info.ForeColor = Theme.Muted;
                 FlushLeft(info);
                 item.DropDownItems.Add(info);
+                string context = ContextLine(s);
+                if (context != null)
+                {
+                    var contextLabel = new ToolStripLabel(context);
+                    contextLabel.ForeColor = contextPercent >= 90 ? Palette.StatusWarn : Theme.Muted;
+                    FlushLeft(contextLabel);
+                    item.DropDownItems.Add(contextLabel);
+                }
                 // Claude Code reports one folder for a session; the files it touches show where it works.
                 if (!string.IsNullOrEmpty(s.WorkDir))
                 {
@@ -1284,6 +1301,19 @@ namespace Semaphore
                 result = candidate;
             }
             return result.Length == 0 ? "…" + path.Substring(path.Length - (max - 1)) : "…\\" + result;
+        }
+
+        // The first line of what Claude said when it finished, without Markdown marks, short enough for a notice.
+        internal static string SummaryLine(string message)
+        {
+            if (string.IsNullOrEmpty(message)) return "";
+            foreach (string raw in message.Replace("\r", "").Split('\n'))
+            {
+                string line = System.Text.RegularExpressions.Regex.Replace(raw, @"^\s*(#+|[-*>]|\d+[.)])\s+", "");
+                line = line.Replace("**", "").Replace("__", "").Replace("`", "").Trim();
+                if (line.Length > 0) return Shorten(line, 150);
+            }
+            return "";
         }
 
         // A new version listens to more events than the connection made by an older one: the program never changes

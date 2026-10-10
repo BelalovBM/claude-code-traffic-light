@@ -41,6 +41,7 @@ namespace Semaphore
                     Check(Loc.T("chk.sound.done"), cfg.SoundDone, v => cfg.SoundDone = v),
                     Check(Loc.T("chk.toast.done"), cfg.ToastDone, v => cfg.ToastDone = v),
                     Check(Loc.T("chk.toast.compact"), cfg.ToastCompact, v => cfg.ToastCompact = v),
+                    Check(Loc.T("chk.context.warn"), cfg.ContextWarn, v => cfg.ContextWarn = v),
                 };
                 foreach (Control part in parts)
                 {

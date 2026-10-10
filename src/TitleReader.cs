@@ -135,6 +135,37 @@ namespace Semaphore
             return started.Count;
         }
 
+        // How full the context is: the input of the last reply of the main conversation (fresh input, cache written and
+        // cache read together is what the model saw), and that reply's model. False when no reply is found.
+        public static bool ReadContext(string path, out long tokens, out string model)
+        {
+            tokens = 0;
+            model = null;
+            string tail = Tail(path, 8 * TailBytes);
+            if (tail == null) return false;
+            string[] lines = tail.Split('\n');
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                string line = lines[i];
+                if (line.IndexOf("\"usage\"", StringComparison.Ordinal) < 0 || line.IndexOf("\"role\":\"assistant\"", StringComparison.Ordinal) < 0) continue;
+                if (line.IndexOf("\"isSidechain\":true", StringComparison.Ordinal) >= 0) continue;
+                Match m = Regex.Match(line, "\"message\":\\{\"model\":\"([^\"]+)\"");
+                if (!m.Success || m.Groups[1].Value.StartsWith("<", StringComparison.Ordinal)) continue;
+                long sum = 0;
+                // The usage comes after the reply text, so the last match of each count is the real one.
+                foreach (string key in new[] { "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens" })
+                {
+                    MatchCollection all = Regex.Matches(line, "\"" + key + "\":(\\d+)");
+                    if (all.Count > 0) sum += long.Parse(all[all.Count - 1].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                }
+                if (sum <= 0) continue;
+                tokens = sum;
+                model = m.Groups[1].Value;
+                return true;
+            }
+            return false;
+        }
+
         static string Tail(string path, int bytes = TailBytes)
         {
             if (string.IsNullOrEmpty(path)) return null;

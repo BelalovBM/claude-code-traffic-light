@@ -240,6 +240,8 @@ namespace Semaphore
         // A notice (here and on the phone) when Claude has been waiting this many minutes for its own background task:
         // a server left running or a stuck task would otherwise look like work for ever. 0: no notice.
         public int BackgroundNotifyMinutes { get; set; }
+        // A notice on this computer when a session's context is nearly at the point where Claude compacts it.
+        public bool ContextWarn { get; set; }
 
         // Ids of sessions whose notifications are switched off.
         public List<string> MutedSessions { get; set; }
@@ -274,6 +276,7 @@ namespace Semaphore
             LimitsInPush = true;
             LimitsEvents = true;
             BackgroundNotifyMinutes = 30;
+            ContextWarn = true;
         }
 
         public static string FilePath { get { return Path.Combine(AppPaths.DataDir, "config.json"); } }

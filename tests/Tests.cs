@@ -133,6 +133,19 @@ namespace Semaphore.Tests
             Check("the kind of error and Claude's words are kept", s.Failure == "rate_limit" && s.FailureText.Contains("resets 9pm"));
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"again\"}");
             Check("the next prompt clears the error", s.Failure == null && s.State == State.Working);
+
+            // What Claude said when it finished, for the "done" notice: the first line, without Markdown marks.
+            Check("the summary is the first line without a heading mark", TrayApp.SummaryLine("## Done\n\n**Added** tests") == "Done");
+            Check("list and code marks are dropped", TrayApp.SummaryLine("\n- `npm test` passes, **13** of 13") == "npm test passes, 13 of 13");
+            Check("no message, no summary", TrayApp.SummaryLine(null) == "");
+
+            // How full the context is: the last reply of the main conversation, not one of a subagent.
+            string tp = Transcript("ctx",
+                "{\"isSidechain\":false,\"message\":{\"model\":\"claude-opus-5-5\",\"id\":\"m1\",\"role\":\"assistant\",\"content\":[],\"usage\":{\"input_tokens\":10,\"cache_creation_input_tokens\":2000,\"cache_read_input_tokens\":400000,\"output_tokens\":500}},\"type\":\"assistant\"}",
+                "{\"isSidechain\":true,\"message\":{\"model\":\"claude-haiku-4-5\",\"id\":\"m2\",\"role\":\"assistant\",\"content\":[],\"usage\":{\"input_tokens\":5,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":9000,\"output_tokens\":50}},\"type\":\"assistant\"}");
+            long tokens; string model;
+            Check("the context is the input of the last main reply", TitleReader.ReadContext(tp, out tokens, out model) && tokens == 402010 && model == "claude-opus-5-5",
+                tokens + " " + model);
         }
 
         // ---- a stop that only waits for a background task ----

@@ -1,4 +1,4 @@
-$sp = $args[0]; $uiRoot = $args[1]; $lang = $args[2]; $theme = $args[3]; $only = $args[4]
+﻿$sp = $args[0]; $uiRoot = $args[1]; $lang = $args[2]; $theme = $args[3]; $only = $args[4]
 Add-Type -AssemblyName System.Drawing, System.Windows.Forms
 Add-Type -Namespace TL -Name Dpi -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr v);'; [void][TL.Dpi]::SetProcessDpiAwarenessContext([IntPtr]-4)   # real pixels and coordinates at any display scale
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
@@ -74,7 +74,7 @@ function Prepare($name) {
     # settings.json with this app's hooks, so the connection page shows "connected"
     $cmd = '"' + $exe.Replace('\', '/') + '" --hook trafficlight'
     $hooks = @{}
-    foreach ($ev in 'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SessionEnd', 'PreCompact', 'PostCompact') {
+    foreach ($ev in 'SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SessionEnd', 'PreCompact', 'PostCompact', 'StopFailure') {
         $g = @{ hooks = @(@{ type = 'command'; command = $cmd; timeout = 5 }) }
         if ($ev -eq 'PreToolUse' -or $ev -eq 'PostToolUse') { $g.matcher = '*' }
         $hooks[$ev] = @($g)
@@ -136,6 +136,16 @@ function SeedLimits($d) {
     }
     $lines = (Reply 'msg_a' $now.AddMinutes(-90).UtcDateTime 40000), (Reply 'msg_b' $now.AddMinutes(-10).UtcDateTime 10000)
     [IO.File]::WriteAllText("$d\claude\projects\limits\limits.jsonl", ($lines -join "`n") + "`n", $utf8)
+    # The first session's context: an automatic compaction at 968k tokens taught the point, and the context is at
+    # 823k now (85%). Dated ten days back, so these replies do not count towards the limits above.
+    New-Item -ItemType Directory -Force "$d\claude\projects\demo" | Out-Null
+    $old = $now.AddDays(-10).UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+    # Each element in brackets: the comma binds tighter than +, and would join the strings.
+    $ctx = @(
+        ('{"isSidechain":false,"message":{"model":"claude-opus-5-5","id":"c1","role":"assistant","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":900000,"output_tokens":10}},"requestId":"rc1","type":"assistant","timestamp":"' + $old + '"}'),
+        ('{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto","preTokens":968000},"timestamp":"' + $old + '"}'),
+        ('{"isSidechain":false,"message":{"model":"claude-opus-5-5","id":"c2","role":"assistant","content":[],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":823000,"output_tokens":10}},"requestId":"rc2","type":"assistant","timestamp":"' + $old + '"}'))
+    [IO.File]::AppendAllText("$d\claude\projects\demo\$($sids[0]).jsonl", ($ctx -join "`n") + "`n", $utf8)
 }
 
 function IsBlank($bmp) {

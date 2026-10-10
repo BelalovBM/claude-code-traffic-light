@@ -33,7 +33,7 @@ namespace Semaphore
             AppPaths.Disabled = true;
             try
             {
-                foreach (string pattern in new[] { "config.json*", "trafficlight.log*", "requests.log*", "usage-limits.json*" })
+                foreach (string pattern in new[] { "config.json*", "trafficlight.log*", "requests.log*", "usage-limits.json*", "context-limits.json*" })
                     foreach (string file in Directory.GetFiles(dir, pattern))
                         File.Delete(file);
                 if (!AppPaths.IsSandbox && Directory.Exists(AppPaths.LegacyDir) && !string.Equals(AppPaths.LegacyDir, dir, StringComparison.OrdinalIgnoreCase))
