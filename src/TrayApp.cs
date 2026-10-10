@@ -736,11 +736,11 @@ namespace Semaphore
                 tray.Icon = icons[level];
                 shown = level;
             }
-            string tip = Tooltip(level);
-            // The limits come first, so that the end of the session text is what gets cut.
+            // The limits go on a second line; Windows takes 63 characters in all, so the state line is what gets cut.
             string limits = LimitsTip();
-            if (limits != null) tip = limits + " · " + tip;
-            tray.Text = Truncate(tip, 63);
+            tray.Text = limits == null || limits.Length > 40
+                ? Truncate(Tooltip(level), 63)
+                : Truncate(Tooltip(level), 63 - limits.Length - 1) + "\n" + limits;
         }
 
         string Tooltip(Level level)
