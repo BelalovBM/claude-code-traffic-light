@@ -45,6 +45,16 @@ function Start-Sandbox($name) {
         [IO.File]::WriteAllText("$d\claude\projects\demo\$($sids[$i]).jsonl", (@{ type = 'ai-title'; aiTitle = $titles[$i]; sessionId = $sids[$i] } | ConvertTo-Json -Compress) + "`n", $utf8)
     }
     [IO.File]::WriteAllText("$d\data\config.json", '{"FirstRunDone":true,"Language":"en","Theme":"dark","StartupNotice":false,"LocalApprove":true,"PopupAsk":true,"SoundWaiting":false,"SoundDone":false,"ToastWaiting":false,"ToastDone":false}', $utf8)
+    # Made-up usage limits for the top of the menu: the figures /usage would have saved 40 minutes ago (42% of the
+    # 5 hours, 63% of the week) and one reply since, which the estimate adds on top.
+    $now = [DateTimeOffset]::UtcNow
+    $cache = '{"cachedUsageUtilization":{"fetchedAtMs":' + $now.AddMinutes(-40).ToUnixTimeMilliseconds() + ',"utilization":{"five_hour":{"utilization":42,"resets_at":"' + $now.AddHours(2).ToString('o') + '"},"seven_day":{"utilization":63,"resets_at":"' + $now.AddDays(3).ToString('o') + '"}}}}'
+    [IO.File]::WriteAllText("$d\.claude.json", $cache, $utf8)
+    New-Item -ItemType Directory -Force "$d\claude\projects\limits" | Out-Null
+    $replies = foreach ($r in @(@('msg_a', -90, 40000), @('msg_b', -10, 10000))) {
+        '{"message":{"model":"claude-opus-5-5","id":"' + $r[0] + '","type":"message","role":"assistant","content":[],"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":' + $r[2] + '}},"requestId":"req_' + $r[0] + '","type":"assistant","timestamp":"' + $now.AddMinutes($r[1]).UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ') + '"}'
+    }
+    [IO.File]::WriteAllText("$d\claude\projects\limits\limits.jsonl", ($replies -join "`n") + "`n", $utf8)
     $env:TRAFFICLIGHT_DATA_DIR = "$d\data"
     $env:TRAFFICLIGHT_CLAUDE_DIR = "$d\claude"
     $script:app = Start-Process $exe -PassThru
@@ -106,11 +116,23 @@ try {
     Menu-Shot $d '3-done.png'
     Stop-Sandbox
 
+    # 4. a turn that ends only to wait for its own build: the clock lamp, not "done"
+    $d = Start-Sandbox 'd'
+    $started = '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"Command running in background with ID: job7."}]},"toolUseResult":{"backgroundTaskId":"job7"}}'
+    [IO.File]::AppendAllText("$d\claude\projects\demo\$($sids[0]).jsonl", $started + "`n", $utf8)
+    Hook $d 0 '"hook_event_name":"UserPromptSubmit","prompt":"x"'
+    Hook $d 1 '"hook_event_name":"UserPromptSubmit","prompt":"x"'
+    Hook $d 1 '"hook_event_name":"Stop"'
+    Hook $d 0 '"hook_event_name":"Stop"'
+    Start-Sleep 1.5
+    Menu-Shot $d '4-background.png'
+    Stop-Sandbox
+
     # the lamps for the title picture, drawn by the program itself
     $asm = [Reflection.Assembly]::LoadFrom($exe)
     $draw = $asm.GetType('Semaphore.TrayIcons').GetMethod('Draw', [Reflection.BindingFlags]'Static,Public,NonPublic')
     $level = $asm.GetType('Semaphore.Level')
-    foreach ($l in 'Working', 'Compacting', 'Waiting', 'Idle') {
+    foreach ($l in 'Working', 'Background', 'Compacting', 'Waiting', 'Idle') {
         $bmp = $draw.Invoke($null, @([Enum]::Parse($level, $l), 64)); $bmp.Save("$work\lamp-$l.png"); $bmp.Dispose()
     }
 

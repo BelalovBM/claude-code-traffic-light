@@ -39,23 +39,25 @@ def scene(picture, caption, sub=None):
 def title():
     img = canvas("Claude Code Traffic Light", "A tray traffic light for every Claude Code session on Windows")
     d = ImageDraw.Draw(img)
-    rows = [("Working", "working"), ("Compacting", "compacting the conversation"),
-            ("Waiting", "waiting for you"), ("Idle", "done, ready for the next task")]
-    top = 140
+    rows = [("Working", "working"), ("Background", "waiting for its own build or tests"),
+            ("Compacting", "compacting the conversation"), ("Waiting", "waiting for you, or stopped by an error"),
+            ("Idle", "done, ready for the next task")]
+    top, step, size = 112, 68, 52
     for i, (level, text) in enumerate(rows):
-        lamp = Image.open(work / f"lamp-{level}.png").convert("RGBA")
-        y = top + i * 72
-        img.paste(lamp, (230, y), lamp)
-        d.text((310, y + 32), text, fill=FORE, font=font(22), anchor="lm")
+        lamp = Image.open(work / f"lamp-{level}.png").convert("RGBA").resize((size, size), Image.LANCZOS)
+        y = top + i * step
+        img.paste(lamp, (180, y), lamp)
+        d.text((250, y + size // 2), text, fill=FORE, font=font(22), anchor="lm")
     return img
 
 
 frames = [
     (title(), 2600),
-    (scene("1-working.png", "Every session in the tray menu", "named after the chat, with its state and time"), 2600),
+    (scene("1-working.png", "Every session in the tray menu", "with its state and time, and Claude's usage limits on top"), 3000),
     (scene("2-panel.png", "Claude asks: answer from a panel", "no switching to its window; or from the phone, through ntfy"), 3800),
     (scene("2-menu-waiting.png", "The light turns red while it waits", "the tray menu says which session needs you"), 2400),
     (scene("3-done.png", "Answered: it goes on, then it is done", "a notification only when a session needs you"), 2800),
+    (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
 ]
 images = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f, _ in frames]
 images[0].save(target, save_all=True, append_images=images[1:], duration=[ms for _, ms in frames], loop=0, optimize=True)

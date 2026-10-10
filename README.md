@@ -13,9 +13,9 @@ A tray traffic light for [Claude Code](https://claude.com/claude-code) on Window
 | 🟢 green | the task is finished, ready for the next one |
 | ⚪ grey | no active sessions |
 
-It works with Claude Code in the console and in the VS Code extension, and shows every running session at once. The icon shows the most urgent state.
+It works with Claude Code in the console and in the VS Code extension, and shows every running session at once. The icon shows the most urgent state. The menu also shows Claude's usage limits (5 hours and the week) and how full each session's context is.
 
-![Two sessions at work; one asks a question in a panel near the tray, is answered, goes on and finishes](docs/demo.gif)
+![The five lamps; two sessions at work with the usage limits on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp](docs/demo.gif)
 
 
 ## Quick start
