@@ -52,6 +52,16 @@ namespace Semaphore
                 master.CheckedChanged += (s, e) => { foreach (Control part in parts) part.Enabled = master.Checked; };
                 c.Controls.Add(Note(Loc.T("notif.session.hint")));
             });
+
+            // Claude's usage limits: where they are shown, and what goes to the phone about them.
+            Section(p, Loc.T("sec.limits"), c =>
+            {
+                c.Controls.Add(Check(Loc.T("chk.limits.show"), cfg.LimitsShow, v => cfg.LimitsShow = v));
+                c.Controls.Add(Check(Loc.T("chk.limits.push"), cfg.LimitsInPush, v => cfg.LimitsInPush = v));
+                c.Controls.Add(Check(Loc.T("chk.limits.events"), cfg.LimitsEvents, v => cfg.LimitsEvents = v));
+                c.Controls.Add(Row(Loc.T("label.limits.step"), Spin(cfg.LimitsStep, 0, 50, v => cfg.LimitsStep = v), NumberLabelWidth));
+                Details(c, Loc.T("limits.hint"), Loc.T("limits.hint.estimate"));
+            });
         }
     }
 }

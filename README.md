@@ -33,8 +33,9 @@ Windows SmartScreen may warn about an unsigned file: choose **More info → Run 
 - **Show window**: brings the terminal or VS Code window of the chosen session to the front.
 - Sound and pop-up when Claude waits for you or finishes; each can be switched off, globally or per session. The tray menu pauses everything on this computer for an hour, until the end of the day or until you resume it; the phone is not affected: it has its own switch.
 - A keyboard shortcut (Win+Alt+C by default, changed or switched off on the **General** page) opens the waiting request with the keyboard focus in it, or the tray menu when nothing waits.
-- When Claude ends its turn only to wait for a background task it started (a build, tests), the session stays yellow ("waiting for its background task") and nothing reports it as finished; if the task does not report back within 30 minutes (a server left running), the session counts as finished.
+- When Claude ends its turn only to wait for a background task it started (a build, tests), the session stays yellow ("waiting for its background task") and nothing reports it as finished, however long the task runs: the app sees whether the task's process is still running. A server left running keeps the session yellow too; it counts as finished only when no task process is left and Claude does not go on within 30 minutes.
 - Push to your phone through [ntfy](https://ntfy.sh), only when you are probably away (a notification on the computer that you did not react to, a panel left untouched for a minute, or a locked screen): after a permission prompt stays unanswered for N minutes, or when a task that ran at least N minutes finishes. A quick on/off switch is in the tray menu.
+- Claude's usage limits (the 5-hour window and the week) with their reset times: at the top of the tray menu, at the start of the icon tooltip and at the end of every push; optionally a push every N percent, when a limit runs out and when it is back. See [Usage limits](#usage-limits).
 - 7 languages (English, Russian, Spanish, German, French, Portuguese, Chinese), light/dark/system theme, autostart.
 
 ## Phone notifications (ntfy)
@@ -94,6 +95,14 @@ Claude Code's own Remote Control lets you continue a session from claude.ai or t
 
 The two do not get in each other's way: use the traffic light to know when to look, and Remote Control when you need the whole session.
 
+## Usage limits
+
+The menu shows how much of Claude's 5-hour and weekly limits is used, as `/usage` does. Claude Code gives these figures to no hook, and its status line, which gets them, does not run in VS Code. So the app takes them from where Claude Code itself keeps them: whenever you run `/usage` (or reach a limit), Claude Code saves the exact figures in `~/.claude.json`.
+
+Between two `/usage` runs the app estimates what was used since from the session transcripts on this computer and adds it to the last exact figure; such a figure is marked with `≈`. How much a token counts is learnt from your own `/usage` figures, separately for each model, newer figures counting more, so the estimate follows a change of model or plan by itself. Every new `/usage` puts the figures right again; the more often you run it, the closer the estimate. Use of Claude on other devices (claude.ai, the phone, another computer) is not in the transcripts here, so it shows up only at the next `/usage`.
+
+The app never contacts Anthropic and never reads or uses your Claude sign-in: Anthropic does not allow other programs to use it. The exact figures it has seen are kept in `usage-limits.json` next to the program. The **Notifications** page switches each part on or off.
+
 ## How it works
 
 Claude Code runs a hook on every event. The hook is this same `.exe` started with `--hook`; it reads the event and passes it to the running tray app through a local named pipe. If the tray app is not running, the hook exits silently and never disturbs Claude Code. Nothing leaves your computer except the optional ntfy push. No telemetry.
@@ -102,14 +111,14 @@ As a fallback, the app also reads the small per-process files Claude Code keeps 
 
 ## Uninstall
 
-1. **Settings → Claude Code → Remove everything…** disconnects Claude Code (only this app's hooks are removed, other hooks stay), turns off autostart, removes the notification registration (the program shows its notifications under its own application id, a single key under `HKCU\Software\Classes\AppUserModelId`), deletes its settings, log and requests journal (they sit next to the .exe) and exits. The original `settings.json.trafficlight.bak` backup is kept.
+1. **Settings → Claude Code → Remove everything…** disconnects Claude Code (only this app's hooks are removed, other hooks stay), turns off autostart, removes the notification registration (the program shows its notifications under its own application id, a single key under `HKCU\Software\Classes\AppUserModelId`), deletes its settings, log, requests journal and usage figures (they sit next to the .exe) and exits. The original `settings.json.trafficlight.bak` backup is kept.
 2. Delete the `.exe` (its folder opens automatically).
 
 To only disconnect from Claude Code and keep the program, use **Disconnect** on the same page.
 
 ## Privacy
 
-The program collects nothing and sends nothing about you or how you use it: no telemetry, no update checks. It uses the network only when you set up the phone: then it sends notifications to the ntfy server you chose (ntfy.sh or your own) and listens there for your answers. What the notifications contain (the name of a session, the text of a request) is described on the Phone and Permission prompts pages. Everything else stays on the computer: the settings, the log and the requests journal sit next to the program and are removed by **Remove everything**.
+The program collects nothing and sends nothing about you or how you use it: no telemetry, no update checks. It uses the network only when you set up the phone: then it sends notifications to the ntfy server you chose (ntfy.sh or your own) and listens there for your answers. What the notifications contain (the name of a session, the text of a request) is described on the Phone and Permission prompts pages. For the usage limits it reads, on this computer only, the session transcripts and the figures Claude Code keeps in `~/.claude.json`; nothing of it is sent anywhere, except the line with the percentages at the end of a push when that is switched on. Everything else stays on the computer: the settings, the log, the requests journal and the usage figures sit next to the program and are removed by **Remove everything**.
 
 ## Verifying the download
 

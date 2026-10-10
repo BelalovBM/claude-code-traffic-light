@@ -307,8 +307,8 @@ namespace Semaphore
             if (e.Name != "Stop") s.BackgroundUntil = DateTime.MinValue;
             else if (old == State.Working || old == State.Compacting)
             {
-                // A stop while a task it started in the background still runs: the session keeps working. A task that
-                // never reports (a server left running) must not keep it yellow for ever, hence the limit.
+                // A stop while a task it started in the background still runs: the session keeps working, for as long
+                // as the task runs (see ExpireBackground); the limit is for when no running task can be seen.
                 int pending = TitleReader.PendingBackgroundTasks(s.TranscriptPath);
                 if (pending > 0)
                 {
@@ -401,15 +401,22 @@ namespace Semaphore
             catch { return true; }
         }
 
-        // Sessions whose background wait ran out without the task reporting back: Claude handed the turn over after
-        // all (a server left running), so they are finished now, with the usual notification.
-        public List<Change> ExpireBackground()
+        // Sessions whose background wait ran out without the task reporting back are finished now, with the usual
+        // notification. While a task is seen running (running gives the number of its processes, or null when that
+        // cannot be known), the wait goes on however long it takes: the limit counts only from when none is left.
+        public List<Change> ExpireBackground(Func<Session, int?> running = null)
         {
             var changes = new List<Change>();
             DateTime now = DateTime.Now;
             foreach (Session s in map.Values)
             {
-                if (s.BackgroundUntil == DateTime.MinValue || now < s.BackgroundUntil) continue;
+                if (s.BackgroundUntil == DateTime.MinValue) continue;
+                if (running != null && s.State == State.Working)
+                {
+                    int? n = running(s);
+                    if (n > 0) s.BackgroundUntil = now.AddMinutes(BackgroundLimitMinutes);
+                }
+                if (now < s.BackgroundUntil) continue;
                 s.BackgroundUntil = DateTime.MinValue;
                 if (s.State != State.Working) continue;
                 changes.Add(new Change { Session = s, Old = State.Working, New = State.Idle, Elapsed = now - s.Since });

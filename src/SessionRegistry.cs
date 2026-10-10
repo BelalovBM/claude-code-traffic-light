@@ -20,7 +20,7 @@ namespace Semaphore
     // the main source of truth.
     static class SessionRegistry
     {
-        static string ClaudeDir
+        internal static string ClaudeDir
         {
             get
             {

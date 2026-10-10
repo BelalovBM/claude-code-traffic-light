@@ -131,6 +131,65 @@ namespace Semaphore
             return false;
         }
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern IntPtr OpenProcess(uint access, bool inherit, int processId);
+        [DllImport("ntdll.dll")]
+        static extern int NtQueryInformationProcess(IntPtr process, int infoClass, IntPtr buffer, int length, out int returned);
+
+        // The command line of another process of this user, or null when it cannot be read.
+        internal static string CommandLine(int pid)
+        {
+            IntPtr h = OpenProcess(0x1000, false, pid); // PROCESS_QUERY_LIMITED_INFORMATION
+            if (h == IntPtr.Zero) return null;
+            try
+            {
+                int need;
+                NtQueryInformationProcess(h, 60, IntPtr.Zero, 0, out need); // ProcessCommandLineInformation
+                if (need <= 0 || need > 1 << 20) return null;
+                IntPtr buf = Marshal.AllocHGlobal(need);
+                try
+                {
+                    if (NtQueryInformationProcess(h, 60, buf, need, out need) != 0) return null;
+                    // A UNICODE_STRING: length in bytes, maximum length, then the pointer to the text.
+                    int bytes = Marshal.ReadInt16(buf);
+                    IntPtr text = Marshal.ReadIntPtr(buf, IntPtr.Size);
+                    return bytes <= 0 || text == IntPtr.Zero ? "" : Marshal.PtrToStringUni(text, bytes / 2);
+                }
+                finally { Marshal.FreeHGlobal(buf); }
+            }
+            catch { return null; }
+            finally { CloseHandle(h); }
+        }
+
+        // How many commands Claude Code started are still running under its process. Each one is a shell with a
+        // recognisable command line (its saved shell state, or its PowerShell launcher). Between turns no command runs
+        // in the foreground, so these are its background tasks. Null when the process cannot be looked into.
+        public static int? RunningToolShells(int claudePid)
+        {
+            if (claudePid <= 0) return null;
+            try
+            {
+                using (Process.GetProcessById(claudePid)) { }
+            }
+            catch { return null; }
+            int count = 0;
+            foreach (KeyValuePair<int, int> p in BuildParentMap())
+            {
+                if (p.Value != claudePid || p.Key == claudePid) continue;
+                string line = CommandLine(p.Key);
+                if (line == null) continue;
+                if (IsToolShell(line)) count++;
+            }
+            return count;
+        }
+
+        internal static bool IsToolShell(string commandLine)
+        {
+            return commandLine.IndexOf(".claude/shell-snapshots/", StringComparison.OrdinalIgnoreCase) >= 0
+                || commandLine.IndexOf(@".claude\shell-snapshots\", StringComparison.OrdinalIgnoreCase) >= 0
+                || commandLine.IndexOf("CLAUDE_CODE_SHELL_LAUNCHER", StringComparison.Ordinal) >= 0;
+        }
+
         public static bool FindHostWindowFrom(int pid, out long hwnd, out string name)
         {
             hwnd = 0;

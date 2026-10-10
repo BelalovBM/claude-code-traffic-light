@@ -228,6 +228,13 @@ namespace Semaphore
             set { ReplyTopicProtected = Secret.Protect(value); }
         }
 
+        // Claude's usage limits: shown in the menu and the tooltip, added to every push, a push every LimitsStep percent
+        // (0: none), and a push when a limit runs out by the estimate and when it is back.
+        public bool LimitsShow { get; set; }
+        public bool LimitsInPush { get; set; }
+        public int LimitsStep { get; set; }
+        public bool LimitsEvents { get; set; }
+
         // Ids of sessions whose notifications are switched off.
         public List<string> MutedSessions { get; set; }
 
@@ -257,6 +264,9 @@ namespace Semaphore
             ToastWaiting = true;
             ToastDone = true;
             StaleMinutes = 30;
+            LimitsShow = true;
+            LimitsInPush = true;
+            LimitsEvents = true;
         }
 
         public static string FilePath { get { return Path.Combine(AppPaths.DataDir, "config.json"); } }
@@ -296,6 +306,7 @@ namespace Semaphore
                 if (c.StaleMinutes < 1) c.StaleMinutes = 30;
                 if (c.MutedSessions == null) c.MutedSessions = new List<string>();
                 if (c.RemoteApproveMinutes < 1 || c.RemoteApproveMinutes > 30) c.RemoteApproveMinutes = 5;
+                if (c.LimitsStep < 0 || c.LimitsStep > 50) c.LimitsStep = 0;
                 if (c.NtfyEnabled && string.IsNullOrEmpty(c.NtfyTopic)) c.NtfyTopic = Secret.RandomTopic();
                 // Settings from before the choice existed: any address other than the public one was an own server.
                 if (c.NtfyOwnServer == null)

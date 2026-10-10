@@ -31,6 +31,7 @@ namespace Semaphore.Tests
             Group("background wait", BackgroundWait);
             Group("transcripts", Transcripts);
             Group("questions", Questions);
+            Group("usage limits", UsageLimits);
             Group("settings", Settings);
             Group("log", LogFile);
             Group("shortcut", Shortcut);
@@ -145,8 +146,13 @@ namespace Semaphore.Tests
             File.WriteAllText(tp, started + "\n", Utf8);
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"serve\"}");
             Apply(store, "{\"hook_event_name\":\"Stop\"," + b + "}");
+            // A long task (a two-hour benchmark): while its process runs, the limit does not end the wait.
             s.BackgroundUntil = DateTime.Now.AddSeconds(-1);
-            List<Change> expired = store.ExpireBackground();
+            Check("a task seen running keeps the session working past the limit",
+                store.ExpireBackground(x => 1).Count == 0 && s.InBackground && s.State == State.Working);
+            Check("an unknown process count changes nothing before the limit", store.ExpireBackground(x => null).Count == 0);
+            s.BackgroundUntil = DateTime.Now.AddSeconds(-1);
+            List<Change> expired = store.ExpireBackground(x => 0);
             Check("a task that never reports ends the wait at the limit, as finished",
                 expired.Count == 1 && expired[0].New == State.Idle && s.State == State.Idle);
         }
@@ -211,6 +217,44 @@ namespace Semaphore.Tests
             Check("an unknown kind among known ones is not offered",
                 Rules("[{\"type\":\"setMode\",\"mode\":\"acceptEdits\",\"destination\":\"session\"},{\"type\":\"replaceRules\",\"destination\":\"session\"}]") == null);
             Check("no suggestions, nothing offered", Rules("[]") == null && Approvals.DescribeRules(null) == null);
+        }
+
+        // ---- usage limits ----
+
+        static Dictionary<string, double> Use(params object[] modelCost)
+        {
+            var d = new Dictionary<string, double>();
+            for (int i = 0; i < modelCost.Length; i += 2) d[(string)modelCost[i]] = Convert.ToDouble(modelCost[i + 1]);
+            return d;
+        }
+
+        static void UsageLimits()
+        {
+            Check("the reply weighs most, reading the cache least", UsageMath.Cost(0, 0, 0, 1) == 5 && UsageMath.Cost(0, 0, 10, 0) == 1);
+
+            // Two models, the dearer one counted 1.5 times: the fit finds that from the anchors alone.
+            DateTime now = DateTime.UtcNow;
+            var samples = new List<UsageMath.Sample>
+            {
+                new UsageMath.Sample { Cost = Use("sonnet", 1000000), Percent = 10, At = now.AddHours(-30) },
+                new UsageMath.Sample { Cost = Use("opus", 1000000), Percent = 15, At = now.AddHours(-20) },
+                new UsageMath.Sample { Cost = Use("sonnet", 2000000, "opus", 1000000), Percent = 35, At = now.AddHours(-10) },
+                new UsageMath.Sample { Cost = Use("opus", 2000000), Percent = 30, At = now.AddHours(-2) },
+            };
+            UsageMath.Weights w = UsageMath.Fit(samples, now);
+            double ratio = w.For("opus") / w.For("sonnet");
+            Check("each model gets its own weight from the facts", ratio > 1.35 && ratio < 1.65, ratio.ToString("0.00"));
+            Check("the estimate follows the anchors", Math.Abs(UsageMath.Apply(w, Use("sonnet", 1000000, "opus", 1000000)) - 25) < 2.5);
+            Check("a model never seen gets the common weight", w.For("haiku") == w.Common);
+            Check("no anchors, no weights", UsageMath.Fit(new List<UsageMath.Sample>(), now) == null);
+
+            string cache = "{\"x\":{\"D:/a\":1,\"d:/a\":2},\"cachedUsageUtilization\":{\"fetchedAtMs\":1791635591572,\"accountUuid\":\"u\",\"utilization\":{"
+                + "\"five_hour\":{\"utilization\":27,\"resets_at\":\"2026-10-10T16:49:59.771589+00:00\",\"note\":\"a } in text\"},"
+                + "\"seven_day\":{\"utilization\":47,\"resets_at\":\"2026-10-14T13:59:59.771613+00:00\"},\"seven_day_opus\":null}},\"after\":3}";
+            UsageAnchor a = UsageTracker.ParseCache(cache);
+            Check("the cached figures are read from ~/.claude.json", a != null && a.Five == 27 && a.Week == 47
+                && a.FiveReset == new DateTime(2026, 10, 10, 16, 49, 59, 771, DateTimeKind.Utc), a == null ? "null" : a.FiveReset.ToString("o"));
+            Check("a file without them gives nothing", UsageTracker.ParseCache("{\"a\":1}") == null);
         }
 
         static string Rules(string json)

@@ -122,6 +122,22 @@ function Seed($d) {
     Start-Sleep 1.5
 }
 
+# Made-up usage limits for the menu: the figures /usage would have saved 40 minutes ago (42% of the 5 hours, 63% of
+# the week) and one reply since, which the estimate adds on top.
+function SeedLimits($d) {
+    $now = [DateTimeOffset]::UtcNow
+    $at = $now.AddMinutes(-40)
+    $five = $now.AddHours(2).ToString('o'); $week = $now.AddDays(3).ToString('o')
+    $cache = '{"cachedUsageUtilization":{"fetchedAtMs":' + $at.ToUnixTimeMilliseconds() + ',"utilization":{"five_hour":{"utilization":42,"resets_at":"' + $five + '"},"seven_day":{"utilization":63,"resets_at":"' + $week + '"}}}}'
+    [IO.File]::WriteAllText("$d\.claude.json", $cache, $utf8)
+    New-Item -ItemType Directory -Force "$d\claude\projects\limits" | Out-Null
+    function Reply($id, $when, $out) {
+        '{"parentUuid":null,"message":{"model":"claude-opus-5-5","id":"' + $id + '","type":"message","role":"assistant","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":' + $out + '}},"requestId":"req_' + $id + '","type":"assistant","timestamp":"' + $when.ToString('yyyy-MM-ddTHH:mm:ss.fffZ') + '"}'
+    }
+    $lines = (Reply 'msg_a' $now.AddMinutes(-90).UtcDateTime 40000), (Reply 'msg_b' $now.AddMinutes(-10).UtcDateTime 10000)
+    [IO.File]::WriteAllText("$d\claude\projects\limits\limits.jsonl", ($lines -join "`n") + "`n", $utf8)
+}
+
 function IsBlank($bmp) {
     $seen = 0
     foreach ($fx in 0.1, 0.3, 0.5, 0.7, 0.9) { foreach ($fy in 0.2, 0.5, 0.8) {
@@ -199,6 +215,7 @@ try {
     # --- main variant: every page, the tray menu
     if (-not $only) {
     $d = Prepare 'main'
+    SeedLimits $d
     StartApp $d (BaseConfig)
     Seed $d
     ShotPage 0 '01-general.png'

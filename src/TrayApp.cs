@@ -89,9 +89,10 @@ namespace Semaphore
             tick.Interval = 5000;
             tick.Tick += (s, e) =>
             {
-                foreach (Change done in store.ExpireBackground())
+                foreach (Change done in store.ExpireBackground(s => ProcessTree.RunningToolShells(s.ProcessId)))
                 {
-                    Log.Write("[" + done.Session.ShortId + "] background wait ran out, the session is finished");
+                    Log.Write("[" + done.Session.ShortId + "] background wait ran out (no task running for "
+                        + SessionStore.BackgroundLimitMinutes + " min), the session is finished");
                     Notify(done);
                 }
                 var gone = new List<string>();
@@ -105,9 +106,11 @@ namespace Semaphore
                 }
                 DiscoverSessions();
                 CheckLongWaiting();
+                CheckLimits();
                 Refresh();
             };
             tick.Start();
+            StartLimits();
 
             server.Received += text => ui.Post(_ => OnMessage(text), null);
             server.Start();
@@ -733,7 +736,11 @@ namespace Semaphore
                 tray.Icon = icons[level];
                 shown = level;
             }
-            tray.Text = Truncate(Tooltip(level), 63);
+            string tip = Tooltip(level);
+            // The limits come first, so that the end of the session text is what gets cut.
+            string limits = LimitsTip();
+            if (limits != null) tip = limits + " · " + tip;
+            tray.Text = Truncate(tip, 63);
         }
 
         string Tooltip(Level level)
@@ -824,6 +831,8 @@ namespace Semaphore
             menu.Renderer = Theme.MenuRenderer();
             menu.BackColor = Theme.Surface;
             menu.ForeColor = Theme.Fore;
+
+            AddLimitsToMenu(menu.Items);
 
             var header = new ToolStripLabel(Loc.T("menu.sessions"));
             header.ForeColor = Theme.Muted;
@@ -1292,6 +1301,7 @@ namespace Semaphore
             Log.Write("Exiting (closed from the menu or by the system)");
             server.Stop();
             approvals.Stop();
+            usage.Stop();
             tick.Stop();
             askTimer.Stop();
             hotkey.Dispose();

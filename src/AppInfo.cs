@@ -5,9 +5,9 @@ using System.Reflection;
 [assembly: AssemblyDescription("Tray traffic light for Claude Code: status, notifications and answers from the phone")]
 [assembly: AssemblyCompany("BelalovBM")]
 [assembly: AssemblyCopyright("Copyright © 2026 BelalovBM")]
-[assembly: AssemblyVersion("0.9.1.0")]
-[assembly: AssemblyFileVersion("0.9.1.0")]
-[assembly: AssemblyInformationalVersion("0.9.1-beta")]
+[assembly: AssemblyVersion("0.9.2.0")]
+[assembly: AssemblyFileVersion("0.9.2.0")]
+[assembly: AssemblyInformationalVersion("0.9.2-beta")]
 // The unit tests (tests\, run by tools\run-tests.ps1 and on every GitHub build) check the logic of internal classes.
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("ClaudeCodeTrafficLight.Tests")]
 

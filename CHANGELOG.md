@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.2 (beta)
+
+**New**
+- **Usage limits.** How much of Claude's 5-hour and weekly limits is used, with the reset times: at the top of the tray menu, at the start of the icon tooltip and at the end of every push. The exact figures are the ones Claude Code saves when you run `/usage`; in between, the use since is estimated from the session transcripts (marked `≈`), with each model weighed by what your own `/usage` figures showed. Optional pushes every N percent, when a limit runs out and when it is back (**Settings → Notifications → Claude usage limits**). The program never contacts Anthropic and never touches your Claude sign-in.
+
+**Fixed**
+- A background task that ran longer than 30 minutes (a long benchmark or build) was reported as finished while it was still running. The session now stays yellow for as long as the task's process runs.
+
 ## 0.9.1 (beta)
 
 **New**

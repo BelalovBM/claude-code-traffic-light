@@ -57,9 +57,19 @@ namespace Semaphore
         // done is called on a pool thread with null on success or an error text.
         // tag is the name of an emoji ntfy puts before the title; by default the lamp of the state: red for
         // something that waits for the user, green for the rest (the colours of the tray icon).
+        // A line added at the end of every push (Claude's usage limits); null or "" adds nothing.
+        public static Func<string> Footer;
+
         public static void SendNtfy(string server, string authorization, string topic, string title, string body,
-            bool urgent, object[] actions, Action<string> done, string tag = null)
+            bool urgent, object[] actions, Action<string> done, string tag = null, bool footer = true)
         {
+            if (footer && Footer != null)
+            {
+                string line = null;
+                try { line = Footer(); }
+                catch { }
+                if (!string.IsNullOrEmpty(line)) body = string.IsNullOrEmpty(body) ? line : body + "\n\n" + line;
+            }
             // The self-check runs on someone else's computer with made-up sessions: nothing leaves it.
             if (SelfCheckSetup.Active)
             {
