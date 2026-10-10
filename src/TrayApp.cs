@@ -132,6 +132,7 @@ namespace Semaphore
                 bool first = !Config.FirstRunDone;
                 FirstRun();
                 if (!first) StartupNotice();
+                if (!first) HooksOutdatedNotice();
             }, null);
         }
 
@@ -491,7 +492,23 @@ namespace Semaphore
             bool doneToast = c.New == State.Idle && c.Old == State.Working && Config.ToastDone && !quiet;
             if (c.New == State.Idle && c.Old != null && c.Old != State.Idle) StartGrace(c.Session, doneToast);
 
-            if (c.New == State.Waiting && c.Old != State.Waiting)
+            if (c.New == State.Waiting && c.Session.Failure != null)
+            {
+                // The turn ended on an API error: not a question, so no panel; said at once, here and on the phone.
+                Session failed = c.Session;
+                Log.Write("[" + failed.ShortId + "] alert: stopped by an API error (" + failed.Failure + ")");
+                string text = FailureText(failed);
+                bool shown = Config.ToastWaiting && !quiet;
+                StartGrace(failed, shown);
+                if (Config.SoundWaiting && !quiet) SystemSounds.Exclamation.Play();
+                if (shown)
+                    Balloon(Loc.T("fail.title"), WithLabel(label, text), Level.Waiting, 7000, () => { MarkReacted(failed); Native.FocusSession(failed); });
+                failed.WaitingNotified = true;
+                if (Config.RemoteWaiting)
+                    AfterGrace(failed, () => failed.State == State.Waiting && failed.Failure != null,
+                        () => Notifier.Dispatch(Config, Loc.T("fail.title"), WithLabel(RemoteLabel(failed), text), true));
+            }
+            else if (c.New == State.Waiting && c.Old != State.Waiting)
             {
                 Log.Write("[" + c.Session.ShortId + "] alert: waiting");
                 if (Config.SoundWaiting && !quiet) SystemSounds.Exclamation.Play();
@@ -811,10 +828,33 @@ namespace Semaphore
             return s.Length <= max ? s : s.Substring(0, max - 1) + "…";
         }
 
-        // Working that is waiting for its own background task is said so: nothing to do for the user yet.
+        // Working that is waiting for its own background task is said so: nothing to do for the user yet. A turn that an
+        // API error ended is said so too: it waits for the user, but there is no question to answer.
         static string StateLabel(Session s)
         {
+            if (s.Failure != null && s.State == State.Waiting) return Loc.T("status.failed");
             return s.InBackground ? Loc.T("status.background") : StateLabel(s.State);
+        }
+
+        // What went wrong, in words, with Claude's own message when it gave one ("You've hit your limit · resets 9pm").
+        static string FailureText(Session s)
+        {
+            string kind;
+            switch (s.Failure)
+            {
+                case "rate_limit": kind = Loc.T("fail.rate_limit"); break;
+                case "overloaded": kind = Loc.T("fail.overloaded"); break;
+                case "authentication_failed":
+                case "oauth_org_not_allowed":
+                case "account_on_hold":
+                case "verification_required": kind = Loc.T("fail.auth"); break;
+                case "billing_error": kind = Loc.T("fail.billing"); break;
+                case "server_error": kind = Loc.T("fail.server"); break;
+                case "max_output_tokens": kind = Loc.T("fail.max_output"); break;
+                default: kind = Loc.T("fail.other", s.Failure); break;
+            }
+            string said = Shorten(System.Text.RegularExpressions.Regex.Replace(s.FailureText ?? "", @"\s+", " ").Trim(), 160);
+            return said.Length > 0 ? kind + "\n" + said : kind;
         }
 
         static string StateLabel(State s)
@@ -1244,6 +1284,15 @@ namespace Semaphore
                 result = candidate;
             }
             return result.Length == 0 ? "…" + path.Substring(path.Length - (max - 1)) : "…\\" + result;
+        }
+
+        // A new version listens to more events than the connection made by an older one: the program never changes
+        // Claude Code's settings by itself, so it says once per start where to update them.
+        void HooksOutdatedNotice()
+        {
+            if (AppPaths.IsSandbox || HookInstaller.GetStatus() != HooksStatus.Outdated) return;
+            Log.Write("The connection to Claude Code is from an older version: asking to update it");
+            Balloon(Loc.T("hooks.update.title"), Loc.T("hooks.update.text"), Level.Idle, 12000, () => ShowSettings(4));
         }
 
         static string Shorten(string text, int max)

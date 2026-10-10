@@ -17,6 +17,8 @@ namespace Semaphore
         public string ToolFile;
         // The rules Claude Code offers as "allow and don't ask again" for a permission prompt.
         public System.Collections.IList PermissionSuggestions;
+        // StopFailure: the kind of API error that ended the turn (rate_limit, overloaded...) and what Claude showed.
+        public string Error, LastMessage;
 
         public static HookEvent Parse(string json)
         {
@@ -37,6 +39,8 @@ namespace Semaphore
                 TranscriptPath = Str(d, "transcript_path"),
                 HostName = Str(d, "tl_host"),
                 Trigger = Str(d, "trigger"),
+                Error = Str(d, "error"),
+                LastMessage = Str(d, "last_assistant_message"),
             };
             object hwnd, pid, started;
             if (d.TryGetValue("tl_hwnd", out hwnd) && hwnd != null)
@@ -125,6 +129,9 @@ namespace Semaphore
         // When that wait began, and whether the user was already told that it is taking long.
         public DateTime BackgroundSince;
         public bool BackgroundNotified;
+        // The turn ended on an API error (the kind, and what Claude showed): the session waits for the user, but not
+        // with a question. Null otherwise.
+        public string Failure, FailureText;
         public string HostName;
         public long HostHwnd;
         public int ProcessId;
@@ -293,6 +300,10 @@ namespace Semaphore
                 case "Notification":
                     target = NotificationState(e);
                     break;
+                case "StopFailure":
+                    // An API error ended the turn: nothing goes on until the user retries or waits for the limit.
+                    target = State.Waiting;
+                    break;
             }
             if (target == null) return null;
 
@@ -309,6 +320,12 @@ namespace Semaphore
             s.LastEvent = now;
 
             if (!string.IsNullOrEmpty(e.TranscriptPath)) s.TranscriptPath = e.TranscriptPath;
+            if (e.Name == "StopFailure")
+            {
+                s.Failure = string.IsNullOrEmpty(e.Error) ? "unknown" : e.Error;
+                s.FailureText = e.LastMessage;
+            }
+            else s.Failure = s.FailureText = null;
             // Any event but Stop means the session acts again: whatever background wait there was is over.
             if (e.Name != "Stop") s.BackgroundUntil = DateTime.MinValue;
             else if (old == State.Working || old == State.Compacting)

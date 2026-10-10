@@ -29,6 +29,7 @@ namespace Semaphore.Tests
             Group("hook events", HookEvents);
             Group("session states", SessionStates);
             Group("background wait", BackgroundWait);
+            Group("stop on an error", StopFailure);
             Group("transcripts", Transcripts);
             Group("questions", Questions);
             Group("usage limits", UsageLimits);
@@ -117,6 +118,21 @@ namespace Semaphore.Tests
             Check("session end removes it", c.New == null && store.Find("st1") == null && store.Overall() == Level.None);
             c = Apply(store, "{\"hook_event_name\":\"Stop\",\"session_id\":\"\",\"cwd\":\"C:\\\\X\",\"unknown\":1}");
             Check("an event without a known name of its own is still handled safely", c == null || c.Session != null);
+        }
+
+        // ---- a turn ended by an API error ----
+
+        static void StopFailure()
+        {
+            var store = new SessionStore();
+            string b = "\"session_id\":\"sf1\",\"cwd\":\"C:\\\\Proj\"";
+            Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"go\"}");
+            Change c = Apply(store, "{\"hook_event_name\":\"StopFailure\"," + b + ",\"error\":\"rate_limit\",\"last_assistant_message\":\"You've hit your limit · resets 9pm\"}");
+            Session s = store.Find("sf1");
+            Check("an API error is not \"finished\": the session waits for the user", c.New == State.Waiting && store.Overall() == Level.Waiting);
+            Check("the kind of error and Claude's words are kept", s.Failure == "rate_limit" && s.FailureText.Contains("resets 9pm"));
+            Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"again\"}");
+            Check("the next prompt clears the error", s.Failure == null && s.State == State.Working);
         }
 
         // ---- a stop that only waits for a background task ----

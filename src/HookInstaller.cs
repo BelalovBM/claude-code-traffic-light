@@ -16,6 +16,8 @@ namespace Semaphore
         {
             "SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse",
             "Notification", "Stop", "SessionEnd", "PreCompact", "PostCompact",
+            // A turn ended by an API error (a limit, overloaded servers, a lost sign-in) fires this instead of Stop.
+            "StopFailure",
         };
 
         public static string SettingsPath

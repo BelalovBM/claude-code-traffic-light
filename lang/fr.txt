@@ -290,3 +290,14 @@ wiz.background=Attend sa tâche en arrière-plan (build, tests) ; reprendra seul
 toast.background.title=Claude attend depuis longtemps sa tâche en arrière-plan
 toast.background.text=attend depuis {0}. Si la tâche est bloquée ou si c'est un serveur resté lancé, Claude ne reprendra pas seul.
 label.background.minutes=Prévenir si Claude attend sa tâche en arrière-plan plus de (minutes, 0 = jamais ; aussi sur le téléphone)
+status.failed=Arrêté par une erreur
+fail.title=Claude s'est arrêté à cause d'une erreur
+fail.rate_limit=Une limite d'utilisation est atteinte, ou il y a eu trop de requêtes.
+fail.overloaded=Les serveurs d'Anthropic sont surchargés : réessayez un peu plus tard.
+fail.auth=Problème de connexion à Claude : reconnectez-vous (/login).
+fail.billing=Problème d'abonnement ou de facturation.
+fail.server=Erreur sur le serveur d'Anthropic : relancez la requête.
+fail.max_output=La réponse était trop longue et a été coupée.
+fail.other=Erreur de l'API ({0}).
+hooks.update.title=Mettez à jour la connexion à Claude Code
+hooks.update.text=Cette version en fait plus, mais la connexion a été faite par une ancienne. Ouvrez Paramètres → Claude Code et cliquez sur « Connecter / réparer ».

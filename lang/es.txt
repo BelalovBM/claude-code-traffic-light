@@ -290,3 +290,14 @@ wiz.background=Espera su tarea en segundo plano (compilación, pruebas); seguir�
 toast.background.title=Claude lleva mucho esperando su tarea en segundo plano
 toast.background.text=lleva {0} esperando. Si la tarea se colgó o es un servidor que quedó en marcha, Claude no seguirá solo.
 label.background.minutes=Avisar si Claude espera su tarea en segundo plano más de (minutos, 0 = nunca; también al móvil)
+status.failed=Detenido por un error
+fail.title=Claude se detuvo por un error
+fail.rate_limit=Se alcanzó un límite de uso o hubo demasiadas solicitudes.
+fail.overloaded=Los servidores de Anthropic están sobrecargados: inténtalo un poco más tarde.
+fail.auth=Problema con el inicio de sesión de Claude: vuelve a iniciar sesión (/login).
+fail.billing=Problema con la suscripción o la facturación.
+fail.server=Error en el servidor de Anthropic: repite la solicitud.
+fail.max_output=La respuesta era demasiado larga y se cortó.
+fail.other=Error de la API ({0}).
+hooks.update.title=Actualiza la conexión con Claude Code
+hooks.update.text=Esta versión hace más, pero la conexión la hizo una anterior. Abre Ajustes → Claude Code y pulsa «Conectar / reparar».
