@@ -67,10 +67,23 @@ jobs:
           $version = '${{ github.ref_name }}'.TrimStart('v')
           $lines = Get-Content CHANGELOG.md
           $start = [array]::FindIndex($lines, [Predicate[string]]{ param($l) $l -match "^## $([regex]::Escape($version))\b" })
-          if ($start -lt 0) { "See CHANGELOG.md." | Set-Content release-notes.md; exit 0 }
-          $end = [array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l -match '^## ' })
-          if ($end -lt 0) { $end = $lines.Count }
-          $lines[($start + 1)..($end - 1)] | Set-Content release-notes.md
+          $body = @('See CHANGELOG.md.')
+          if ($start -ge 0)
+          {
+              $end = [array]::FindIndex($lines, $start + 1, [Predicate[string]]{ param($l) $l -match '^## ' })
+              if ($end -lt 0) { $end = $lines.Count }
+              $body = @($lines[($start + 1)..($end - 1)])
+              while ($body.Count -gt 0 -and $body[-1].Trim() -eq '') { $body = @($body[0..($body.Count - 2)]) }
+          }
+          $body | Set-Content release-notes.md -Encoding utf8
+          # Whoever comes straight to the download page gets the first steps too; the rest is in the program and the readme.
+          $repo = '${{ github.server_url }}/${{ github.repository }}'
+          @(
+              '',
+              '**Getting started:** download `ClaudeCodeTrafficLight.exe` below, run it, and answer **Yes** to "Connect to Claude Code". It is not code-signed, so Windows SmartScreen may warn on the first start: **More info → Run anyway**. Check the file against `SHA256SUMS.txt` if you like.',
+              '',
+              "Everything else is explained in the program itself (the first-run window and the **About** page) and in the [README]($repo#readme). The source zip is only needed to build the program yourself."
+          ) | Add-Content release-notes.md -Encoding utf8
 
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
