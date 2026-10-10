@@ -228,11 +228,13 @@ namespace Semaphore
             set { ReplyTopicProtected = Secret.Protect(value); }
         }
 
-        // Claude's usage limits: shown in the menu and the tooltip, added to every push, a push every LimitsStep percent
-        // (0: none), and a push when a limit runs out by the estimate and when it is back.
+        // Claude's usage limits: shown in the menu and the tooltip, added to every push, a notice every LimitsStep percent
+        // of the 5-hour window and every LimitsStepWeek percent of the week (0: none), and a notice when either runs
+        // out by the estimate and when it is back.
         public bool LimitsShow { get; set; }
         public bool LimitsInPush { get; set; }
         public int LimitsStep { get; set; }
+        public int LimitsStepWeek { get; set; }
         public bool LimitsEvents { get; set; }
 
         // A notice (here and on the phone) when Claude has been waiting this many minutes for its own background task:
@@ -312,6 +314,7 @@ namespace Semaphore
                 if (c.MutedSessions == null) c.MutedSessions = new List<string>();
                 if (c.RemoteApproveMinutes < 1 || c.RemoteApproveMinutes > 30) c.RemoteApproveMinutes = 5;
                 if (c.LimitsStep < 0 || c.LimitsStep > 50) c.LimitsStep = 0;
+                if (c.LimitsStepWeek < 0 || c.LimitsStepWeek > 50) c.LimitsStepWeek = 0;
                 if (c.BackgroundNotifyMinutes < 0 || c.BackgroundNotifyMinutes > 600) c.BackgroundNotifyMinutes = 30;
                 if (c.NtfyEnabled && string.IsNullOrEmpty(c.NtfyTopic)) c.NtfyTopic = Secret.RandomTopic();
                 // Settings from before the choice existed: any address other than the public one was an own server.

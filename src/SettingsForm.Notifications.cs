@@ -63,6 +63,7 @@ namespace Semaphore
                 c.Controls.Add(Check(Loc.T("chk.limits.push"), cfg.LimitsInPush, v => cfg.LimitsInPush = v));
                 c.Controls.Add(Check(Loc.T("chk.limits.events"), cfg.LimitsEvents, v => cfg.LimitsEvents = v));
                 c.Controls.Add(Row(Loc.T("label.limits.step"), Spin(cfg.LimitsStep, 0, 50, v => cfg.LimitsStep = v), NumberLabelWidth));
+                c.Controls.Add(Row(Loc.T("label.limits.step.week"), Spin(cfg.LimitsStepWeek, 0, 50, v => cfg.LimitsStepWeek = v), NumberLabelWidth));
                 Details(c, Loc.T("limits.hint"), Loc.T("limits.hint.estimate"));
             });
         }

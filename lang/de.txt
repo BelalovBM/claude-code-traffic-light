@@ -264,8 +264,9 @@ ask.more.note=Es gibt {0} Antworten, das Handy zeigt aber nur drei Schaltfläche
 sec.limits=Claude-Nutzungslimits
 chk.limits.show=Limits im Menü und im Tooltip des Symbols zeigen
 chk.limits.push=Jeder Nachricht ans Handy eine Zeile mit den Limits anfügen
-chk.limits.events=Melden, wenn ein Limit laut Schätzung aufgebraucht ist und wenn es wieder verfügbar ist
-label.limits.step=Den Verbrauch melden alle (%, 0 = nie)
+chk.limits.events=Melden, wenn das 5-Stunden- oder Wochenlimit laut Schätzung aufgebraucht ist und wenn es wieder verfügbar ist
+label.limits.step=Den Verbrauch des 5-Stunden-Limits melden alle (%, 0 = nie)
+label.limits.step.week=Den Verbrauch des Wochenlimits melden alle (%, 0 = nie)
 limits.hint=Die genauen Werte stammen aus Claude Code: Es speichert sie, wenn Sie /usage aufrufen oder ein Limit erreichen. Das Programm fragt bei Anthropic nichts ab und berührt Ihre Claude-Anmeldung nicht. Meldungen zu den Limits kommen auf diesen Computer (wenn Benachrichtigungen hier an sind) und aufs Handy (wenn es verbunden ist).
 limits.hint.estimate=Zwischen zwei /usage wird der Verbrauch aus den Sitzungsprotokollen auf diesem Computer geschätzt (Zeichen „≈“), für jedes Modell getrennt; jedes neue /usage korrigiert die Schätzung. Nutzung von Claude auf anderen Geräten fehlt in der Schätzung bis zum nächsten /usage.
 limits.menu.title=Claude-Nutzungslimits

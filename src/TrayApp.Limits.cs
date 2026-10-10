@@ -128,11 +128,11 @@ namespace Semaphore
         void CheckLimits()
         {
             LimitsSnapshot s = usage.Snapshot;
-            WatchLimit(fiveWatch, s.Five, Loc.T("limits.five"));
-            WatchLimit(weekWatch, s.Week, Loc.T("limits.week"));
+            WatchLimit(fiveWatch, s.Five, Loc.T("limits.five"), Config.LimitsStep);
+            WatchLimit(weekWatch, s.Week, Loc.T("limits.week"), Config.LimitsStepWeek);
         }
 
-        void WatchLimit(LimitWatch w, LimitView v, string name)
+        void WatchLimit(LimitWatch w, LimitView v, string name, int stepPercent)
         {
             if (!v.Known) return;
             // A new window: the reset moved on (by more than the drift of an estimated one), or the old one closed.
@@ -147,7 +147,7 @@ namespace Semaphore
             }
             if (v.NotStarted) { w.Reset = DateTime.MinValue; return; }
             w.Reset = v.Reset;
-            int step = Config.LimitsStep > 0 ? (int)(v.Percent / Config.LimitsStep) : -1;
+            int step = stepPercent > 0 ? (int)(v.Percent / stepPercent) : -1;
             // The first look only takes note: a restart must not push what was already known.
             if (w.Step < 0) w.Step = step;
             else if (step > w.Step)

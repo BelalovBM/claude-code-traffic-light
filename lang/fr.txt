@@ -264,8 +264,9 @@ ask.more.note=Il y a {0} réponses et le téléphone ne peut afficher que trois 
 sec.limits=Limites d'utilisation de Claude
 chk.limits.show=Afficher les limites dans le menu et l'infobulle de l'icône
 chk.limits.push=Ajouter une ligne avec les limites à chaque notification sur le téléphone
-chk.limits.events=Prévenir quand une limite est épuisée selon l'estimation, et quand elle revient
-label.limits.step=Prévenir de l'utilisation tous les (%, 0 = jamais)
+chk.limits.events=Prévenir quand la limite de 5 heures ou la limite hebdomadaire est épuisée selon l'estimation, et quand elle revient
+label.limits.step=Prévenir de l'utilisation de la limite de 5 heures tous les (%, 0 = jamais)
+label.limits.step.week=Prévenir de l'utilisation de la limite hebdomadaire tous les (%, 0 = jamais)
 limits.hint=Les chiffres exacts viennent de Claude Code : il les garde quand vous lancez /usage ou atteignez une limite. Le programme ne demande rien à Anthropic et ne touche pas à votre connexion Claude. Les avis sur les limites arrivent sur cet ordinateur (si les notifications y sont activées) et sur le téléphone (s'il est connecté).
 limits.hint.estimate=Entre deux /usage, l'utilisation est estimée d'après les journaux de session de cet ordinateur (signe « ≈ »), séparément pour chaque modèle ; chaque nouveau /usage corrige l'estimation. L'utilisation de Claude sur d'autres appareils n'y figure qu'au prochain /usage.
 limits.menu.title=Limites d'utilisation de Claude
