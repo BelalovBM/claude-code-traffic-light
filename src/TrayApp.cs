@@ -736,11 +736,38 @@ namespace Semaphore
                 tray.Icon = icons[level];
                 shown = level;
             }
-            // The limits go on a second line; Windows takes 63 characters in all, so the state line is what gets cut.
+            // The limits go on a second line; if anything is cut, it is the end of the state line.
             string limits = LimitsTip();
-            tray.Text = limits == null || limits.Length > 40
-                ? Truncate(Tooltip(level), 63)
-                : Truncate(Tooltip(level), 63 - limits.Length - 1) + "\n" + limits;
+            SetTip(limits == null || limits.Length > 60
+                ? Truncate(Tooltip(level), TipMax)
+                : Truncate(Tooltip(level), TipMax - limits.Length - 1) + "\n" + limits);
+        }
+
+        // Windows takes 127 characters for a tray tooltip; .NET Framework refuses more than 63, so a longer text is put
+        // in its place and handed over the way .NET itself does it. If that is not possible, the text is cut to 63.
+        const int TipMax = 127;
+        string tipShown;
+
+        void SetTip(string text)
+        {
+            if (text == tipShown) return;
+            tipShown = text;
+            if (text.Length <= 63) { tray.Text = text; return; }
+            try
+            {
+                const System.Reflection.BindingFlags inner = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                var field = typeof(NotifyIcon).GetField("text", inner);
+                var added = typeof(NotifyIcon).GetField("added", inner);
+                var update = typeof(NotifyIcon).GetMethod("UpdateIcon", inner);
+                if (field != null && added != null && update != null)
+                {
+                    field.SetValue(tray, text);
+                    if ((bool)added.GetValue(tray)) update.Invoke(tray, new object[] { tray.Visible });
+                    return;
+                }
+            }
+            catch { }
+            tray.Text = Truncate(text, 63);
         }
 
         string Tooltip(Level level)
