@@ -6,7 +6,7 @@ using System.Windows.Forms;
 namespace Semaphore
 {
     // Claude's usage limits in the tray: a block at the top of the menu, the start of the tooltip, a line at the end of
-    // every push, and pushes as the use grows, runs out and comes back (see Limits.cs for where the figures come from).
+    // every push, and notices as the use grows, runs out and comes back (see Limits.cs for where the figures come from).
     sealed partial class TrayApp
     {
         readonly UsageTracker usage = new UsageTracker();
@@ -141,7 +141,7 @@ namespace Semaphore
             if (newWindow)
             {
                 if (w.Out && Config.LimitsEvents)
-                    LimitPush(Loc.T("limits.push.back.title"), Loc.T("limits.push.back.text", name));
+                    LimitPush(Loc.T("limits.push.back.title"), Loc.T("limits.push.back.text", name), Level.Idle);
                 w.Out = false;
                 w.Step = -1;
             }
@@ -153,19 +153,21 @@ namespace Semaphore
             else if (step > w.Step)
             {
                 w.Step = step;
-                LimitPush(Loc.T("limits.push.step.title", name, LimitPercent(v)), LimitReset(v));
+                LimitPush(Loc.T("limits.push.step.title", name, LimitPercent(v)), LimitReset(v), Level.Working);
             }
             if (v.Percent >= 99.5 && !w.Out)
             {
                 w.Out = true;
                 if (Config.LimitsEvents)
-                    LimitPush(Loc.T("limits.push.out.title"), Loc.T("limits.push.out.text", name, LimitPercent(v), LimitReset(v)));
+                    LimitPush(Loc.T("limits.push.out.title"), Loc.T("limits.push.out.text", name, LimitPercent(v), LimitReset(v)), Level.Waiting);
             }
         }
 
-        void LimitPush(string title, string text)
+        // A notice on this computer (unless notifications here are off or paused) and a push to the phone (if connected).
+        void LimitPush(string title, string text, Level lamp)
         {
-            Log.Write("Usage limits: push \"" + title + "\"");
+            Log.Write("Usage limits: notice \"" + title + "\"");
+            if (!Paused) Balloon(title, text, lamp, 7000);
             if (Config.NtfyEnabled && !Config.NtfyPaused && !string.IsNullOrEmpty(Config.NtfyTopic))
                 Notifier.SendNtfy(Config.NtfyServer, Notifier.Authorization(Config), Config.NtfyTopic, title, text, false, null, null,
                     "bar_chart", false);

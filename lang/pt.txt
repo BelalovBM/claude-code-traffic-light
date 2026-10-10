@@ -263,9 +263,9 @@ ask.more.note=São {0} respostas e o celular só mostra três botões: as três 
 sec.limits=Limites de uso do Claude
 chk.limits.show=Mostrar os limites no menu e na dica do ícone
 chk.limits.push=Adicionar uma linha com os limites a cada notificação no celular
-chk.limits.events=Avisar o celular quando um limite se esgotar pela estimativa e quando voltar
-label.limits.step=Avisar o celular sobre o uso a cada (%, 0 = nunca)
-limits.hint=Os números exatos vêm do Claude Code: ele os guarda quando você executa /usage ou atinge um limite. O programa não pede nada à Anthropic e não toca no seu login do Claude.
+chk.limits.events=Avisar quando um limite se esgotar pela estimativa e quando voltar
+label.limits.step=Avisar sobre o uso a cada (%, 0 = nunca)
+limits.hint=Os números exatos vêm do Claude Code: ele os guarda quando você executa /usage ou atinge um limite. O programa não pede nada à Anthropic e não toca no seu login do Claude. Os avisos sobre os limites chegam a este computador (se as notificações aqui estiverem ativadas) e ao celular (se estiver conectado).
 limits.hint.estimate=Entre dois /usage o uso é estimado pelos registros de sessão deste computador (marcado «≈»), separadamente para cada modelo; cada novo /usage corrige a estimativa. O uso do Claude em outros dispositivos só entra na estimativa no próximo /usage.
 limits.menu.title=Limites de uso do Claude
 limits.menu.setup=Execute /usage no Claude uma vez para ver os limites

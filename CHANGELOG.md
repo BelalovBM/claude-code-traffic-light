@@ -3,8 +3,7 @@
 ## 0.9.2 (beta)
 
 **New**
-- **Usage limits.** How much of Claude's 5-hour and weekly limits is used, with the reset times: at the top of the tray menu, on the second line of the icon tooltip and at the end of every push. The exact figures are the ones Claude Code saves when you run `/usage`; in between, the use since is estimated from the session transcripts (marked `≈`), with each model weighed by what your own `/usage` figures showed. Optional pushes every N percent, when a limit runs out and when it is back (**Settings → Notifications → Claude usage limits**). The program never contacts Anthropic and never touches your Claude sign-in.
-
+- **Usage limits.** How much of Claude's 5-hour and weekly limits is used, with the reset times: at the top of the tray menu, on the second line of the icon tooltip and at the end of every push. The exact figures are the ones Claude Code saves when you run `/usage`; in between, the use since is estimated from the session transcripts (marked `≈`), with each model weighed by what your own `/usage` figures showed. Optional notices, here and on the phone, every N percent, when a limit runs out and when it is back (**Settings → Notifications → Claude usage limits**). The program never contacts Anthropic and never touches your Claude sign-in.
 - **Waiting for a background task has its own lamp:** yellow with clock hands, so it is clear without the menu that Claude is not thinking but waiting for a build or tests, and goes on by itself. If that wait lasts 30 minutes (changeable, or off), one notice comes here and on the phone: a stuck task or a server left running no longer looks like work for ever.
 
 **Fixed**
