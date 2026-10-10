@@ -280,6 +280,15 @@ namespace Semaphore.Tests
             Check("each model gets its own weight from the facts", ratio > 1.35 && ratio < 1.65, ratio.ToString("0.00"));
             Check("the estimate follows the anchors", Math.Abs(UsageMath.Apply(w, Use("sonnet", 1000000, "opus", 1000000)) - 25) < 2.5);
             Check("a model never seen gets the common weight", w.For("haiku") == w.Common);
+            var named = UsageMath.Fit(new List<UsageMath.Sample>
+            {
+                new UsageMath.Sample { Cost = Use("claude-sonnet-5-5", 1000000), Percent = 10, At = now.AddHours(-3) },
+                new UsageMath.Sample { Cost = Use("claude-opus-5-5", 1000000), Percent = 15, At = now.AddHours(-2) },
+            }, now);
+            Check("a new model of a known family takes that family's weight",
+                named.For("claude-opus-6") == named.For("claude-opus-5-5") && UsageMath.Family("claude-opus-5-5") == "claude-opus");
+            Check("a model of an unknown family takes the common weight", named.For("claude-lyra-1") == named.Common);
+            Check("the plan is read from ~/.claude.json", UsageTracker.ParsePlan("{\"oauthAccount\":{\"organizationType\": \"claude_max\"}}") == "claude_max");
             Check("no anchors, no weights", UsageMath.Fit(new List<UsageMath.Sample>(), now) == null);
 
             string cache = "{\"x\":{\"D:/a\":1,\"d:/a\":2},\"cachedUsageUtilization\":{\"fetchedAtMs\":1791635591572,\"accountUuid\":\"u\",\"utilization\":{"

@@ -31,6 +31,9 @@ namespace Semaphore
         public Dictionary<string, double> WeekCost { get; set; }
         // Which way of counting the use these costs were made with (see UsageMath.CostVersion).
         public int CostVersion { get; set; }
+        // The plan the figure was taken on (Claude Code's "organizationType", such as claude_pro): a limit of another
+        // plan has another size, so only figures of the current plan teach the weights.
+        public string Plan { get; set; }
 
         [ScriptIgnore] public DateTime At { get { return Ms(AtMs); } }
         [ScriptIgnore] public DateTime FiveReset { get { return Ms(FiveResetMs); } }
@@ -86,15 +89,31 @@ namespace Semaphore
         {
             public double Common;
             public Dictionary<string, double> ByModel = new Dictionary<string, double>();
+
+            // A model with figures of its own has its own weight; a new one of a known family (claude-opus-6 after
+            // claude-opus-5-5) takes the weight of that family until it has figures; any other the common one.
             public double For(string model)
             {
                 double w;
-                return model != null && ByModel.TryGetValue(model, out w) ? w : Common;
+                if (model == null) return Common;
+                if (ByModel.TryGetValue(model, out w)) return w;
+                string family = Family(model);
+                var kin = ByModel.Where(kv => Family(kv.Key) == family).Select(kv => kv.Value).ToList();
+                return family != null && kin.Count > 0 ? kin.Average() : Common;
             }
         }
 
+        // "claude-opus-5-5" -> "claude-opus": the name without its version numbers and dates.
+        internal static string Family(string model)
+        {
+            if (string.IsNullOrEmpty(model)) return null;
+            var parts = model.Split('-').TakeWhile(p => p.Length > 0 && !char.IsDigit(p[0])).ToList();
+            return parts.Count >= 2 ? string.Join("-", parts) : null;
+        }
+
         // Percent per unit of cost, one figure per model, fitted to the anchors (newer ones count more). A model with
-        // little evidence stays near the common figure; a model never seen gets the common figure. Null without anchors.
+        // little evidence stays near the common figure; a model never seen gets its family's or the common figure.
+        // Null without anchors.
         internal static Weights Fit(IList<Sample> samples, DateTime now)
         {
             var use = samples.Where(s => s.Cost != null && s.Percent >= 1 && s.Cost.Values.Sum() > 0).ToList();
@@ -397,8 +416,12 @@ namespace Semaphore
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             using (var r = new StreamReader(fs, Encoding.UTF8))
                 text = r.ReadToEnd();
+            string plan = ParsePlan(text);
+            currentPlan = plan;
+            if (plan != null) AssignPlan(plan);
             UsageAnchor a = ParseCache(text);
             if (a == null) return;
+            a.Plan = plan;
             lock (gate) if (anchors.Any(x => x.AtMs == a.AtMs)) return;
             Recount(a);
             lock (gate)
@@ -415,6 +438,28 @@ namespace Semaphore
         }
 
         static string Fmt(double? v) { return v.HasValue ? v.Value.ToString("0", CultureInfo.InvariantCulture) : "?"; }
+
+        volatile string currentPlan;
+
+        static readonly Regex PlanRx =new Regex("\"organizationType\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.Compiled);
+
+        // The plan of the signed-in account as Claude Code keeps it in ~/.claude.json, or null.
+        internal static string ParsePlan(string text)
+        {
+            Match m = PlanRx.Match(text);
+            return m.Success ? m.Groups[1].Value : null;
+        }
+
+        // Figures saved before the plan was noted were taken on the plan of that time, which is the current one
+        // unless it changed in between; a change would show as figures that do not fit, and they age out.
+        void AssignPlan(string plan)
+        {
+            bool changed = false;
+            lock (gate)
+                foreach (UsageAnchor x in anchors)
+                    if (x.Plan == null) { x.Plan = plan; changed = true; }
+            if (changed) SaveAnchors();
+        }
 
         // The use in each window up to the figure, counted the current way; a window that began before the transcripts
         // still kept here cannot be counted, and that figure then only gives the percentage, not the weights.
@@ -535,7 +580,12 @@ namespace Semaphore
             var v = new LimitView { Reset = DateTime.MinValue };
             UsageAnchor a = list.Where(x => five ? x.Five.HasValue : x.Week.HasValue).OrderByDescending(x => x.AtMs).FirstOrDefault();
             if (a == null) return v;
+            // The plan changed since the last exact figure: its limits have another size, nothing is known until /usage.
+            string plan = currentPlan;
+            if (plan != null && a.Plan != null && plan != a.Plan) return v;
+            // Only figures of the current plan: another plan's limit has another size.
             UsageMath.Weights w = UsageMath.Fit(list
+                .Where(x => a.Plan == null || x.Plan == a.Plan)
                 .Where(x => five ? x.Five.HasValue && x.FiveCost != null : x.Week.HasValue && x.WeekCost != null)
                 .Select(x => new UsageMath.Sample { Cost = five ? x.FiveCost : x.WeekCost, Percent = five ? x.Five.Value : x.Week.Value, At = x.At })
                 .ToList(), now);
