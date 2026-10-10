@@ -7,6 +7,7 @@ A tray traffic light for [Claude Code](https://claude.com/claude-code) on Window
 | Colour | Meaning |
 |---|---|
 | 🟡 yellow | Claude Code is working |
+| 🟡 yellow with clock hands | Claude only waits for a background task it started (a build, tests) and goes on by itself when it ends |
 | 🔵 blue | Claude Code is compacting the conversation (can take a few minutes); you get a pop-up when it starts and when it ends |
 | 🔴 red | Claude Code is waiting for you (for example a permission prompt) |
 | 🟢 green | the task is finished, ready for the next one |
@@ -33,7 +34,7 @@ Windows SmartScreen may warn about an unsigned file: choose **More info → Run 
 - **Show window**: brings the terminal or VS Code window of the chosen session to the front.
 - Sound and pop-up when Claude waits for you or finishes; each can be switched off, globally or per session. The tray menu pauses everything on this computer for an hour, until the end of the day or until you resume it; the phone is not affected: it has its own switch.
 - A keyboard shortcut (Win+Alt+C by default, changed or switched off on the **General** page) opens the waiting request with the keyboard focus in it, or the tray menu when nothing waits.
-- When Claude ends its turn only to wait for a background task it started (a build, tests), the session stays yellow ("waiting for its background task") and nothing reports it as finished, however long the task runs: the app sees whether the task's process is still running. A server left running keeps the session yellow too; it counts as finished only when no task process is left and Claude does not go on within 30 minutes.
+- When Claude ends its turn only to wait for a background task it started (a build, tests), the lamp shows clock hands ("waiting for its background task") and nothing reports it as finished, however long the task runs: the app sees whether the task's process is still running. If the wait goes on for 30 minutes (changed or switched off on the **Notifications** page), you get one notice here and on the phone: a stuck task or a server left running would otherwise look like work for ever. The session counts as finished only when no task process is left and Claude does not go on within 30 minutes.
 - Push to your phone through [ntfy](https://ntfy.sh), only when you are probably away (a notification on the computer that you did not react to, a panel left untouched for a minute, or a locked screen): after a permission prompt stays unanswered for N minutes, or when a task that ran at least N minutes finishes. A quick on/off switch is in the tray menu.
 - Claude's usage limits (the 5-hour window and the week) with their reset times: at the top of the tray menu, on the second line of the icon tooltip and at the end of every push; optionally a push every N percent, when a limit runs out and when it is back. See [Usage limits](#usage-limits).
 - 7 languages (English, Russian, Spanish, German, French, Portuguese, Chinese), light/dark/system theme, autostart.

@@ -284,3 +284,7 @@ limits.push.out.title=Claude 限制似乎已用尽
 limits.push.out.text={0}：{1}，{2}。准确值请看 /usage。
 limits.push.back.title=Claude 限制已恢复
 limits.push.back.text={0}：可以继续了。
+wiz.background=正在等待自己的后台任务（构建、测试），完成后会自动继续
+toast.background.title=Claude 已等待后台任务很久
+toast.background.text=已等待 {0}。如果任务卡住或是留在运行的服务器，Claude 不会自行继续。
+label.background.minutes=Claude 等待后台任务超过多久时通知（分钟，0 为不通知；也发到手机）

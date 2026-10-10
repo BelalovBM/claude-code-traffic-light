@@ -40,6 +40,7 @@ namespace Semaphore
             icons[Level.Working] = TrayIcons.Create(Level.Working);
             icons[Level.Compacting] = TrayIcons.Create(Level.Compacting);
             icons[Level.Waiting] = TrayIcons.Create(Level.Waiting);
+            icons[Level.Background] = TrayIcons.Create(Level.Background);
 
             menu.Opening += (s, e) =>
             {
@@ -106,6 +107,7 @@ namespace Semaphore
                 }
                 DiscoverSessions();
                 CheckLongWaiting();
+                CheckLongBackground();
                 CheckLimits();
                 Refresh();
             };
@@ -702,6 +704,27 @@ namespace Semaphore
             return approvals.Waiting().Any(r => r.SessionId == s.Id && r.Pushed);
         }
 
+        // Claude has been waiting long for its own background task: a server left running or a stuck task looks like work
+        // for ever, and Claude will not go on by itself. Said once per wait, here and on the phone.
+        void CheckLongBackground()
+        {
+            int minutes = Config.BackgroundNotifyMinutes;
+            if (minutes <= 0) return;
+            DateTime now = DateTime.Now;
+            foreach (Session s in store.All)
+            {
+                if (!s.InBackground || s.BackgroundNotified || (now - s.BackgroundSince).TotalMinutes < minutes) continue;
+                s.BackgroundNotified = true;
+                Log.Write("[" + s.ShortId + "] waiting for its background task for " + Duration(now - s.BackgroundSince));
+                if (IsMuted(s)) continue;
+                string title = Loc.T("toast.background.title");
+                string text = Loc.T("toast.background.text", Duration(now - s.BackgroundSince));
+                Session waiting = s;
+                if (!Paused) Balloon(title, WithLabel(SessionLabel(s), text), Level.Background, 7000, () => Native.FocusSession(waiting));
+                Notifier.Dispatch(Config, title, WithLabel(RemoteLabel(s), text), false);
+            }
+        }
+
         void CheckLongWaiting()
         {
             if (!Config.RemoteWaiting) return;
@@ -775,8 +798,9 @@ namespace Semaphore
             if (level == Level.None) return Loc.T("tip.none");
 
             // The state of the most urgent session and how many there are; names do not fit a tooltip.
+            // A session that only waits for its background task comes after one that is really working.
             Session top = store.All
-                .OrderByDescending(s => (int)s.State)
+                .OrderByDescending(s => (int)s.State * 2 - (s.InBackground ? 1 : 0))
                 .ThenBy(s => s.Since)
                 .First();
             return Loc.T("tip.state", StateLabel(top), store.All.Count());
@@ -891,7 +915,7 @@ namespace Semaphore
                 // '&' would otherwise be taken as a menu mnemonic marker.
                 var item = new GuardedItem(text.Replace("&", "&&"));
                 item.ForeColor = Theme.Fore;
-                item.Image = TrayIcons.Draw(ToLevel(s.State), Ui.S(16));
+                item.Image = TrayIcons.Draw(s.InBackground ? Level.Background : ToLevel(s.State), Ui.S(16));
 
                 var show = new GuardedItem(Loc.T("menu.session.show"));
                 show.ForeColor = Theme.Fore;

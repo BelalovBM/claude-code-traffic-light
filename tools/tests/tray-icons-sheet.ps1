@@ -9,7 +9,7 @@ $asm = [Reflection.Assembly]::LoadFrom((Join-Path $root 'bin\ClaudeCodeTrafficLi
 $icons = $asm.GetType('Semaphore.TrayIcons')
 $levelType = $asm.GetType('Semaphore.Level')
 $draw = $icons.GetMethod('Draw')
-$levels = 'Idle', 'Working', 'Compacting', 'Waiting', 'None'
+$levels = 'Idle', 'Working', 'Background', 'Compacting', 'Waiting', 'None'
 
 function Icon($name, $size) { $draw.Invoke($null, @([Enum]::Parse($levelType, $name), [int]$size)) }
 

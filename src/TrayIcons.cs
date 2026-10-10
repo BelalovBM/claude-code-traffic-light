@@ -8,6 +8,7 @@ namespace Semaphore
     // The tray icons: a lamp with a shape on it, so the state does not depend on telling colours apart.
     //   green  + check mark   ready
     //   yellow + three dots   working
+    //   yellow + clock hands  only waiting for its own background task
     //   blue   + two arrows pressing on a line  compacting the conversation
     //   red    + exclamation  waiting for you
     //   grey   + nothing      no sessions
@@ -51,6 +52,10 @@ namespace Semaphore
                             g.DrawLine(pen, 4.6f * u, 8f * u, 11.4f * u, 8f * u);
                             g.DrawLines(pen, new[] { new PointF(5.2f * u, 12.7f * u), new PointF(8f * u, 10.1f * u), new PointF(10.8f * u, 12.7f * u) });
                             break;
+                        case Level.Background:
+                            // The hands of a clock on the lamp: waiting for a process, not thinking.
+                            g.DrawLines(pen, new[] { new PointF(8f * u, 3.9f * u), new PointF(8f * u, 8.4f * u), new PointF(11.4f * u, 8.4f * u) });
+                            break;
                         case Level.Waiting:
                             g.DrawLine(pen, 8f * u, 3.8f * u, 8f * u, 8.8f * u);
                             g.FillEllipse(brush, (8f - 1.2f) * u, (12.1f - 1.2f) * u, 2.4f * u, 2.4f * u);
@@ -66,7 +71,8 @@ namespace Semaphore
             switch (level)
             {
                 case Level.Idle: return Palette.Green;
-                case Level.Working: return Palette.Yellow;
+                case Level.Working:
+                case Level.Background: return Palette.Yellow;
                 case Level.Compacting: return Palette.Blue;
                 case Level.Waiting: return Palette.Red;
                 default: return Palette.Gray;

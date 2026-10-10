@@ -284,3 +284,7 @@ limits.push.out.title=El límite de Claude parece agotado
 limits.push.out.text={0}: {1}, {2}. /usage muestra la cifra exacta.
 limits.push.back.title=El límite de Claude ha vuelto
 limits.push.back.text={0}: puedes continuar.
+wiz.background=Espera su tarea en segundo plano (compilación, pruebas); seguirá solo
+toast.background.title=Claude lleva mucho esperando su tarea en segundo plano
+toast.background.text=lleva {0} esperando. Si la tarea se colgó o es un servidor que quedó en marcha, Claude no seguirá solo.
+label.background.minutes=Avisar si Claude espera su tarea en segundo plano más de (minutos, 0 = nunca; también al móvil)

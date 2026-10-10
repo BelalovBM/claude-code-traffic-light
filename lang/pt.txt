@@ -284,3 +284,7 @@ limits.push.out.title=O limite do Claude parece esgotado
 limits.push.out.text={0}: {1}, {2}. /usage mostra o número exato.
 limits.push.back.title=O limite do Claude voltou
 limits.push.back.text={0}: pode continuar.
+wiz.background=Aguardando a própria tarefa em segundo plano (build, testes); continua sozinho
+toast.background.title=Claude está há muito tempo aguardando a tarefa em segundo plano
+toast.background.text=aguardando há {0}. Se a tarefa travou ou é um servidor deixado rodando, o Claude não continuará sozinho.
+label.background.minutes=Avisar se o Claude aguardar a tarefa em segundo plano por mais de (minutos, 0 = nunca; também no celular)

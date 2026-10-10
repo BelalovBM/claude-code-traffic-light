@@ -284,3 +284,7 @@ limits.push.out.title=Лимит Claude, похоже, исчерпан
 limits.push.out.text={0}: {1}, {2}. Точно покажет /usage.
 limits.push.back.title=Лимит Claude восстановлен
 limits.push.back.text={0}: можно продолжать.
+wiz.background=Ждёт свою фоновую задачу (сборку, тесты) и продолжит сам
+toast.background.title=Claude давно ждёт фоновую задачу
+toast.background.text=ждёт уже {0}. Если задача зависла или это оставленный сервер, сам Claude не продолжит.
+label.background.minutes=Сообщить, если Claude ждёт свою фоновую задачу дольше (минут, 0 — нет; и на телефон)

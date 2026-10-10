@@ -284,3 +284,7 @@ limits.push.out.title=Claude limit seems to have run out
 limits.push.out.text={0}: {1}, {2}. /usage shows the exact figure.
 limits.push.back.title=Claude limit is back
 limits.push.back.text={0}: you can go on.
+wiz.background=Waiting for its own background task (a build, tests); goes on by itself
+toast.background.title=Claude has been waiting long for its background task
+toast.background.text=waiting for {0}. If the task is stuck or is a server left running, Claude will not go on by itself.
+label.background.minutes=Tell me when Claude waits for its background task longer than (minutes, 0 for never; also to the phone)

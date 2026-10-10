@@ -50,6 +50,9 @@ namespace Semaphore
                     c.Controls.Add(part);
                 }
                 master.CheckedChanged += (s, e) => { foreach (Control part in parts) part.Enabled = master.Checked; };
+                // This one also goes to the phone, so it does not depend on the switch above.
+                c.Controls.Add(Row(Loc.T("label.background.minutes"),
+                    Spin(cfg.BackgroundNotifyMinutes, 0, 600, v => cfg.BackgroundNotifyMinutes = v), NumberLabelWidth));
                 c.Controls.Add(Note(Loc.T("notif.session.hint")));
             });
 

@@ -62,6 +62,7 @@ namespace Semaphore
             });
             flow.Controls.Add(Text2(Loc.T("wiz.intro")));
             flow.Controls.Add(StatusRow(Level.Working, Loc.T("wiz.yellow")));
+            flow.Controls.Add(StatusRow(Level.Background, Loc.T("wiz.background")));
             flow.Controls.Add(StatusRow(Level.Compacting, Loc.T("wiz.blue")));
             flow.Controls.Add(StatusRow(Level.Waiting, Loc.T("wiz.red")));
             flow.Controls.Add(StatusRow(Level.Idle, Loc.T("wiz.green")));

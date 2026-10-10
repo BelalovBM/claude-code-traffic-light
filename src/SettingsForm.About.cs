@@ -55,6 +55,7 @@ namespace Semaphore
             // What the colours mean, with the very shapes the tray shows, then a short guide.
             p.Controls.Add(Plain(Loc.T("wiz.intro")));
             p.Controls.Add(StatusRow(Level.Working, Loc.T("wiz.yellow")));
+            p.Controls.Add(StatusRow(Level.Background, Loc.T("wiz.background")));
             p.Controls.Add(StatusRow(Level.Compacting, Loc.T("wiz.blue")));
             p.Controls.Add(StatusRow(Level.Waiting, Loc.T("wiz.red")));
             p.Controls.Add(StatusRow(Level.Idle, Loc.T("wiz.green")));

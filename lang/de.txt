@@ -284,3 +284,7 @@ limits.push.out.title=Claude-Limit scheint aufgebraucht
 limits.push.out.text={0}: {1}, {2}. /usage zeigt den genauen Wert.
 limits.push.back.title=Claude-Limit wieder verfügbar
 limits.push.back.text={0}: Sie können weitermachen.
+wiz.background=Wartet auf eigene Hintergrundaufgabe (Build, Tests); macht selbst weiter
+toast.background.title=Claude wartet schon lange auf seine Hintergrundaufgabe
+toast.background.text=wartet seit {0}. Hängt die Aufgabe oder läuft ein Server weiter, macht Claude nicht von selbst weiter.
+label.background.minutes=Melden, wenn Claude länger auf seine Hintergrundaufgabe wartet als (Minuten, 0 = nie; auch ans Handy)

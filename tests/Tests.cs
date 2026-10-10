@@ -135,6 +135,11 @@ namespace Semaphore.Tests
             Session s = store.Find("bg1");
             Check("a stop while it runs is not \"finished\"", c.New == State.Working && s.InBackground);
             Check("nothing ends the wait early", store.ExpireBackground().Count == 0);
+            Check("only waiting for a background task has its own lamp", store.Overall() == Level.Background);
+            Check("the wait remembers when it began", (DateTime.Now - s.BackgroundSince).TotalSeconds < 5 && !s.BackgroundNotified);
+            Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\",\"session_id\":\"bg2\",\"cwd\":\"C:\\\\Other\",\"prompt\":\"x\"}");
+            Check("a session that really works comes first", store.Overall() == Level.Working);
+            Apply(store, "{\"hook_event_name\":\"SessionEnd\",\"session_id\":\"bg2\"}");
 
             File.AppendAllText(tp, reported + "\n", Utf8);
             Check("a reported task is no longer counted", TitleReader.PendingBackgroundTasks(tp) == 0);

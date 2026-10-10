@@ -284,3 +284,7 @@ limits.push.out.title=La limite Claude semble épuisée
 limits.push.out.text={0} : {1}, {2}. /usage donne le chiffre exact.
 limits.push.back.title=La limite Claude est revenue
 limits.push.back.text={0} : vous pouvez continuer.
+wiz.background=Attend sa tâche en arrière-plan (build, tests) ; reprendra seul
+toast.background.title=Claude attend depuis longtemps sa tâche en arrière-plan
+toast.background.text=attend depuis {0}. Si la tâche est bloquée ou si c'est un serveur resté lancé, Claude ne reprendra pas seul.
+label.background.minutes=Prévenir si Claude attend sa tâche en arrière-plan plus de (minutes, 0 = jamais ; aussi sur le téléphone)

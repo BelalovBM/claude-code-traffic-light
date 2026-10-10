@@ -122,6 +122,9 @@ namespace Semaphore
         // so this is not "finished". Until when that is believed; DateTime.MinValue when not waiting.
         public DateTime BackgroundUntil;
         public bool InBackground { get { return BackgroundUntil > DateTime.Now && State == State.Working; } }
+        // When that wait began, and whether the user was already told that it is taking long.
+        public DateTime BackgroundSince;
+        public bool BackgroundNotified;
         public string HostName;
         public long HostHwnd;
         public int ProcessId;
@@ -165,7 +168,8 @@ namespace Semaphore
         public TimeSpan Elapsed;
     }
 
-    enum Level { None = 0, Idle = 1, Working = 2, Compacting = 3, Waiting = 4 }
+    // Background: working, but only waiting for its own background task (a build, tests); nothing is being thought.
+    enum Level { None = 0, Idle = 1, Working = 2, Compacting = 3, Waiting = 4, Background = 5 }
 
     sealed class SessionStore
     {
@@ -240,14 +244,16 @@ namespace Semaphore
         public Level Overall()
         {
             if (map.Count == 0) return Level.None;
-            Level level = Level.Idle;
+            // Most urgent first: waiting, compacting, working, only waiting for a background task, ready.
+            bool compacting = false, working = false, background = false;
             foreach (var s in map.Values)
             {
                 if (s.State == State.Waiting) return Level.Waiting;
-                if (s.State == State.Compacting) level = Level.Compacting;
-                else if (s.State == State.Working && level != Level.Compacting) level = Level.Working;
+                if (s.State == State.Compacting) compacting = true;
+                else if (s.InBackground) background = true;
+                else if (s.State == State.Working) working = true;
             }
-            return level;
+            return compacting ? Level.Compacting : working ? Level.Working : background ? Level.Background : Level.Idle;
         }
 
         public Change Apply(HookEvent e)
@@ -313,6 +319,11 @@ namespace Semaphore
                 if (pending > 0)
                 {
                     target = State.Working;
+                    if (s.BackgroundUntil == DateTime.MinValue)
+                    {
+                        s.BackgroundSince = now;
+                        s.BackgroundNotified = false;
+                    }
                     s.BackgroundUntil = now.AddMinutes(BackgroundLimitMinutes);
                     Log.Write("[" + s.ShortId + "] stopped to wait for " + pending + " background task(s), still working");
                 }
