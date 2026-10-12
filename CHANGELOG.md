@@ -2,6 +2,9 @@
 
 ## 0.9.3 (beta)
 
+**New**
+- The panel with a permission prompt has **Open the session window**, to look at what led to the request before answering (a question already had it).
+
 **Fixed**
 - A background task that Claude stopped itself (TaskStop) kept the session on the clock lamp for half an hour after the work was done. Such a task now counts as ended, and where Claude Code reports its background tasks itself, that list is used.
 

@@ -46,7 +46,7 @@ function Shot-Toast($file) {
         }
         Start-Sleep -Milliseconds 300
     }
-    "no notification window found for $file: take it by hand now (Win+Shift+S)"; Start-Sleep 14
+    "no notification window found for ${file}: take it by hand now (Win+Shift+S)"; Start-Sleep 14
 }
 $quiet = '"FirstRunDone":true,"Language":"en","Theme":"dark","StartupNotice":false,"SoundWaiting":false,"SoundDone":false'
 

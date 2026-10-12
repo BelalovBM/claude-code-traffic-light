@@ -46,7 +46,12 @@
   .phone img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); }
   .phone.wide { grid-template-columns: minmax(0, 396px) 1fr; }
   .phone ul { margin: 0; padding-left: 20px; }
+  .shots { display: grid; grid-template-columns: minmax(0, 428px) minmax(0, 364px); gap: 28px; justify-content: start; align-items: start; }
+  .shots figure { margin: 0 0 16px; }
+  .shots img { display: block; max-width: 100%; height: auto; }
+  .shots figcaption { font-size: 15px; color: var(--muted); margin-top: 6px; }
   .phone li { margin-bottom: 8px; }
+  @media (max-width: 860px) { .shots { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 760px) { .phone, .phone.wide { grid-template-columns: minmax(0, 1fr); } .phone img { max-width: min(100%, 396px); margin: 0 auto; } }
   footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
   @media (max-width: 600px) { h1 { font-size: 34px; } .lead { font-size: 18px; } header { padding-top: 36px; } }
@@ -86,6 +91,29 @@
     <div class="feature"><h3>Usage limits at a glance</h3><p>The 5-hour and weekly limits with their reset times, at the top of the menu, in the icon tooltip and in every push. Exact after <code>/usage</code>, estimated in between from your own sessions; nothing is asked of Anthropic.</p></div>
     <div class="feature"><h3>Out of Claude's way</h3><p>Driven by Claude Code hooks that exit within milliseconds. If the app is not running, the hooks simply do nothing.</p></div>
     <div class="feature"><h3>Fits your Windows</h3><p>7 languages, light, dark and system theme, high contrast, display scaling and several monitors.</p></div>
+  </div>
+
+  <h2>On your computer</h2>
+  <p>A request shows up in a panel near the tray, and the state changes come as ordinary Windows notifications. Each kind can be switched off.</p>
+  <div class="shots">
+    <figure>
+      <img src="panel-permission.png" width="428" height="341" loading="lazy" alt="The panel near the tray: Claude Code needs you, a Bash command npm test with Allow, Deny and Allow and don't ask again, the rule that would be added, and links to open the session window or answer later">
+      <figcaption>A permission prompt in the panel: answer it, let Claude Code's own rule stop the question for good, or open the session window first.</figcaption>
+    </figure>
+    <div>
+      <figure>
+        <img src="toast-done.png" width="364" height="165" loading="lazy" alt="Windows notification: Claude Code finished, demo-app, with the first line of what Claude did: added tests for the CSV and JSON export, all 13 pass">
+        <figcaption>Finished, with what was done.</figcaption>
+      </figure>
+      <figure>
+        <img src="toast-waiting.png" width="364" height="176" loading="lazy" alt="Windows notification: Claude Code needs you, demo-app, Bash: npm test, with an Answer button">
+        <figcaption>Needs you, with an Answer button when the panel is off.</figcaption>
+      </figure>
+      <figure>
+        <img src="toast-error.png" width="364" height="165" loading="lazy" alt="Windows notification: Claude stopped because of an error, a usage limit was reached, with Claude's words: you have hit your limit, resets 9pm">
+        <figcaption>Stopped by an error, in Claude's own words.</figcaption>
+      </figure>
+    </div>
   </div>
 
   <h2>On your phone</h2>

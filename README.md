@@ -42,6 +42,16 @@ Windows SmartScreen may warn about an unsigned file: choose **More info → Run 
 - Claude's usage limits (the 5-hour window and the week) with their reset times: at the top of the tray menu, on the second line of the icon tooltip and at the end of every push; optionally a notice (here and on the phone) every N percent, when a limit runs out and when it is back. See [Usage limits](#usage-limits).
 - 7 languages (English, Russian, Spanish, German, French, Portuguese, Chinese), light/dark/system theme, autostart.
 
+## What the notices look like
+
+A request shows up in a panel near the tray; the state changes come as ordinary Windows notifications. Each kind can be switched off on the **Notifications** page.
+
+![The panel near the tray: a Bash command with Allow, Deny and Allow and don't ask again, the rule that would be added, and links to open the session window or answer later](docs/panel-permission.png)
+
+![Windows notification: Claude Code finished, with the first line of what Claude did](docs/toast-done.png)
+![Windows notification: Claude Code needs you, with an Answer button](docs/toast-waiting.png)
+![Windows notification: Claude stopped because of an error, in Claude's own words](docs/toast-error.png)
+
 ## Phone notifications (ntfy)
 
 1. Install the free ntfy app (Android / iOS).
@@ -75,7 +85,7 @@ This was tested against the official ntfy image with a normal user, an access to
 
 When Claude Code asks permission to run a command or change a file, you can answer without going back to its window, in two ways. Both are off by default and are switched on in **Settings → Permission prompts**:
 
-- **On this computer:** a small panel near the tray shows the request in full (a command, or a question with its answers) with **Allow** / **Deny** or one button per answer. When Claude Code offers a rule so it does not ask again, there is also **Allow and don't ask again**, with that rule shown under it (on the phone: **Always**). The panel does not take the keyboard focus. **Later** closes it; the tray menu entry of that session opens it again. A typed answer ("Other") is not possible there: the panel offers to open the session window.
+- **On this computer:** a small panel near the tray shows the request in full (a command, or a question with its answers) with **Allow** / **Deny** or one button per answer. When Claude Code offers a rule so it does not ask again, there is also **Allow and don't ask again**, with that rule shown under it (on the phone: **Always**). The panel does not take the keyboard focus. **Open the session window** brings the session forward, to see what led to the request; **Later** closes the panel; the tray menu entry of that session opens it again. A typed answer ("Other") is not possible there: the panel offers to open the session window.
 - **From the phone (experimental, needs ntfy):** the phone gets a push with the same buttons.
 
 A question with answer options (a single question, one choice) works the same way: the options become the buttons or menu items (the phone shows at most three), and the chosen answer goes back to Claude Code. Questions of other shapes stay on the screen.
