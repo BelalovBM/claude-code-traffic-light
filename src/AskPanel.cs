@@ -232,6 +232,22 @@ namespace Semaphore
             later.LinkClicked += (s, e) => { dismiss(); Close(); };
             laterLink = later;
             dismissAction = dismiss;
+            // A permission prompt can also be looked at in the session itself (what led to it); a question has its own
+            // button for that, and the read-only panel offers nothing else.
+            if (!readOnly && request.Options == null)
+            {
+                var open = new LinkLabel
+                {
+                    Text = Loc.T("ask.open.window"),
+                    AutoSize = true,
+                    LinkColor = Palette.Link,
+                    ActiveLinkColor = Palette.LinkActive,
+                    Margin = Ui.Pad(0, 10, 0, 0),
+                };
+                open.LinkClicked += (s, e) => { other(); Close(); };
+                flow.Controls.Add(open);
+                later.Margin = Ui.Pad(0, 4, 0, 0);
+            }
             flow.Controls.Add(later);
 
             flowPanel = flow;
