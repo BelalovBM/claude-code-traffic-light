@@ -199,12 +199,14 @@ namespace Semaphore
                     flow.Controls.Add(command);
                 }
                 var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = Ui.Pad(0, 4, 0, 0) };
+                // Two buttons with a gap between them, together exactly as wide as the full-width buttons below.
                 var allow = Choice(Loc.T("approve.push.allow"));
                 allow.Width = (ContentWidth - Ui.S(10)) / 2;
+                allow.Margin = Ui.Pad(0, 4, 10, 0);
                 allow.Click += (s, e) => { decide("allow"); Close(); };
                 answerControls.Add(allow);
                 var deny = Choice(Loc.T("approve.push.deny"));
-                deny.Width = (ContentWidth - Ui.S(10)) / 2;
+                deny.Width = ContentWidth - Ui.S(10) - allow.Width;
                 deny.Click += (s, e) => { decide("deny"); Close(); };
                 answerControls.Add(deny);
                 buttons.Controls.Add(allow);

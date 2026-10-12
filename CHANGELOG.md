@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.4 (beta)
+
+**Fixed**
+- In the panel with a permission prompt, Allow and Deny touched each other and ended short of the full-width button below; they now have a gap and line up with it.
+
 ## 0.9.3 (beta)
 
 **New**
