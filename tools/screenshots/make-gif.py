@@ -51,12 +51,32 @@ def title():
     return img
 
 
+def stack(names, gap=14):
+    """Several pictures of the project page (docs) one above the other, as one picture."""
+    docs = target.parent
+    pics = [Image.open(docs / n).convert("RGBA") for n in names]
+    out = Image.new("RGBA", (max(p.width for p in pics), sum(p.height for p in pics) + gap * (len(pics) - 1)), BACK + (255,))
+    y = 0
+    for p in pics:
+        out.paste(p, (0, y), p)
+        y += p.height + gap
+    path = work / ("stack-" + "-".join(n.split(".")[0] for n in names) + ".png")
+    out.convert("RGB").save(path)
+    return path.name
+
+
+panel = Image.open(target.parent / "panel-permission.png")
+panel.save(work / "panel-permission.png")
+toasts = stack(["toast-done.png", "toast-error.png"])
+
 frames = [
     (title(), 2600),
     (scene("1-working.png", "Every session in the tray menu", "with its state and time, and Claude's usage limits on top"), 3000),
     (scene("2-panel.png", "Claude asks: answer from a panel", "no switching to its window; or from the phone, through ntfy"), 3800),
+    (scene("panel-permission.png", "A permission prompt, in the same panel", "allow once, allow and don't ask again, or open the session window first"), 3800),
     (scene("2-menu-waiting.png", "The light turns red while it waits", "the tray menu says which session needs you"), 2400),
     (scene("3-done.png", "Answered: it goes on, then it is done", "a notification only when a session needs you"), 2800),
+    (scene(toasts, "Windows notifications", "what was done when it finishes; what happened when an error stops it"), 3600),
     (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
 ]
 images = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f, _ in frames]
