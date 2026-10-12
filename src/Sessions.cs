@@ -19,6 +19,8 @@ namespace Semaphore
         public System.Collections.IList PermissionSuggestions;
         // StopFailure: the kind of API error that ended the turn (rate_limit, overloaded...) and what Claude showed.
         public string Error, LastMessage;
+        // Stop: how many background tasks are still in flight, as Claude Code itself says; null when it does not say.
+        public int? BackgroundTasks;
 
         public static HookEvent Parse(string json)
         {
@@ -71,6 +73,9 @@ namespace Semaphore
             }
             object suggestions;
             if (d.TryGetValue("permission_suggestions", out suggestions)) e.PermissionSuggestions = suggestions as System.Collections.IList;
+            object tasks;
+            if (d.TryGetValue("background_tasks", out tasks) && tasks is System.Collections.ICollection)
+                e.BackgroundTasks = ((System.Collections.ICollection)tasks).Count;
             return e;
         }
 
@@ -342,7 +347,8 @@ namespace Semaphore
             {
                 // A stop while a task it started in the background still runs: the session keeps working, for as long
                 // as the task runs (see ExpireBackground); the limit is for when no running task can be seen.
-                int pending = TitleReader.PendingBackgroundTasks(s.TranscriptPath);
+                // Claude Code's own list when the event carries it; otherwise what the transcript says.
+                int pending = e.BackgroundTasks ?? TitleReader.PendingBackgroundTasks(s.TranscriptPath);
                 if (pending > 0)
                 {
                     target = State.Working;

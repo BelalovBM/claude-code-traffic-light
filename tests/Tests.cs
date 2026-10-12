@@ -172,6 +172,13 @@ namespace Semaphore.Tests
 
             File.AppendAllText(tp, reported + "\n", Utf8);
             Check("a reported task is no longer counted", TitleReader.PendingBackgroundTasks(tp) == 0);
+            string stopped = Transcript("bg-stopped", started,
+                "{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t2\",\"name\":\"TaskStop\",\"input\":{\"task_id\":\"job7\"}}]}}");
+            Check("a task Claude stopped itself is no longer counted", TitleReader.PendingBackgroundTasks(stopped) == 0);
+            Check("Claude Code's own list of background tasks is read from Stop",
+                HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[]}").BackgroundTasks == 0
+                && HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[{\"id\":\"a\"},{\"id\":\"b\"}]}").BackgroundTasks == 2
+                && HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\"}").BackgroundTasks == null);
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"<task-notification>\"}");
             Check("the next turn ends the background wait", !s.InBackground);
             c = Apply(store, "{\"hook_event_name\":\"Stop\"," + b + "}");

@@ -132,6 +132,9 @@ namespace Semaphore
             if (started.Count == 0) return 0;
             foreach (Match m in Regex.Matches(tail, @"<task-id>([^<]+)</task-id>"))
                 started.Remove(m.Groups[1].Value);
+            // A task Claude stopped itself (TaskStop, KillShell in older versions) sends no notification.
+            foreach (Match m in Regex.Matches(tail, "\"name\":\"(?:TaskStop|KillShell)\",\"input\":\\{[^}]*\"(?:task_id|shell_id)\":\"([^\"]+)\""))
+                started.Remove(m.Groups[1].Value);
             return started.Count;
         }
 

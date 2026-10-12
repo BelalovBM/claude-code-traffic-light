@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.3 (beta)
+
+**Fixed**
+- A background task that Claude stopped itself (TaskStop) kept the session on the clock lamp for half an hour after the work was done. Such a task now counts as ended, and where Claude Code reports its background tasks itself, that list is used.
+
 ## 0.9.2 (beta)
 
 **New**
