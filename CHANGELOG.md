@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.5 (beta)
+
+**Changed**
+- Every panel near the tray, for a question as well as for a permission prompt, has **Open the session window** in the same place above **Later**.
+
 ## 0.9.4 (beta)
 
 **Fixed**

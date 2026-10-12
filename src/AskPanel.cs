@@ -234,9 +234,9 @@ namespace Semaphore
             later.LinkClicked += (s, e) => { dismiss(); Close(); };
             laterLink = later;
             dismissAction = dismiss;
-            // A permission prompt can also be looked at in the session itself (what led to it); a question has its own
-            // button for that, and the read-only panel offers nothing else.
-            if (!readOnly && request.Options == null)
+            // Every request can be looked at in the session itself (what led to it), from the same place in every panel;
+            // the read-only panel's only button already does that.
+            if (!readOnly)
             {
                 var open = new LinkLabel
                 {
