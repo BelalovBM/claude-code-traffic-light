@@ -266,6 +266,7 @@ sec.limits=Claude-Nutzungslimits
 chk.limits.show=Limits im Menü und im Tooltip des Symbols zeigen
 chk.limits.push=Jeder Nachricht ans Handy eine Zeile mit den Limits anfügen
 chk.limits.events=Melden, wenn das 5-Stunden- oder Wochenlimit laut Schätzung aufgebraucht ist und wenn es wieder verfügbar ist
+chk.limits.reset=Melden, wenn ein neues 5-Stunden- oder Wochenfenster beginnt (wenn das alte genutzt wurde)
 label.limits.step=Den Verbrauch des 5-Stunden-Limits melden alle (%, 0 = nie)
 label.limits.step.week=Den Verbrauch des Wochenlimits melden alle (%, 0 = nie)
 limits.hint=Die genauen Werte stammen aus Claude Code: Es speichert sie, wenn Sie /usage aufrufen oder ein Limit erreichen. Das Programm fragt bei Anthropic nichts ab und berührt Ihre Claude-Anmeldung nicht. Meldungen zu den Limits kommen auf diesen Computer (wenn Benachrichtigungen hier an sind) und aufs Handy (wenn es verbunden ist).
@@ -287,6 +288,8 @@ limits.push.out.title=Claude-Limit scheint aufgebraucht
 limits.push.out.text={0}: {1}, {2}. /usage zeigt den genauen Wert.
 limits.push.back.title=Claude-Limit wieder verfügbar
 limits.push.back.text={0}: Sie können weitermachen.
+limits.push.reset.title=Neues Claude-Limitfenster: {0}
+limits.push.reset.text=Es beginnt wieder bei 0 %. Im letzten Fenster: {0}.
 wiz.background=Wartet auf eigene Hintergrundaufgabe (Build, Tests); macht selbst weiter
 toast.background.title=Claude wartet schon lange auf seine Hintergrundaufgabe
 toast.background.text=wartet seit {0}. Hängt die Aufgabe oder läuft ein Server weiter, macht Claude nicht von selbst weiter.

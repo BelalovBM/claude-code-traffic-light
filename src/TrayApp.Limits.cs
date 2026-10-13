@@ -17,6 +17,9 @@ namespace Semaphore
             public DateTime Reset = DateTime.MinValue;
             public int Step = -1;
             public bool Out;
+            // The use of the window being watched, as last shown: what the notice of its end reports.
+            public double Percent;
+            public string PercentText;
         }
 
         readonly LimitWatch fiveWatch = new LimitWatch(), weekWatch = new LimitWatch();
@@ -187,18 +190,25 @@ namespace Semaphore
         void WatchLimit(LimitWatch w, LimitView v, string name, int stepPercent)
         {
             if (!v.Known) return;
-            // A new window: the reset moved on (by more than the drift of an estimated one), or the old one closed.
-            bool newWindow = w.Reset != DateTime.MinValue
+            // A new window: the reset moved on (by more than the drift of an estimated one), or the old one closed; either
+            // only once the old reset time has come, so an estimated reset corrected by /usage is no new window.
+            bool newWindow = w.Reset != DateTime.MinValue && DateTime.UtcNow >= w.Reset.AddMinutes(-30)
                 && (v.NotStarted || (v.Reset != DateTime.MinValue && Math.Abs((v.Reset - w.Reset).TotalMinutes) > 30));
             if (newWindow)
             {
                 if (w.Out && Config.LimitsEvents)
                     LimitPush(Loc.T("limits.push.back.title"), Loc.T("limits.push.back.text", name), Level.Idle);
+                // A window that was hardly used ending is no news; one that ran out already had its notice above.
+                else if (!w.Out && Config.LimitsReset && w.Percent >= 1)
+                    LimitPush(Loc.T("limits.push.reset.title", name), Loc.T("limits.push.reset.text", w.PercentText), Level.Idle);
+                w.Percent = 0;
                 w.Out = false;
                 w.Step = -1;
             }
             if (v.NotStarted) { w.Reset = DateTime.MinValue; return; }
             w.Reset = v.Reset;
+            w.Percent = v.Percent;
+            w.PercentText = LimitPercent(v);
             int step = stepPercent > 0 ? (int)(v.Percent / stepPercent) : -1;
             // The first look only takes note: a restart must not push what was already known.
             if (w.Step < 0) w.Step = step;

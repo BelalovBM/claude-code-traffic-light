@@ -266,6 +266,7 @@ sec.limits=Límites de uso de Claude
 chk.limits.show=Mostrar los límites en el menú y en la información del icono
 chk.limits.push=Añadir una línea con los límites a cada notificación al móvil
 chk.limits.events=Avisar cuando el límite de 5 horas o el semanal se agote según la estimación y cuando vuelva
+chk.limits.reset=Avisar cuando empiece una nueva ventana de 5 horas o semanal (si la anterior se usó)
 label.limits.step=Avisar del uso del límite de 5 horas cada (%, 0 = nunca)
 label.limits.step.week=Avisar del uso del límite semanal cada (%, 0 = nunca)
 limits.hint=Las cifras exactas vienen de Claude Code: las guarda cuando ejecutas /usage o llegas a un límite. El programa no pide nada a Anthropic ni toca tu inicio de sesión de Claude. Los avisos de los límites llegan a este equipo (si las notificaciones aquí están activadas) y al móvil (si está conectado).
@@ -287,6 +288,8 @@ limits.push.out.title=El límite de Claude parece agotado
 limits.push.out.text={0}: {1}, {2}. /usage muestra la cifra exacta.
 limits.push.back.title=El límite de Claude ha vuelto
 limits.push.back.text={0}: puedes continuar.
+limits.push.reset.title=Nueva ventana del límite de Claude: {0}
+limits.push.reset.text=Empieza otra vez desde 0 %. La ventana anterior usó {0}.
 wiz.background=Espera su tarea en segundo plano (compilación, pruebas); seguirá solo
 toast.background.title=Claude lleva mucho esperando su tarea en segundo plano
 toast.background.text=lleva {0} esperando. Si la tarea se colgó o es un servidor que quedó en marcha, Claude no seguirá solo.

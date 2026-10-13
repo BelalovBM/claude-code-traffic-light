@@ -230,12 +230,14 @@ namespace Semaphore
 
         // Claude's usage limits: shown in the menu and the tooltip, added to every push, a notice every LimitsStep percent
         // of the 5-hour window and every LimitsStepWeek percent of the week (0: none), and a notice when either runs
-        // out by the estimate and when it is back.
+        // out by the estimate and when it is back; LimitsReset: a notice when a window that was used ends and a new one
+        // begins.
         public bool LimitsShow { get; set; }
         public bool LimitsInPush { get; set; }
         public int LimitsStep { get; set; }
         public int LimitsStepWeek { get; set; }
         public bool LimitsEvents { get; set; }
+        public bool LimitsReset { get; set; }
 
         // A notice (here and on the phone) when Claude has been waiting this many minutes for its own background task:
         // a server left running or a stuck task would otherwise look like work for ever. 0: no notice.
@@ -281,6 +283,7 @@ namespace Semaphore
             LimitsShow = true;
             LimitsInPush = true;
             LimitsEvents = true;
+            LimitsReset = true;
             BackgroundNotifyMinutes = 30;
             ContextWarn = true;
         }
