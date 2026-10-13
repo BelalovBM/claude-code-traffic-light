@@ -310,6 +310,27 @@ namespace Semaphore.Tests
             Check("a model of an unknown family takes the common weight", named.For("claude-lyra-1") == named.Common);
             Check("the plan is read from ~/.claude.json", UsageTracker.ParsePlan("{\"oauthAccount\":{\"organizationType\": \"claude_max\"}}") == "claude_max");
             Check("no anchors, no weights", UsageMath.Fit(new List<UsageMath.Sample>(), now) == null);
+            // A model used less, on top of the main one: its figures show it counts half, and the fit follows them.
+            var minor = UsageMath.Fit(new List<UsageMath.Sample>
+            {
+                new UsageMath.Sample { Cost = Use("opus", 3000000), Percent = 45, At = now.AddHours(-6) },
+                new UsageMath.Sample { Cost = Use("opus", 5700000, "sonnet", 800000), Percent = 92, At = now.AddHours(-4) },
+                new UsageMath.Sample { Cost = Use("opus", 3200000, "sonnet", 2000000), Percent = 63, At = now.AddHours(-1) },
+            }, now);
+            double half = minor.For("sonnet") / minor.For("opus");
+            Check("a model used less still gets its own weight", half > 0.4 && half < 0.65, half.ToString("0.00"));
+            // An early reset: the figure fell within the same window, so the window starts at the figure before the fall.
+            DateTime w0 = new DateTime(2026, 10, 7, 19, 0, 0, DateTimeKind.Utc);
+            var figures = new[]
+            {
+                new KeyValuePair<DateTime, double>(w0.AddDays(5), 85),
+                new KeyValuePair<DateTime, double>(w0.AddDays(5).AddMinutes(5), 0),
+                new KeyValuePair<DateTime, double>(w0.AddDays(5).AddHours(14), 12),
+            };
+            Check("an early reset moves the start of the window",
+                UsageMath.WindowStart(figures, w0, w0.AddDays(6)) == w0.AddDays(5)
+                && UsageMath.WindowStart(figures, w0, w0.AddDays(4)) == w0
+                && UsageMath.WindowStart(figures.Take(1), w0, w0.AddDays(6)) == w0);
 
             string cache = "{\"x\":{\"D:/a\":1,\"d:/a\":2},\"cachedUsageUtilization\":{\"fetchedAtMs\":1791635591572,\"accountUuid\":\"u\",\"utilization\":{"
                 + "\"five_hour\":{\"utilization\":27,\"resets_at\":\"2026-10-10T16:49:59.771589+00:00\",\"note\":\"a } in text\"},"

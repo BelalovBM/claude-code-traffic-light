@@ -76,7 +76,7 @@ namespace Semaphore
         }
 
         // Raised when Cost changes: the use stored with older figures is counted again.
-        internal const int CostVersion = 2;
+        internal const int CostVersion = 3;
 
         internal sealed class Sample
         {
@@ -132,8 +132,9 @@ namespace Semaphore
             var w = new Weights { Common = num / den };
             var models = use.SelectMany(s => s.Cost.Keys).Distinct().ToList();
             foreach (string m in models) w.ByModel[m] = w.Common;
-            // A pull towards the common figure, so that one anchor cannot swing a model far on its own.
-            double lambda = 0.05 * den;
+            // A pull towards the common figure, so that one anchor cannot swing a model far on its own. It is measured by
+            // the model's own share of the figures: measured by all of them, a model used less (Sonnet next to Opus) kept
+            // nearly the common weight however clearly its own figures showed it counts for less.
             for (int pass = 0; pass < 40; pass++)
             {
                 foreach (string m in models)
@@ -148,11 +149,28 @@ namespace Semaphore
                         nm += r[a] * x * (use[a].Percent - others);
                         dm += r[a] * x * x;
                     }
+                    double lambda = 0.05 * dm;
                     double v = (nm + lambda * w.Common) / (dm + lambda);
                     w.ByModel[m] = Math.Max(w.Common / 5, Math.Min(w.Common * 5, v));
                 }
             }
             return w;
+        }
+
+        // Where a window really began. Anthropic sometimes resets the limits early without moving the reset time: an
+        // exact figure then falls well below the one before it in the same window, and the use before the fall is no
+        // longer part of the window. The start moves to the figure before the fall (the last fall up to "upTo").
+        internal static DateTime WindowStart(IEnumerable<KeyValuePair<DateTime, double>> figures, DateTime start, DateTime upTo)
+        {
+            double last = -1;
+            DateTime lastAt = DateTime.MinValue;
+            foreach (var f in figures.Where(f => f.Key >= start && f.Key <= upTo).OrderBy(f => f.Key))
+            {
+                if (last >= 0 && f.Value < last - 5) start = lastAt;
+                last = f.Value;
+                lastAt = f.Key;
+            }
+            return start;
         }
 
         internal static double Apply(Weights w, Dictionary<string, double> cost)
@@ -466,10 +484,22 @@ namespace Semaphore
         void Recount(UsageAnchor a)
         {
             DateTime kept = DateTime.UtcNow.AddDays(-KeepDays);
-            DateTime five = a.FiveReset.AddHours(-5), week = a.WeekReset.AddDays(-7);
+            List<UsageAnchor> all;
+            lock (gate) all = anchors.Where(x => x.AtMs != a.AtMs).Concat(new[] { a }).ToList();
+            DateTime five = a.Five.HasValue ? Start(all, a.FiveReset.AddHours(-5), a.FiveReset, true, a.At) : a.FiveReset.AddHours(-5);
+            DateTime week = a.Week.HasValue ? Start(all, a.WeekReset.AddDays(-7), a.WeekReset, false, a.At) : a.WeekReset.AddDays(-7);
             a.FiveCost = a.Five.HasValue && a.FiveReset > a.At && five >= kept ? CostByModel(five, a.At) : null;
             a.WeekCost = a.Week.HasValue && a.WeekReset > a.At && week >= kept ? CostByModel(week, a.At) : null;
             a.CostVersion = UsageMath.CostVersion;
+        }
+
+        // The start of the window that ends at "reset", moved past an early reset seen in the figures up to "upTo".
+        static DateTime Start(IEnumerable<UsageAnchor> list, DateTime start, DateTime reset, bool five, DateTime upTo)
+        {
+            return UsageMath.WindowStart(list
+                .Where(x => five ? x.Five.HasValue && Math.Abs((x.FiveReset - reset).TotalMinutes) < 30
+                                 : x.Week.HasValue && Math.Abs((x.WeekReset - reset).TotalMinutes) < 30)
+                .Select(x => new KeyValuePair<DateTime, double>(x.At, five ? x.Five.Value : x.Week.Value)), start, upTo);
         }
 
         // Figures saved with an older way of counting are counted again, once, after the transcripts were read.
@@ -597,7 +627,7 @@ namespace Semaphore
             {
                 if (now < reset)
                 {
-                    start = reset.AddHours(-5);
+                    start = Start(list, reset.AddHours(-5), reset, true, now);
                 }
                 else
                 {
@@ -615,7 +645,7 @@ namespace Semaphore
             else
             {
                 while (reset <= now) reset = reset.AddDays(7);
-                start = reset.AddDays(-7);
+                start = Start(list, reset.AddDays(-7), reset, false, now);
             }
             v.Reset = reset;
             if (a.At >= start && a.At < reset)
