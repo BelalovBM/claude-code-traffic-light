@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.6 (beta)
+
+**New**
+- **New versions:** **Settings → General → Look for new versions** (off by default) looks once a day with one anonymous request to GitHub; a newer version gets an entry at the top of the tray menu and one notice. **About → Check for new versions** looks once, whether or not that is on. Nothing is downloaded or installed by itself.
+
+**Fixed**
+- The **About** page could need a scroll bar; the settings window now leaves room below the last card, and grows when a page still does not fit and the screen allows it.
+
 ## 0.9.5 (beta)
 
 **Changed**

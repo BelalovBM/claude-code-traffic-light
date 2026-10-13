@@ -40,6 +40,7 @@ Windows SmartScreen may warn about an unsigned file: choose **More info → Run 
 - When Claude ends its turn only to wait for a background task it started (a build, tests), the lamp shows clock hands ("waiting for its background task") and nothing reports it as finished, however long the task runs: the app sees whether the task's process is still running. If the wait goes on for 30 minutes (changed or switched off on the **Notifications** page), you get one notice here and on the phone: a stuck task or a server left running would otherwise look like work for ever. The session counts as finished only when no task process is left and Claude does not go on within 30 minutes.
 - Push to your phone through [ntfy](https://ntfy.sh), only when you are probably away (a notification on the computer that you did not react to, a panel left untouched for a minute, or a locked screen): after a permission prompt stays unanswered for N minutes, or when a task that ran at least N minutes finishes. A quick on/off switch is in the tray menu.
 - Claude's usage limits (the 5-hour window and the week) with their reset times: at the top of the tray menu, on the second line of the icon tooltip and at the end of every push; optionally a notice (here and on the phone) every N percent, when a limit runs out and when it is back. See [Usage limits](#usage-limits).
+- Optionally, a look for a new version once a day (off by default): a newer one gets an entry at the top of the tray menu and one notice; nothing is downloaded or installed by itself.
 - 7 languages (English, Russian, Spanish, German, French, Portuguese, Chinese), light/dark/system theme, autostart.
 
 ## What the notices look like
@@ -53,6 +54,8 @@ A request shows up in a panel near the tray; the state changes come as ordinary 
 ![Windows notification: Claude stopped because of an error, in Claude's own words](docs/toast-error.png)
 
 ## Phone notifications (ntfy)
+
+<img src="docs/phone-ntfy.jpg" width="300" alt="The ntfy app on a phone: Claude Code asks permission to run npm test with Allow, Always and Deny; Claude asks which test runner to set up, with a button per answer; a task finished in 12 minutes; each push ends with the usage limits">
 
 1. Install the free ntfy app (Android / iOS).
 2. In the tray app open **Settings → Phone**, enable ntfy, scan the QR code or subscribe to the shown topic manually.
@@ -132,7 +135,7 @@ To only disconnect from Claude Code and keep the program, use **Disconnect** on 
 
 ## Privacy
 
-The program collects nothing and sends nothing about you or how you use it: no telemetry, no update checks. It uses the network only when you set up the phone: then it sends notifications to the ntfy server you chose (ntfy.sh or your own) and listens there for your answers. What the notifications contain (the name of a session, the text of a request) is described on the Phone and Permission prompts pages. For the usage limits and the context of each session it reads, on this computer only, the session transcripts and the figures Claude Code keeps in `~/.claude.json`; nothing of it is sent anywhere, except the line with the percentages at the end of a push when that is switched on. Everything else stays on the computer: the settings, the log, the requests journal and the figures of the limits and contexts sit next to the program and are removed by **Remove everything**.
+The program collects nothing and sends nothing about you or how you use it: no telemetry, and no update checks unless you switch them on (**General → Look for new versions**: once a day, one anonymous request to GitHub for the latest release; **About → Check for new versions** does it once). Otherwise it uses the network only when you set up the phone: then it sends notifications to the ntfy server you chose (ntfy.sh or your own) and listens there for your answers. What the notifications contain (the name of a session, the text of a request) is described on the Phone and Permission prompts pages. For the usage limits and the context of each session it reads, on this computer only, the session transcripts and the figures Claude Code keeps in `~/.claude.json`; nothing of it is sent anywhere, except the line with the percentages at the end of a push when that is switched on. Everything else stays on the computer: the settings, the log, the requests journal and the figures of the limits and contexts sit next to the program and are removed by **Remove everything**.
 
 ## Verifying the download
 

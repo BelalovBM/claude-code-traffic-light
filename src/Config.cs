@@ -243,6 +243,12 @@ namespace Semaphore
         // A notice on this computer when a session's context is nearly at the point where Claude compacts it.
         public bool ContextWarn { get; set; }
 
+        // Look once a day whether a newer version is out (off until switched on: the program does not go online for
+        // that by itself); when it was last looked, and the version already told about.
+        public bool CheckUpdates { get; set; }
+        public long UpdateCheckedTicks { get; set; }
+        public string UpdateNotifiedVersion { get; set; }
+
         // Ids of sessions whose notifications are switched off.
         public List<string> MutedSessions { get; set; }
 

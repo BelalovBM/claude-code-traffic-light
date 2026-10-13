@@ -22,6 +22,7 @@ namespace Semaphore
             {
                 c.Controls.Add(Check(Loc.T("chk.autostart"), cfg.Autostart, v => cfg.Autostart = v));
                 c.Controls.Add(Check(Loc.T("chk.startup.notice"), cfg.StartupNotice, v => cfg.StartupNotice = v));
+                c.Controls.Add(Check(Loc.T("chk.updates"), cfg.CheckUpdates, v => cfg.CheckUpdates = v));
                 // A new icon is easy to miss: Windows 10 and 11 put it under the arrow until it is dragged out.
                 c.Controls.Add(Note(Loc.T("general.findicon")));
             });

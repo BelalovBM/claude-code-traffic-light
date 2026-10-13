@@ -114,6 +114,7 @@ namespace Semaphore
             };
             tick.Start();
             StartLimits();
+            StartUpdates();
 
             server.Received += text => ui.Post(_ => OnMessage(text), null);
             server.Start();
@@ -929,6 +930,7 @@ namespace Semaphore
             menu.BackColor = Theme.Surface;
             menu.ForeColor = Theme.Fore;
 
+            AddUpdateToMenu(menu.Items);
             AddLimitsToMenu(menu.Items);
 
             var header = new ToolStripLabel(Loc.T("menu.sessions"));
@@ -1432,6 +1434,7 @@ namespace Semaphore
             server.Stop();
             approvals.Stop();
             usage.Stop();
+            updateTimer.Stop();
             tick.Stop();
             askTimer.Stop();
             hotkey.Dispose();

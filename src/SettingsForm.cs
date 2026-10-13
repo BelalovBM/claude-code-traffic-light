@@ -36,6 +36,7 @@ namespace Semaphore
             BuildUI();
             live.Tick += (s, e) => { if (refresher != null && !IsDisposed) refresher(); };
             live.Start();
+            Shown += (s, e) => { using (Ui.Use(dpiFactor)) GrowToFit(); };
 
             // The layout depends on the width (one or two columns), so it is redone when the size settles.
             ResizeEnd += (s, e) => Rebuild();
@@ -127,7 +128,8 @@ namespace Semaphore
             pending.Clear();
             Rectangle area = Native.TrayScreen().WorkingArea;
             int width = Ui.S(NavWidth + 32 + ContentWidth + 4) + SystemInformation.VerticalScrollBarWidth;
-            int height = tallest + Ui.S(8);
+            // Some room below the last card, so a page measured a few pixels short does not scroll.
+            int height = tallest + Ui.S(24);
             return new Size(Math.Min(width, area.Width - Ui.S(40)), Math.Min(height, area.Height - Ui.S(80)));
         }
 
@@ -291,6 +293,25 @@ namespace Semaphore
             Theme.Apply(this);
             nav.BackColor = Theme.Surface;
             ResumeLayout();
+            GrowToFit();
+        }
+
+        // The measure made before the window opened can come out a little short (text wraps a little differently in
+        // the real page). If the page shown needs more height and the screen has it, the window grows by that much.
+        void GrowToFit()
+        {
+            // Before the window is on the screen its sizes are not final yet; it is checked again once shown.
+            if (content == null || !Visible || WindowState != FormWindowState.Normal) return;
+            content.PerformLayout();
+            // The page scrolls only if its laid-out content is taller than what is visible of it.
+            if (!content.VerticalScroll.Visible) return;
+            int need = content.DisplayRectangle.Height - content.ClientSize.Height;
+            if (need <= 0) return;
+            Rectangle area = Screen.FromControl(this).WorkingArea;
+            int height = Math.Min(Height + need + Ui.S(4), area.Height - Ui.S(40));
+            if (height <= Height) return;
+            Height = height;
+            if (Bottom > area.Bottom) Top = Math.Max(area.Top, area.Bottom - Height);
         }
 
         static Control FindByName(Control root, string name)

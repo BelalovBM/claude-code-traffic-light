@@ -68,6 +68,9 @@ def stack(names, gap=14):
 panel = Image.open(target.parent / "panel-permission.png")
 panel.save(work / "panel-permission.png")
 toasts = stack(["toast-done.png", "toast-error.png"])
+# The phone: the top of the screenshot, a permission prompt with its buttons and the start of a question.
+phone = Image.open(target.parent / "phone-ntfy.jpg").convert("RGB")
+phone.crop((0, 0, phone.width, 1060)).save(work / "phone.png")
 
 frames = [
     (title(), 2600),
@@ -77,6 +80,7 @@ frames = [
     (scene("2-menu-waiting.png", "The light turns red while it waits", "the tray menu says which session needs you"), 2400),
     (scene("3-done.png", "Answered: it goes on, then it is done", "a notification only when a session needs you"), 2800),
     (scene(toasts, "Windows notifications", "what was done when it finishes; what happened when an error stops it"), 3600),
+    (scene("phone.png", "On the phone, when you are away", "pushes through ntfy; answer a prompt or a question with a tap"), 3400),
     (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
 ]
 images = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f, _ in frames]

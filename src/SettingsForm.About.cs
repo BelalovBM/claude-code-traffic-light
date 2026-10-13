@@ -51,6 +51,46 @@ namespace Semaphore
             var links = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(RowWidth, 0), Margin = Ui.Pad(0, 2, 0, 8) };
             links.Controls.Add(WebLink(Loc.T("about.repo"), AppInfo.RepoUrl));
             links.Controls.Add(WebLink(Loc.T("about.license"), AppInfo.LicenseUrl));
+            // Looking for a newer version on request, whether or not the daily look is switched on.
+            var check = new LinkLabel { Text = Loc.T("about.update.check"), AutoSize = true, LinkColor = Palette.Link, ActiveLinkColor = Palette.LinkActive, Margin = Ui.Pad(3, 2, 16, 0) };
+            var answer = new LinkLabel { AutoSize = true, LinkColor = Palette.Link, ActiveLinkColor = Palette.LinkActive, Margin = Ui.Pad(3, 2, 0, 0), Tag = "keep" };
+            check.LinkClicked += (s, e) =>
+            {
+                answer.Links.Clear();
+                answer.Text = Loc.T("about.update.checking");
+                answer.ForeColor = Theme.Muted;
+                app.CheckUpdatesNow(r =>
+                {
+                    if (answer.IsDisposed) return;
+                    if (r.Error != null)
+                    {
+                        answer.Text = Loc.T("about.update.failed");
+                        answer.ForeColor = Palette.StatusWarn;
+                    }
+                    else if (r.Newer)
+                    {
+                        answer.Text = Loc.T("about.update.newer", r.Latest);
+                        answer.ForeColor = Theme.Fore;
+                        string url = r.Url ?? AppInfo.RepoUrl + "/releases/latest";
+                        answer.Links.Clear();
+                        answer.Links.Add(0, answer.Text.Length, url);
+                    }
+                    else
+                    {
+                        answer.Text = Loc.T("about.update.current");
+                        answer.ForeColor = Palette.StatusOk;
+                    }
+                });
+            };
+            answer.LinkClicked += (s, e) =>
+            {
+                var url = e.Link.LinkData as string;
+                if (url == null) return;
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+                catch { }
+            };
+            links.Controls.Add(check);
+            links.Controls.Add(answer);
             p.Controls.Add(links);
             // What the colours mean, with the very shapes the tray shows, then a short guide.
             p.Controls.Add(Plain(Loc.T("wiz.intro")));

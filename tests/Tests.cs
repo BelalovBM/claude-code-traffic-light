@@ -33,6 +33,7 @@ namespace Semaphore.Tests
             Group("transcripts", Transcripts);
             Group("questions", Questions);
             Group("usage limits", UsageLimits);
+            Group("new versions", NewVersions);
             Group("settings", Settings);
             Group("log", LogFile);
             Group("shortcut", Shortcut);
@@ -305,6 +306,16 @@ namespace Semaphore.Tests
             Check("the cached figures are read from ~/.claude.json", a != null && a.Five == 27 && a.Week == 47
                 && a.FiveReset == new DateTime(2026, 10, 10, 16, 49, 59, 771, DateTimeKind.Utc), a == null ? "null" : a.FiveReset.ToString("o"));
             Check("a file without them gives nothing", UsageTracker.ParseCache("{\"a\":1}") == null);
+        }
+
+        static void NewVersions()
+        {
+            Check("a later version is newer", Updates.IsNewer("0.9.6", "0.9.5"));
+            Check("0.10.0 is newer than 0.9.5 (numbers, not text)", Updates.IsNewer("0.10.0", "0.9.5"));
+            Check("the same version is not newer", !Updates.IsNewer("0.9.5", "0.9.5"));
+            Check("an older version is not newer", !Updates.IsNewer("0.9.4", "0.9.5"));
+            Check("a -beta ending is ignored", Updates.IsNewer("1.0.0-beta", "0.9.5") && !Updates.IsNewer("0.9.5-beta", "0.9.5"));
+            Check("nonsense is never newer", !Updates.IsNewer("latest", "0.9.5"));
         }
 
         static string Rules(string json)
