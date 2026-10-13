@@ -241,6 +241,7 @@ namespace Semaphore
         // Run Claude Code's /usage hidden every ten minutes while sessions work, for exact figures (off by default: it
         // asks Anthropic, through Claude Code, without the user asking each time).
         public bool LimitsAutoRefresh { get; set; }
+        public int LimitsAutoMinutes { get; set; }
 
         // A notice (here and on the phone) when Claude has been waiting this many minutes for its own background task:
         // a server left running or a stuck task would otherwise look like work for ever. 0: no notice.
@@ -287,6 +288,7 @@ namespace Semaphore
             LimitsInPush = true;
             LimitsEvents = true;
             LimitsReset = true;
+            LimitsAutoMinutes = 10;
             BackgroundNotifyMinutes = 30;
             ContextWarn = true;
         }
@@ -329,6 +331,7 @@ namespace Semaphore
                 if (c.MutedSessions == null) c.MutedSessions = new List<string>();
                 if (c.RemoteApproveMinutes < 1 || c.RemoteApproveMinutes > 30) c.RemoteApproveMinutes = 5;
                 if (c.LimitsStep < 0 || c.LimitsStep > 50) c.LimitsStep = 0;
+                if (c.LimitsAutoMinutes < UsageRefresh.MinMinutes || c.LimitsAutoMinutes > UsageRefresh.MaxMinutes) c.LimitsAutoMinutes = 10;
                 if (c.LimitsStepWeek < 0 || c.LimitsStepWeek > 50) c.LimitsStepWeek = 0;
                 if (c.BackgroundNotifyMinutes < 0 || c.BackgroundNotifyMinutes > 600) c.BackgroundNotifyMinutes = 30;
                 if (c.NtfyEnabled && string.IsNullOrEmpty(c.NtfyTopic)) c.NtfyTopic = Secret.RandomTopic();

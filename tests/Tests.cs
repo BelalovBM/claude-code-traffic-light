@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -128,7 +128,7 @@ namespace Semaphore.Tests
             var store = new SessionStore();
             string b = "\"session_id\":\"sf1\",\"cwd\":\"C:\\\\Proj\"";
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"go\"}");
-            Change c = Apply(store, "{\"hook_event_name\":\"StopFailure\"," + b + ",\"error\":\"rate_limit\",\"last_assistant_message\":\"You've hit your limit · resets 9pm\"}");
+            Change c = Apply(store, "{\"hook_event_name\":\"StopFailure\"," + b + ",\"error\":\"rate_limit\",\"last_assistant_message\":\"You've hit your limit В· resets 9pm\"}");
             Session s = store.Find("sf1");
             Check("an API error is not \"finished\": the session waits for the user", c.New == State.Waiting && store.Overall() == Level.Waiting);
             Check("the kind of error and Claude's words are kept", s.Failure == "rate_limit" && s.FailureText.Contains("resets 9pm"));
@@ -322,10 +322,11 @@ namespace Semaphore.Tests
             // /usage in the background: every ten minutes, and only when some session did something since the last run.
             DateTime t0 = new DateTime(2026, 10, 13, 20, 0, 0);
             Check("/usage in the background runs only after work, at most every ten minutes",
-                UsageRefresh.Due(DateTime.MinValue, t0, t0)
-                && !UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(5))
-                && UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(10))
-                && !UsageRefresh.Due(t0, t0.AddMinutes(-1), t0.AddHours(2)));
+                UsageRefresh.Due(DateTime.MinValue, t0, t0, 10)
+                && !UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(5), 10)
+                && UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(10), 10)
+                && !UsageRefresh.Due(t0, t0.AddMinutes(-1), t0.AddHours(2), 10)
+                && UsageRefresh.Due(t0, t0.AddMinutes(1), t0.AddMinutes(3), 3));
             // An early reset: the figure fell within the same window, so the window starts at the figure before the fall.
             DateTime w0 = new DateTime(2026, 10, 7, 19, 0, 0, DateTimeKind.Utc);
             var figures = new[]

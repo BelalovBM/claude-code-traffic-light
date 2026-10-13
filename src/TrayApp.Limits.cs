@@ -36,20 +36,31 @@ namespace Semaphore
         // When switched on: Claude Code's /usage, run hidden every ten minutes while sessions work (see UsageRefresh).
         readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
         DateTime lastRefresh = DateTime.MinValue;
-        int refreshing;
+        int refreshing, refreshFailures;
 
         void RefreshLimits()
         {
             if (!Config.LimitsAutoRefresh || AppPaths.IsSandbox || SelfCheckSetup.Active) return;
             DateTime activity = store.All.Select(s => s.LastEvent).DefaultIfEmpty(DateTime.MinValue).Max();
-            if (!UsageRefresh.Due(lastRefresh, activity, DateTime.Now)) return;
+            if (!UsageRefresh.Due(lastRefresh, activity, DateTime.Now, Config.LimitsAutoMinutes)) return;
             if (System.Threading.Interlocked.Exchange(ref refreshing, 1) == 1) return;
             lastRefresh = DateTime.Now;
             System.Threading.ThreadPool.QueueUserWorkItem(_ =>
             {
-                try { UsageRefresh.Run(); }
+                string error = null;
+                try { error = UsageRefresh.Run(); }
                 finally { System.Threading.Interlocked.Exchange(ref refreshing, 0); }
+                ui.Post(__ => RefreshDone(error), null);
             });
+        }
+
+        // A run that fails now and then (the network, a slow start) is no news: the estimate stays. Three in a row say
+        // something is wrong (no Claude Code, a sign-in to renew, no way to Anthropic), once, until a run works again.
+        void RefreshDone(string error)
+        {
+            if (error == null) { refreshFailures = 0; return; }
+            if (++refreshFailures != 3) return;
+            if (!Paused) Balloon(Loc.T("limits.auto.failed.title"), Loc.T("limits.auto.failed.text", error), Level.Waiting, 12000);
         }
 
         // "27%" when it is Claude Code's own figure, "≈38%" when estimated since.

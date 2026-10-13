@@ -3,7 +3,7 @@
 ## 0.9.7 (beta)
 
 **New**
-- **Refine the limits by itself** (Settings → Notifications → Claude usage limits, off by default): every 10 minutes while a session works, the app runs Claude Code's own `/usage` hidden, so the limits in the menu stay exact instead of estimated. It asks no model, uses no limit, is not saved as a session and runs no hooks; Claude Code asks Anthropic with its own sign-in.
+- **Refine the limits by itself** (Settings → Notifications → Claude usage limits, off by default): every few minutes while a session works (10 by default, from 2 to 120), the app runs Claude Code's own `/usage` hidden, so the limits in the menu stay exact instead of estimated. It asks no model, uses no limit, is not saved as a session and runs no hooks; Claude Code asks Anthropic with its own sign-in. If it fails three times in a row (no Claude Code, a sign-in to renew, no connection), one notice says why.
 - A notice when a used 5-hour or weekly window ends and a new one begins (can be switched off).
 - Waiting notices say what Claude Code asks in the program's language: "Claude asks a question" with the question itself, instead of "Claude needs your permission to use AskUserQuestion".
 - In the panel near the tray, "Also sent to the phone" stands out in bold and colour.
