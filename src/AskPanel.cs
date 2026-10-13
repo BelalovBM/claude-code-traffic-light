@@ -105,10 +105,13 @@ namespace Semaphore
             {
                 AutoSize = true,
                 MaximumSize = new Size(ContentWidth, 0),
-                Tag = "muted",
+                // In bold and in colour, unlike the grey lines around it: an answer may already come from the phone.
+                Tag = "keep",
+                ForeColor = Palette.StatusOk,
                 Margin = Ui.Pad(0, 0, 0, 6),
                 Visible = false,
             };
+            phoneLabel.Font = new Font(Font, FontStyle.Bold);
             flow.Controls.Add(phoneLabel);
             if (request.Deadline > DateTime.MinValue && !readOnly)
             {
