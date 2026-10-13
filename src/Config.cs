@@ -238,6 +238,9 @@ namespace Semaphore
         public int LimitsStepWeek { get; set; }
         public bool LimitsEvents { get; set; }
         public bool LimitsReset { get; set; }
+        // Run Claude Code's /usage hidden every ten minutes while sessions work, for exact figures (off by default: it
+        // asks Anthropic, through Claude Code, without the user asking each time).
+        public bool LimitsAutoRefresh { get; set; }
 
         // A notice (here and on the phone) when Claude has been waiting this many minutes for its own background task:
         // a server left running or a stuck task would otherwise look like work for ever. 0: no notice.

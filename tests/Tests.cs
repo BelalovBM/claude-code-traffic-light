@@ -319,6 +319,13 @@ namespace Semaphore.Tests
             }, now);
             double half = minor.For("sonnet") / minor.For("opus");
             Check("a model used less still gets its own weight", half > 0.4 && half < 0.65, half.ToString("0.00"));
+            // /usage in the background: every ten minutes, and only when some session did something since the last run.
+            DateTime t0 = new DateTime(2026, 10, 13, 20, 0, 0);
+            Check("/usage in the background runs only after work, at most every ten minutes",
+                UsageRefresh.Due(DateTime.MinValue, t0, t0)
+                && !UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(5))
+                && UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(10))
+                && !UsageRefresh.Due(t0, t0.AddMinutes(-1), t0.AddHours(2)));
             // An early reset: the figure fell within the same window, so the window starts at the figure before the fall.
             DateTime w0 = new DateTime(2026, 10, 7, 19, 0, 0, DateTimeKind.Utc);
             var figures = new[]

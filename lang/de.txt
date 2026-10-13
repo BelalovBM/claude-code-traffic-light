@@ -264,13 +264,14 @@ diag.requests=Das Anfragenprotokoll (requests.log) listet jede Berechtigungsanfr
 ask.more.note=Es gibt {0} Antworten, das Handy zeigt aber nur drei Schaltflächen: Die ersten drei sind Schaltflächen, die übrigen wählen Sie am Computer.
 sec.limits=Claude-Nutzungslimits
 chk.limits.show=Limits im Menü und im Tooltip des Symbols zeigen
+chk.limits.auto=Limits selbst präzisieren: /usage in Claude Code alle 10 Minuten im Hintergrund ausführen, solange Sitzungen arbeiten
 chk.limits.push=Jeder Nachricht ans Handy eine Zeile mit den Limits anfügen
 chk.limits.events=Melden, wenn das 5-Stunden- oder Wochenlimit laut Schätzung aufgebraucht ist und wenn es wieder verfügbar ist
 chk.limits.reset=Melden, wenn ein neues 5-Stunden- oder Wochenfenster beginnt (wenn das alte genutzt wurde)
 label.limits.step=Den Verbrauch des 5-Stunden-Limits melden alle (%, 0 = nie)
 label.limits.step.week=Den Verbrauch des Wochenlimits melden alle (%, 0 = nie)
 limits.hint=Die genauen Werte stammen aus Claude Code: Es speichert sie, wenn Sie /usage aufrufen oder ein Limit erreichen. Das Programm fragt bei Anthropic nichts ab und berührt Ihre Claude-Anmeldung nicht. Meldungen zu den Limits kommen auf diesen Computer (wenn Benachrichtigungen hier an sind) und aufs Handy (wenn es verbunden ist).
-limits.hint.estimate=Zwischen zwei /usage wird der Verbrauch aus den Sitzungsprotokollen auf diesem Computer geschätzt (Zeichen „≈“), für jedes Modell getrennt; jedes neue /usage korrigiert die Schätzung. Nutzung von Claude auf anderen Geräten fehlt in der Schätzung bis zum nächsten /usage.
+limits.hint.estimate=Zwischen zwei /usage wird der Verbrauch aus den Sitzungsprotokollen auf diesem Computer geschätzt (Zeichen „≈“), für jedes Modell getrennt; jedes neue /usage korrigiert die Schätzung. Nutzung von Claude auf anderen Geräten fehlt in der Schätzung bis zum nächsten /usage. Ist „Limits selbst präzisieren“ an, führt das Programm alle 10 Minuten, solange eine Sitzung arbeitet, /usage in Claude Code aus: verborgen, ohne Fenster, ohne gespeicherte Sitzung und ohne Limitverbrauch. Claude Code fragt Anthropic mit seiner eigenen Anmeldung; das Programm sieht sie nie.
 limits.menu.title=Claude-Nutzungslimits
 limits.menu.setup=Rufen Sie einmal /usage in Claude auf, um die Limits zu sehen
 limits.menu.exact=genau um {0}: {1} · aktualisieren: /usage in Claude

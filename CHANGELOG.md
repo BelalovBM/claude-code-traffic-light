@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.7 (beta)
+
+**New**
+- **Refine the limits by itself** (Settings → Notifications → Claude usage limits, off by default): every 10 minutes while a session works, the app runs Claude Code's own `/usage` hidden, so the limits in the menu stay exact instead of estimated. It asks no model, uses no limit, is not saved as a session and runs no hooks; Claude Code asks Anthropic with its own sign-in.
+- A notice when a used 5-hour or weekly window ends and a new one begins (can be switched off).
+- Waiting notices say what Claude Code asks in the program's language: "Claude asks a question" with the question itself, instead of "Claude needs your permission to use AskUserQuestion".
+- In the panel near the tray, "Also sent to the phone" stands out in bold and colour.
+
+**Fixed**
+- The usage limits after an early reset by Anthropic (the use dropped while the reset time stayed): the use before the reset no longer counts in the new window, which made the weekly estimate fall behind.
+- A model used less than the main one (Sonnet next to Opus) kept nearly the main one's weight; it now gets its own from its figures, and the 5-hour estimate no longer runs ahead.
+- After `/compact` the session's menu entry kept the context size from before the compaction until the next reply.
+- The clock lamp could stay on for a session that had published a page on claude.ai: Claude Code lists its watch on that page as a background task that never ends. Tasks Claude Code itself lists as finished no longer count either.
+- A stray frame line across the panel near the tray when it grew, and across a settings card when its **More** opened.
+
 ## 0.9.6 (beta)
 
 **New**

@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Semaphore
@@ -28,6 +29,27 @@ namespace Semaphore
         {
             usage.Start();
             Notifier.Footer = LimitsFooter;
+            refreshTimer.Tick += (o, e) => RefreshLimits();
+            refreshTimer.Start();
+        }
+
+        // When switched on: Claude Code's /usage, run hidden every ten minutes while sessions work (see UsageRefresh).
+        readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
+        DateTime lastRefresh = DateTime.MinValue;
+        int refreshing;
+
+        void RefreshLimits()
+        {
+            if (!Config.LimitsAutoRefresh || AppPaths.IsSandbox || SelfCheckSetup.Active) return;
+            DateTime activity = store.All.Select(s => s.LastEvent).DefaultIfEmpty(DateTime.MinValue).Max();
+            if (!UsageRefresh.Due(lastRefresh, activity, DateTime.Now)) return;
+            if (System.Threading.Interlocked.Exchange(ref refreshing, 1) == 1) return;
+            lastRefresh = DateTime.Now;
+            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try { UsageRefresh.Run(); }
+                finally { System.Threading.Interlocked.Exchange(ref refreshing, 0); }
+            });
         }
 
         // "27%" when it is Claude Code's own figure, "≈38%" when estimated since.

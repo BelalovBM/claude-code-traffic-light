@@ -264,13 +264,14 @@ diag.requests=O registro de pedidos (requests.log) lista cada pedido de permiss�
 ask.more.note=São {0} respostas e o celular só mostra três botões: as três primeiras são botões, escolha as outras no computador.
 sec.limits=Limites de uso do Claude
 chk.limits.show=Mostrar os limites no menu e na dica do ícone
+chk.limits.auto=Afinar os limites sozinho: executar /usage do Claude Code em segundo plano a cada 10 minutos enquanto as sessões trabalham
 chk.limits.push=Adicionar uma linha com os limites a cada notificação no celular
 chk.limits.events=Avisar quando o limite de 5 horas ou o semanal se esgotar pela estimativa e quando voltar
 chk.limits.reset=Avisar quando começar uma nova janela de 5 horas ou semanal (se a anterior foi usada)
 label.limits.step=Avisar sobre o uso do limite de 5 horas a cada (%, 0 = nunca)
 label.limits.step.week=Avisar sobre o uso do limite semanal a cada (%, 0 = nunca)
 limits.hint=Os números exatos vêm do Claude Code: ele os guarda quando você executa /usage ou atinge um limite. O programa não pede nada à Anthropic e não toca no seu login do Claude. Os avisos sobre os limites chegam a este computador (se as notificações aqui estiverem ativadas) e ao celular (se estiver conectado).
-limits.hint.estimate=Entre dois /usage o uso é estimado pelos registros de sessão deste computador (marcado «≈»), separadamente para cada modelo; cada novo /usage corrige a estimativa. O uso do Claude em outros dispositivos só entra na estimativa no próximo /usage.
+limits.hint.estimate=Entre dois /usage o uso é estimado pelos registros de sessão deste computador (marcado «≈»), separadamente para cada modelo; cada novo /usage corrige a estimativa. O uso do Claude em outros dispositivos só entra na estimativa no próximo /usage. Com «Afinar os limites sozinho» ligado, o programa executa /usage do Claude Code a cada 10 minutos enquanto alguma sessão trabalha: oculto, sem janela, sem guardar sessão e sem gastar limite. O Claude Code consulta a Anthropic com o seu próprio login; o programa nunca o vê.
 limits.menu.title=Limites de uso do Claude
 limits.menu.setup=Execute /usage no Claude uma vez para ver os limites
 limits.menu.exact=exato às {0}: {1} · atualizar: /usage no Claude

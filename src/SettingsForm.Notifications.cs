@@ -61,6 +61,7 @@ namespace Semaphore
             Section(p, Loc.T("sec.limits"), c =>
             {
                 c.Controls.Add(Check(Loc.T("chk.limits.show"), cfg.LimitsShow, v => cfg.LimitsShow = v));
+                c.Controls.Add(Check(Loc.T("chk.limits.auto"), cfg.LimitsAutoRefresh, v => cfg.LimitsAutoRefresh = v));
                 c.Controls.Add(Check(Loc.T("chk.limits.push"), cfg.LimitsInPush, v => cfg.LimitsInPush = v));
                 c.Controls.Add(Check(Loc.T("chk.limits.events"), cfg.LimitsEvents, v => cfg.LimitsEvents = v));
                 c.Controls.Add(Check(Loc.T("chk.limits.reset"), cfg.LimitsReset, v => cfg.LimitsReset = v));
