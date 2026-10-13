@@ -9,6 +9,41 @@ namespace Semaphore
     sealed partial class SettingsForm
     {
 
+        // Which Claude Code the background /usage starts: the one found by itself, or a file the user points to.
+        Control ClaudeWhere()
+        {
+            var box = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true };
+            var text = new Label { AutoSize = true, Tag = "muted", Margin = Ui.Pad(0, 6, 8, 3) };
+            var choose = new Button { Text = Loc.T("btn.claude.choose"), AutoSize = true, Margin = Ui.Pad(0, 0, 8, 3) };
+            var auto = new LinkLabel { Text = Loc.T("link.claude.auto"), AutoSize = true, Margin = Ui.Pad(0, 6, 0, 3) };
+            Action show = () =>
+            {
+                string found = UsageRefresh.FindClaude(cfg.ClaudePath);
+                text.MaximumSize = new Size(RowWidth - Ui.S(60), 0);
+                text.Text = found == null
+                    ? Loc.T(string.IsNullOrWhiteSpace(cfg.ClaudePath) ? "limits.claude.none" : "limits.claude.missing", cfg.ClaudePath)
+                    : Loc.T(string.IsNullOrWhiteSpace(cfg.ClaudePath) ? "limits.claude.found" : "limits.claude.chosen", found);
+                text.ForeColor = found == null ? Palette.StatusWarn : Theme.Muted;
+                auto.Visible = !string.IsNullOrWhiteSpace(cfg.ClaudePath);
+            };
+            choose.Click += (s, e) =>
+            {
+                using (var d = new OpenFileDialog { Filter = "Claude Code (claude.exe, claude.cmd)|claude.exe;claude.cmd|*.exe;*.cmd|*.exe;*.cmd", CheckFileExists = true })
+                {
+                    if (d.ShowDialog(this) != DialogResult.OK) return;
+                    cfg.ClaudePath = d.FileName;
+                    cfg.Save();
+                    show();
+                }
+            };
+            auto.LinkClicked += (s, e) => { cfg.ClaudePath = ""; cfg.Save(); show(); };
+            box.Controls.Add(text);
+            box.Controls.Add(choose);
+            box.Controls.Add(auto);
+            show();
+            return box;
+        }
+
         // What happens on this computer. Which sessions are running is runtime information, not a setting;
         // a single session is silenced from its entry in the tray menu.
         void NotificationsPage(FlowLayoutPanel p)
@@ -60,14 +95,41 @@ namespace Semaphore
             // Claude's usage limits: where they are shown, and what goes to the phone about them.
             Section(p, Loc.T("sec.limits"), c =>
             {
-                c.Controls.Add(Check(Loc.T("chk.limits.show"), cfg.LimitsShow, v => cfg.LimitsShow = v));
-                c.Controls.Add(Check(Loc.T("chk.limits.auto"), cfg.LimitsAutoRefresh, v => cfg.LimitsAutoRefresh = v));
-                c.Controls.Add(Row(Loc.T("label.limits.auto.minutes"), Spin(cfg.LimitsAutoMinutes, UsageRefresh.MinMinutes, UsageRefresh.MaxMinutes, v => cfg.LimitsAutoMinutes = v), NumberLabelWidth));
-                c.Controls.Add(Check(Loc.T("chk.limits.push"), cfg.LimitsInPush, v => cfg.LimitsInPush = v));
-                c.Controls.Add(Check(Loc.T("chk.limits.events"), cfg.LimitsEvents, v => cfg.LimitsEvents = v));
-                c.Controls.Add(Check(Loc.T("chk.limits.reset"), cfg.LimitsReset, v => cfg.LimitsReset = v));
-                c.Controls.Add(Row(Loc.T("label.limits.step"), Spin(cfg.LimitsStep, 0, 50, v => cfg.LimitsStep = v), NumberLabelWidth));
-                c.Controls.Add(Row(Loc.T("label.limits.step.week"), Spin(cfg.LimitsStepWeek, 0, 50, v => cfg.LimitsStepWeek = v), NumberLabelWidth));
+                // A sign-in by API key has no such limits: the switch would do nothing, so it says so instead.
+                if (!UsageTracker.HasSubscription())
+                {
+                    c.Controls.Add(Note(Loc.T("limits.nosubscription")));
+                    return;
+                }
+                var master = (CheckBox)Check(Loc.T("chk.limits.show"), cfg.LimitsShow, v => cfg.LimitsShow = v);
+                c.Controls.Add(master);
+                var parts = new System.Collections.Generic.List<Control>
+                {
+                    Check(Loc.T("chk.limits.push"), cfg.LimitsInPush, v => cfg.LimitsInPush = v),
+                    Check(Loc.T("chk.limits.events"), cfg.LimitsEvents, v => cfg.LimitsEvents = v),
+                    Row(Loc.T("label.limits.step"), Spin(cfg.LimitsStep, 0, 50, v => cfg.LimitsStep = v), NumberLabelWidth - 24),
+                    Row(Loc.T("label.limits.step.week"), Spin(cfg.LimitsStepWeek, 0, 50, v => cfg.LimitsStepWeek = v), NumberLabelWidth - 24),
+                };
+                var auto = (CheckBox)Check(Loc.T("chk.limits.auto"), cfg.LimitsAutoRefresh, v => cfg.LimitsAutoRefresh = v);
+                parts.Add(auto);
+                Control where = ClaudeWhere();
+                parts.Add(where);
+                foreach (Control part in parts)
+                {
+                    part.Margin = Ui.Pad(24, 3, 3, 3);
+                    part.Width = RowWidth - Ui.S(24);
+                    part.Enabled = cfg.LimitsShow;
+                    c.Controls.Add(part);
+                }
+                where.Margin = Ui.Pad(48, 0, 3, 6);
+                where.Width = RowWidth - Ui.S(48);
+                where.Enabled = cfg.LimitsShow && cfg.LimitsAutoRefresh;
+                master.CheckedChanged += (s, e) =>
+                {
+                    foreach (Control part in parts) part.Enabled = master.Checked;
+                    where.Enabled = master.Checked && auto.Checked;
+                };
+                auto.CheckedChanged += (s, e) => where.Enabled = master.Checked && auto.Checked;
                 Details(c, Loc.T("limits.hint"), Loc.T("limits.hint.estimate"));
             });
         }

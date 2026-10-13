@@ -319,14 +319,39 @@ namespace Semaphore.Tests
             }, now);
             double half = minor.For("sonnet") / minor.For("opus");
             Check("a model used less still gets its own weight", half > 0.4 && half < 0.65, half.ToString("0.00"));
-            // /usage in the background: every ten minutes, and only when some session did something since the last run.
-            DateTime t0 = new DateTime(2026, 10, 13, 20, 0, 0);
-            Check("/usage in the background runs only after work, at most every ten minutes",
-                UsageRefresh.Due(DateTime.MinValue, t0, t0, 10)
-                && !UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(5), 10)
-                && UsageRefresh.Due(t0, t0.AddMinutes(3), t0.AddMinutes(10), 10)
-                && !UsageRefresh.Due(t0, t0.AddMinutes(-1), t0.AddHours(2), 10)
-                && UsageRefresh.Due(t0, t0.AddMinutes(1), t0.AddMinutes(3), 3));
+            // /usage in the background: only after work, when the estimate may have drifted, and never past the brake.
+            DateTime t0 = new DateTime(2026, 10, 13, 15, 0, 0, DateTimeKind.Utc);
+            Func<double, double, double, LimitView> view = (exact, estimate, minutesAgo) => new LimitView
+            {
+                Known = true, HasExact = true, ExactPercent = exact, Percent = estimate, ExactAt = t0.AddMinutes(-minutesAgo),
+            };
+            LimitView calm = view(40, 44, 10);
+            Check("/usage is not asked while nothing worked",
+                UsageRefresh.Reason(view(40, 60, 10), calm, t0.AddMinutes(-1), t0.AddMinutes(-2), t0) == null);
+            Check("a small rise needs no /usage, ten points do",
+                UsageRefresh.Reason(calm, calm, t0.AddMinutes(-9), t0, t0) == null
+                && UsageRefresh.Reason(view(40, 50.5, 10), calm, t0.AddMinutes(-9), t0, t0) != null);
+            Check("from 90% on two points are enough, and the exact figure may be a quarter of an hour old at most",
+                UsageRefresh.Reason(view(90, 92.2, 3), calm, t0.AddMinutes(-9), t0, t0) != null
+                && UsageRefresh.Reason(view(91, 91.5, 16), calm, t0.AddMinutes(-9), t0, t0) != null
+                && UsageRefresh.Reason(view(91, 91.5, 5), calm, t0.AddMinutes(-9), t0, t0) == null);
+            Check("an exact figure from Claude Code itself needs nothing",
+                UsageRefresh.Reason(new LimitView { Known = true, Exact = true, HasExact = true, Percent = 97 }, calm, t0.AddMinutes(-9), t0, t0) == null);
+            Check("the brake: five minutes at least, twice as long after each failure up to an hour",
+                !UsageRefresh.Allowed(t0.AddMinutes(-4), 0, 0, t0) && UsageRefresh.Allowed(t0.AddMinutes(-5), 0, 0, t0)
+                && !UsageRefresh.Allowed(t0.AddMinutes(-19), 2, 0, t0) && UsageRefresh.Allowed(t0.AddMinutes(-20), 2, 0, t0)
+                && UsageRefresh.Gap(50) == TimeSpan.FromMinutes(60));
+            Check("the brake: a hundred runs a day at most, and a clock put back cannot open it",
+                !UsageRefresh.Allowed(t0.AddHours(-3), 0, 100, t0)
+                && !UsageRefresh.Allowed(t0.AddHours(2), 0, 0, t0));
+            Check("a sign-in counts as without a subscription only with neither a plan nor figures of /usage",
+                UsageTracker.NoSubscriptionIn("{\"oauthAccount\":{\"emailAddress\":\"x\"}}")
+                && !UsageTracker.NoSubscriptionIn("{\"oauthAccount\":{\"organizationType\":\"claude_pro\"}}")
+                && !UsageTracker.NoSubscriptionIn("{\"cachedUsageUtilization\":{\"fetchedAtMs\":1}}"));
+            Check("the same figures again replace the last one instead of piling up",
+                UsageTracker.SameFigures(new UsageAnchor { Five = 40, Week = 20, FiveResetMs = 1000000, WeekResetMs = 5000000 },
+                                         new UsageAnchor { Five = 40, Week = 20, FiveResetMs = 1000000 + 60000, WeekResetMs = 5000000 })
+                && !UsageTracker.SameFigures(new UsageAnchor { Five = 40, Week = 20 }, new UsageAnchor { Five = 41, Week = 20 }));
             // An early reset: the figure fell within the same window, so the window starts at the figure before the fall.
             DateTime w0 = new DateTime(2026, 10, 7, 19, 0, 0, DateTimeKind.Utc);
             var figures = new[]

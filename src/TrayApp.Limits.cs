@@ -33,29 +33,49 @@ namespace Semaphore
             refreshTimer.Start();
         }
 
-        // When switched on: Claude Code's /usage, run hidden every ten minutes while sessions work (see UsageRefresh).
+        // When switched on: Claude Code's /usage, run hidden when the estimate may have drifted (see UsageRefresh).
         readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
-        DateTime lastRefresh = DateTime.MinValue;
         int refreshing, refreshFailures;
+
+        // The limits are shown and watched at all: switched on, and the sign-in has a subscription with such limits.
+        bool LimitsOn(LimitsSnapshot s)
+        {
+            return Config.LimitsShow && !s.NoSubscription;
+        }
 
         void RefreshLimits()
         {
             if (!Config.LimitsAutoRefresh || AppPaths.IsSandbox || SelfCheckSetup.Active) return;
-            DateTime activity = store.All.Select(s => s.LastEvent).DefaultIfEmpty(DateTime.MinValue).Max();
-            if (!UsageRefresh.Due(lastRefresh, activity, DateTime.Now, Config.LimitsAutoMinutes)) return;
+            LimitsSnapshot snap = usage.Snapshot;
+            if (!LimitsOn(snap)) return;
+            DateTime nowUtc = DateTime.UtcNow;
+            DateTime lastRun = new DateTime(Math.Max(0, Math.Min(Config.LimitsAutoLastUtcTicks, DateTime.MaxValue.Ticks)), DateTimeKind.Utc);
+            DateTime activity = store.All.Select(s => s.LastEvent.ToUniversalTime()).DefaultIfEmpty(DateTime.MinValue).Max();
+            string reason = UsageRefresh.Reason(snap.Five, snap.Week, lastRun, activity, nowUtc);
+            if (reason == null) return;
+            int today = nowUtc.Year * 10000 + nowUtc.Month * 100 + nowUtc.Day;
+            int runsToday = Config.LimitsAutoDay == today ? Config.LimitsAutoCount : 0;
+            if (!UsageRefresh.Allowed(lastRun, refreshFailures, runsToday, nowUtc)) return;
             if (System.Threading.Interlocked.Exchange(ref refreshing, 1) == 1) return;
-            lastRefresh = DateTime.Now;
+            // Counted before the run, whatever comes of it: a run that hangs or fails still waits out the brake.
+            Config.LimitsAutoLastUtcTicks = nowUtc.Ticks;
+            Config.LimitsAutoDay = today;
+            Config.LimitsAutoCount = runsToday + 1;
+            Config.Save();
+            Log.Write("Usage limits: /usage in the background (" + reason + ")");
+            string chosen = Config.ClaudePath;
             System.Threading.ThreadPool.QueueUserWorkItem(_ =>
             {
                 string error = null;
-                try { error = UsageRefresh.Run(); }
+                try { error = UsageRefresh.Run(chosen); }
                 finally { System.Threading.Interlocked.Exchange(ref refreshing, 0); }
                 ui.Post(__ => RefreshDone(error), null);
             });
         }
 
-        // A run that fails now and then (the network, a slow start) is no news: the estimate stays. Three in a row say
-        // something is wrong (no Claude Code, a sign-in to renew, no way to Anthropic), once, until a run works again.
+        // A run that fails now and then (the network, a slow start) is no news: the estimate stays, and the next run
+        // waits twice as long. Three in a row say something is wrong (no Claude Code, a sign-in to renew, no way to
+        // Anthropic), once, until a run works again.
         void RefreshDone(string error)
         {
             if (error == null) { refreshFailures = 0; return; }
@@ -95,7 +115,7 @@ namespace Semaphore
         string LimitsTip()
         {
             LimitsSnapshot s = usage.Snapshot;
-            if (!Config.LimitsShow || !LimitsVisible(s)) return null;
+            if (!LimitsOn(s) || !LimitsVisible(s)) return null;
             return Loc.T("tip.limits", LimitPercent(s.Five), LimitPercent(s.Week));
         }
 
@@ -103,14 +123,14 @@ namespace Semaphore
         string LimitsFooter()
         {
             LimitsSnapshot s = usage.Snapshot;
-            if (!Config.LimitsInPush || !LimitsVisible(s)) return null;
+            if (!LimitsOn(s) || !Config.LimitsInPush || !LimitsVisible(s)) return null;
             return Loc.T("limits.push.footer", LimitPercent(s.Five), LimitReset(s.Five), LimitPercent(s.Week));
         }
 
         void AddLimitsToMenu(ToolStripItemCollection items)
         {
-            if (!Config.LimitsShow) return;
             LimitsSnapshot s = usage.Snapshot;
+            if (!LimitsOn(s)) return;
             var title = new ToolStripLabel(Loc.T("limits.menu.title"));
             title.ForeColor = Theme.Muted;
             items.Add(title);
@@ -216,6 +236,7 @@ namespace Semaphore
         void CheckLimits()
         {
             LimitsSnapshot s = usage.Snapshot;
+            if (!LimitsOn(s)) return;
             WatchLimit(fiveWatch, s.Five, Loc.T("limits.five"), Config.LimitsStep);
             WatchLimit(weekWatch, s.Week, Loc.T("limits.week"), Config.LimitsStepWeek);
         }
@@ -232,7 +253,7 @@ namespace Semaphore
                 if (w.Out && Config.LimitsEvents)
                     LimitPush(Loc.T("limits.push.back.title"), Loc.T("limits.push.back.text", name), Level.Idle);
                 // A window that was hardly used ending is no news; one that ran out already had its notice above.
-                else if (!w.Out && Config.LimitsReset && w.Percent >= 1)
+                else if (!w.Out && Config.LimitsEvents && w.Percent >= 1)
                     LimitPush(Loc.T("limits.push.reset.title", name), Loc.T("limits.push.reset.text", w.PercentText), Level.Idle);
                 w.Percent = 0;
                 w.Out = false;

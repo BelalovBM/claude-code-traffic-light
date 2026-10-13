@@ -3,8 +3,9 @@
 ## 0.9.7 (beta)
 
 **New**
-- **Refine the limits by itself** (Settings → Notifications → Claude usage limits, off by default): every few minutes while a session works (10 by default, from 2 to 120), the app runs Claude Code's own `/usage` hidden, so the limits in the menu stay exact instead of estimated. It asks no model, uses no limit, is not saved as a session and runs no hooks; Claude Code asks Anthropic with its own sign-in. If it fails three times in a row (no Claude Code, a sign-in to renew, no connection), one notice says why.
-- A notice when a used 5-hour or weekly window ends and a new one begins (can be switched off).
+- **Refine the limits by itself** (Settings → Notifications → Claude usage limits, off by default): the app runs Claude Code's own `/usage` hidden whenever the estimate may have drifted by a point (a rise of 10 points, 2 from 90% on; a model without figures; an exact figure an hour old, a quarter of an hour from 90% on), so the limits in the menu stay close to exact. A brake keeps it rare whatever happens: at least 5 minutes between runs, longer after failures, at most 100 a day, kept across restarts. It asks no model, uses no limit, is not saved as a session and runs no hooks; Claude Code asks Anthropic with its own sign-in. Claude Code is found by itself or chosen by hand. If it fails three times in a row, one notice says why.
+- **One switch for the limits.** **Watch Claude's usage limits** turns all of it on or off; the push line, the notices and the background `/usage` are under it. "Ran out", "back" and "a new window" are one choice now. A sign-in without a subscription (an API key) has no such limits, and the app shows none.
+- A notice when a used 5-hour or weekly window ends and a new one begins.
 - Waiting notices say what Claude Code asks in the program's language: "Claude asks a question" with the question itself, instead of "Claude needs your permission to use AskUserQuestion".
 - In the panel near the tray, "Also sent to the phone" stands out in bold and colour.
 

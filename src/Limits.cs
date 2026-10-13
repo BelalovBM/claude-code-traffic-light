@@ -55,12 +55,16 @@ namespace Semaphore
         public double ExactPercent; // the last exact figure in this window, and when it was taken
         public DateTime ExactAt;
         public bool HasExact;
+        public bool NewModel;       // used since by a model with no exact figures of its own: its weight is a guess
     }
 
     sealed class LimitsSnapshot
     {
         public LimitView Five, Week;
         public bool AnyAnchor;
+        // ~/.claude.json was read and names no plan: a sign-in by API key (or Bedrock, Vertex), which has no 5-hour
+        // or weekly limit of a subscription.
+        public bool NoSubscription;
     }
 
     // The arithmetic, apart from files, so that it can be tested.
@@ -436,6 +440,7 @@ namespace Semaphore
                 text = r.ReadToEnd();
             string plan = ParsePlan(text);
             currentPlan = plan;
+            noSubscription = NoSubscriptionIn(text);
             if (plan != null) AssignPlan(plan);
             UsageAnchor a = ParseCache(text);
             if (a == null) return;
@@ -444,10 +449,14 @@ namespace Semaphore
             Recount(a);
             lock (gate)
             {
+                // /usage run in the background often repeats the figures of the last one: the newer replaces it (the
+                // estimate starts from the latest exact time), so the history is not filled with copies.
+                UsageAnchor last = anchors.OrderBy(x => x.AtMs).LastOrDefault();
+                if (last != null && SameFigures(last, a)) anchors.Remove(last);
                 anchors.Add(a);
                 DateTime old = DateTime.UtcNow.AddDays(-90);
                 anchors = anchors.Where(x => x.At >= old).OrderBy(x => x.AtMs).ToList();
-                if (anchors.Count > 300) anchors.RemoveRange(0, anchors.Count - 300);
+                if (anchors.Count > MaxAnchors) anchors.RemoveRange(0, anchors.Count - MaxAnchors);
             }
             SaveAnchors();
             Log.Write("Usage limits: exact figures from Claude Code, 5 hours " + Fmt(a.Five) + "%, week " + Fmt(a.Week) + "%");
@@ -458,10 +467,43 @@ namespace Semaphore
         static string Fmt(double? v) { return v.HasValue ? v.Value.ToString("0", CultureInfo.InvariantCulture) : "?"; }
 
         volatile string currentPlan;
+        volatile bool noSubscription;
 
         static readonly Regex PlanRx =new Regex("\"organizationType\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.Compiled);
 
         // The plan of the signed-in account as Claude Code keeps it in ~/.claude.json, or null.
+        internal const int MaxAnchors = 1000;
+
+        // No plan named and no figures of /usage ever kept: a sign-in without a subscription. Either one alone is
+        // enough to count as a subscription, so that a version of Claude Code that stops writing one of them does not
+        // hide the limits of someone who has them.
+        internal static bool NoSubscriptionIn(string claudeJson)
+        {
+            return ParsePlan(claudeJson) == null && claudeJson.IndexOf("\"cachedUsageUtilization\"", StringComparison.Ordinal) < 0;
+        }
+
+        // For the settings page: false when ~/.claude.json exists and names no plan (a sign-in without a subscription),
+        // true otherwise, also when it cannot be read.
+        internal static bool HasSubscription()
+        {
+            try
+            {
+                if (!File.Exists(ClaudeJson)) return true;
+                using (var fs = new FileStream(ClaudeJson, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var r = new StreamReader(fs, Encoding.UTF8))
+                    return !NoSubscriptionIn(r.ReadToEnd());
+            }
+            catch (Exception) { return true; }
+        }
+
+        // The same percentages in the same windows (a reset within half an hour is the same one).
+        internal static bool SameFigures(UsageAnchor x, UsageAnchor y)
+        {
+            return x.Plan == y.Plan && x.Five == y.Five && x.Week == y.Week
+                && (!x.Five.HasValue || Math.Abs((x.FiveReset - y.FiveReset).TotalMinutes) < 30)
+                && (!x.Week.HasValue || Math.Abs((x.WeekReset - y.WeekReset).TotalMinutes) < 30);
+        }
+
         internal static string ParsePlan(string text)
         {
             Match m = PlanRx.Match(text);
@@ -599,7 +641,7 @@ namespace Semaphore
         {
             List<UsageAnchor> list;
             lock (gate) list = anchors.ToList();
-            var s = new LimitsSnapshot { AnyAnchor = list.Count > 0 };
+            var s = new LimitsSnapshot { AnyAnchor = list.Count > 0, NoSubscription = noSubscription };
             s.Five = View(list, now, true);
             s.Week = View(list, now, false);
             return s;
@@ -667,6 +709,7 @@ namespace Semaphore
                 return v;
             }
             if (w == null) return v;   // used since, but nothing to weigh it by yet
+            v.NewModel = since.Keys.Any(m => !w.ByModel.ContainsKey(m));
             v.Known = true;
             v.Percent = Math.Min(100, basePercent + UsageMath.Apply(w, since));
             return v;
