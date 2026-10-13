@@ -139,6 +139,10 @@ namespace Semaphore.Tests
             Check("the summary is the first line without a heading mark", TrayApp.SummaryLine("## Done\n\n**Added** tests") == "Done");
             Check("list and code marks are dropped", TrayApp.SummaryLine("\n- `npm test` passes, **13** of 13") == "npm test passes, 13 of 13");
             Check("no message, no summary", TrayApp.SummaryLine(null) == "");
+            Check("Claude Code's permission message gives its tool, to be shown in the program's language",
+                TrayApp.PermissionTool("Claude needs your permission to use AskUserQuestion") == "AskUserQuestion"
+                && TrayApp.PermissionTool("Claude needs your permission to use Bash.") == "Bash"
+                && TrayApp.PermissionTool("Claude is waiting for your input") == null);
 
             // How full the context is: the last reply of the main conversation, not one of a subagent.
             string tp = Transcript("ctx",

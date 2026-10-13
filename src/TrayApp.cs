@@ -521,7 +521,7 @@ namespace Semaphore
                 StartGrace(c.Session, inPanel || (Config.ToastWaiting && !quiet), inPanel);
                 if (Config.ToastWaiting && !inPanel && !quiet)
                 {
-                    string msg = string.IsNullOrEmpty(c.Session.Message) ? Loc.T("toast.waiting.default") : c.Session.Message;
+                    string msg = string.IsNullOrEmpty(c.Session.Message) ? Loc.T("toast.waiting.default") : WaitingText(c.Session);
                     // A question or prompt that can be answered from the menu says what it is about.
                     if (ask != null) msg = ask.Options != null ? ask.Question : ask.Tool + (string.IsNullOrEmpty(ask.Summary) ? "" : ": " + Shorten(ask.Summary, 120));
                     Session asking = c.Session;
@@ -772,7 +772,25 @@ namespace Semaphore
         string WaitingBody(Session s)
         {
             return WithLabel(RemoteLabel(s), Config.RemoteDetails && !string.IsNullOrEmpty(s.Message)
-                ? s.Message : Loc.T("toast.waiting.default"));
+                ? WaitingText(s) : Loc.T("toast.waiting.default"));
+        }
+
+        // Claude Code's own words, always in English, in the program's language: "Claude needs your permission to use
+        // AskUserQuestion" is a question, and is shown as one with its text; another tool keeps its name.
+        static string WaitingText(Session s)
+        {
+            string tool = PermissionTool(s.Message);
+            if (tool == null) return s.Message;
+            if (tool != "AskUserQuestion") return Loc.T("toast.waiting.permission", tool);
+            Approvals.Request q = TitleReader.ReadPendingRequest(s.TranscriptPath);
+            return q != null && !string.IsNullOrEmpty(q.Question) ? Loc.T("ask.push.title") + "\n" + q.Question : Loc.T("ask.push.title");
+        }
+
+        // The tool in Claude Code's "Claude needs your permission to use X", or null for any other message.
+        internal static string PermissionTool(string message)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(message ?? "", @"^Claude needs your permission to use (\S+?)\.?$");
+            return m.Success ? m.Groups[1].Value : null;
         }
 
         void Refresh()

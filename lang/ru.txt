@@ -24,6 +24,7 @@ sessions.hint=Снимите галочку, чтобы отключить зв�
 sessions.none=Активных сессий пока нет. Они появятся здесь, когда запустится Claude Code.
 toast.waiting.title=Claude Code ждёт вас
 toast.waiting.default=Ожидает вашего подтверждения
+toast.waiting.permission=Claude просит разрешения на {0}
 toast.done.title=Claude Code закончил
 toast.done.body={0}: задача выполнена
 dur.s={0} с

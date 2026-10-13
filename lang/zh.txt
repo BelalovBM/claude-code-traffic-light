@@ -24,6 +24,7 @@ sessions.hint=取消勾选某个会话，即可关闭它的声音、弹窗和手
 sessions.none=暂无活动会话。Claude Code 运行后会显示在这里。
 toast.waiting.title=Claude Code 需要您
 toast.waiting.default=正在等待您的确认
+toast.waiting.permission=Claude 请求允许使用 {0}
 toast.done.title=Claude Code 已完成
 toast.done.body={0}：任务已完成
 dur.s={0} 秒

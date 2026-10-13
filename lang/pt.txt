@@ -24,6 +24,7 @@ sessions.hint=Desmarque uma sessão para silenciar o som, os avisos e o push no 
 sessions.none=Ainda não há sessões ativas. Elas aparecem aqui quando o Claude Code estiver em execução.
 toast.waiting.title=O Claude Code precisa de você
 toast.waiting.default=Aguardando a sua confirmação
+toast.waiting.permission=O Claude pede permissão para usar {0}
 toast.done.title=O Claude Code terminou
 toast.done.body={0}: tarefa concluída
 dur.s={0} s

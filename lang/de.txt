@@ -24,6 +24,7 @@ sessions.hint=Entfernen Sie das Häkchen, um Ton, Pop-ups und Handy-Push dieser 
 sessions.none=Noch keine aktiven Sitzungen. Sie erscheinen hier, sobald Claude Code läuft.
 toast.waiting.title=Claude Code braucht Sie
 toast.waiting.default=Wartet auf Ihre Bestätigung
+toast.waiting.permission=Claude bittet um Erlaubnis für {0}
 toast.done.title=Claude Code ist fertig
 toast.done.body={0}: Aufgabe erledigt
 dur.s={0} s

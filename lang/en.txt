@@ -24,6 +24,7 @@ sessions.hint=Untick a session to silence its sound, pop-ups and phone push. The
 sessions.none=No active sessions yet. They appear here once Claude Code is running.
 toast.waiting.title=Claude Code needs you
 toast.waiting.default=Waiting for your confirmation
+toast.waiting.permission=Claude needs your permission to use {0}
 toast.done.title=Claude Code finished
 toast.done.body={0}: the task is done
 dur.s={0}s

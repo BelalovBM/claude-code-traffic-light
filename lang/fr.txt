@@ -24,6 +24,7 @@ sessions.hint=Décochez une session pour couper son son, ses fenêtres contextue
 sessions.none=Aucune session active pour l'instant. Elles apparaîtront ici dès que Claude Code sera lancé.
 toast.waiting.title=Claude Code a besoin de vous
 toast.waiting.default=En attente de votre confirmation
+toast.waiting.permission=Claude demande l'autorisation d'utiliser {0}
 toast.done.title=Claude Code a terminé
 toast.done.body={0} : tâche terminée
 dur.s={0} s
