@@ -21,6 +21,8 @@ namespace Semaphore
         public string Error, LastMessage;
         // Stop: how many background tasks are still in flight, as Claude Code itself says; null when it does not say.
         public int? BackgroundTasks;
+        // Those tasks for the log: "type status: description" each, so a wait that looks wrong can be explained.
+        public string BackgroundTaskText;
 
         public static HookEvent Parse(string json)
         {
@@ -74,9 +76,39 @@ namespace Semaphore
             object suggestions;
             if (d.TryGetValue("permission_suggestions", out suggestions)) e.PermissionSuggestions = suggestions as System.Collections.IList;
             object tasks;
-            if (d.TryGetValue("background_tasks", out tasks) && tasks is System.Collections.ICollection)
-                e.BackgroundTasks = ((System.Collections.ICollection)tasks).Count;
+            if (d.TryGetValue("background_tasks", out tasks) && tasks is System.Collections.IList)
+            {
+                var text = new List<string>();
+                int running = 0;
+                foreach (object o in (System.Collections.IList)tasks)
+                {
+                    var t = o as IDictionary<string, object>;
+                    string status = t == null ? null : Str(t, "status");
+                    // The list is meant to hold work in flight only; a task it still lists as ended does not count.
+                    if (!Ended(status)) running++;
+                    if (t != null)
+                    {
+                        string what = Str(t, "description");
+                        if (string.IsNullOrEmpty(what)) what = Str(t, "command");
+                        if (what != null && what.Length > 80) what = what.Substring(0, 80) + "...";
+                        text.Add(Str(t, "type") + " " + status + ": " + what);
+                    }
+                }
+                e.BackgroundTasks = running;
+                e.BackgroundTaskText = string.Join("; ", text);
+            }
             return e;
+        }
+
+        static bool Ended(string status)
+        {
+            switch ((status ?? "").ToLowerInvariant())
+            {
+                case "completed": case "failed": case "killed": case "stopped": case "cancelled": case "canceled": case "done": case "error":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         // What the tool is about to do, in a form a person can judge: the command, the file...
@@ -358,7 +390,8 @@ namespace Semaphore
                         s.BackgroundNotified = false;
                     }
                     s.BackgroundUntil = now.AddMinutes(BackgroundLimitMinutes);
-                    Log.Write("[" + s.ShortId + "] stopped to wait for " + pending + " background task(s), still working");
+                    Log.Write("[" + s.ShortId + "] stopped to wait for " + pending + " background task(s), still working"
+                        + (string.IsNullOrEmpty(e.BackgroundTaskText) ? "" : " (" + e.BackgroundTaskText + ")"));
                 }
             }
 

@@ -183,6 +183,9 @@ namespace Semaphore.Tests
                 HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[]}").BackgroundTasks == 0
                 && HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[{\"id\":\"a\"},{\"id\":\"b\"}]}").BackgroundTasks == 2
                 && HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\"}").BackgroundTasks == null);
+            HookEvent listed = HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[{\"id\":\"a\",\"type\":\"shell\",\"status\":\"completed\",\"description\":\"tests\"},{\"id\":\"b\",\"type\":\"monitor\",\"status\":\"running\",\"description\":\"watch\"}]}");
+            Check("a task the list shows as ended does not count, and the list is kept for the log",
+                listed.BackgroundTasks == 1 && listed.BackgroundTaskText == "shell completed: tests; monitor running: watch", listed.BackgroundTaskText);
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"<task-notification>\"}");
             Check("the next turn ends the background wait", !s.InBackground);
             c = Apply(store, "{\"hook_event_name\":\"Stop\"," + b + "}");
