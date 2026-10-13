@@ -51,6 +51,24 @@ def title():
     return img
 
 
+def languages():
+    """The closing frame: the seven languages of the program, each written in itself, and how it fits Windows."""
+    img = canvas("7 languages", "light, dark and system theme; high contrast; display scaling and several monitors")
+    d = ImageDraw.Draw(img)
+    names = ["English", "Русский", "Español", "Deutsch", "Français", "Português", "中文"]
+    try:
+        cjk = ImageFont.truetype("msyh.ttc", 30)
+    except OSError:
+        cjk = font(30)
+    col_x, top, step = (230, 450), 175, 64
+    for i, name in enumerate(names):
+        x = col_x[0] if i < 4 else col_x[1]
+        y = top + (i if i < 4 else i - 4) * step
+        f = cjk if name == "中文" else font(30)
+        d.text((x, y), name, fill=FORE, font=f, anchor="lm")
+    return img
+
+
 def stack(names, gap=14):
     """Several pictures of the project page (docs) one above the other, as one picture."""
     docs = target.parent
@@ -82,6 +100,7 @@ frames = [
     (scene(toasts, "Windows notifications", "what was done when it finishes; what happened when an error stops it"), 3600),
     (scene("phone.png", "On the phone, when you are away", "pushes through ntfy; answer a prompt or a question with a tap"), 3400),
     (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
+    (languages(), 2600),
 ]
 images = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f, _ in frames]
 images[0].save(target, save_all=True, append_images=images[1:], duration=[ms for _, ms in frames], loop=0, optimize=True)
