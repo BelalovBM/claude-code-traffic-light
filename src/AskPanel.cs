@@ -427,6 +427,14 @@ namespace Semaphore
             }
         }
 
+        // The frame follows the edge: when the panel grows (the line about the phone, a longer timer), the old bottom
+        // edge would otherwise stay painted across it.
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            Invalidate();
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
