@@ -63,6 +63,8 @@ A request shows up in a panel near the tray; the state changes come as ordinary 
 
 **On a smartwatch or fitness band:** the pushes are ordinary notifications of the ntfy app, so a watch or band paired with the phone shows them once ntfy is allowed in its notification settings (in the watch's companion app on the phone). Whether the answer buttons work there depends on the watch.
 
+<img src="docs/watch-ntfy.jpg" width="195" alt="A fitness band showing the push: demo-app, Claude asks a question, which test runner should I set up, and the usage limits">
+
 The topic name works like a password: anyone who knows it can read and send messages to it. A long random one is generated for you; keep it private. By default a push contains only the project folder name; the chat title and Claude's message text are sent only if you enable "Include Claude's message text". You can use your own ntfy server.
 
 ## Your own ntfy server (optional)

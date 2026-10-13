@@ -51,6 +51,7 @@
   .shots img { display: block; max-width: 100%; height: auto; }
   .shots figcaption { font-size: 15px; color: var(--muted); margin-top: 6px; }
   .phone li { margin-bottom: 8px; }
+  .phone img.watch { width: 160px; margin: 14px 0; border-radius: 22px; }
   @media (max-width: 860px) { .shots { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 760px) { .phone, .phone.wide { grid-template-columns: minmax(0, 1fr); } .phone img { max-width: min(100%, 396px); margin: 0 auto; } }
   footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
@@ -129,6 +130,7 @@
         <li><strong>On a smartwatch or fitness band</strong> too: allow ntfy in the watch's notification settings on the phone.</li>
         <li>Answer on the computer first, and the phone is told the buttons no longer work.</li>
       </ul>
+      <img class="watch" src="watch-ntfy.jpg" width="390" height="590" loading="lazy" alt="A fitness band showing the same kind of push: demo-app, Claude asks a question, which test runner should I set up, and the usage limits">
       <p class="small">Answering from the phone is off until you turn it on. The topic name is random and secret, and buttons work once, only for the request still waiting.</p>
     </div>
   </div>
