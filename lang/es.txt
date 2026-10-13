@@ -93,7 +93,7 @@ approve.test.ok=Respuesta recibida: {0}. La aprobación remota funciona.
 approve.test.none=Sin respuesta en 90 segundos. Comprueba que la app ntfy puede ejecutar acciones y que el estado indica que escucha.
 approve.test.senderror=no se pudo enviar el aviso de prueba.
 approve.test.tool=Solicitud de prueba
-approve.hint=Permitir y Denegar valen una vez. Siempre añade la regla que el propio Claude Code ofreció, indicada en la notificación. Si respondes antes en el equipo o no respondes a tiempo, se usa la solicitud normal.
+approve.hint=Permitir y Denegar valen una vez. Siempre añade la regla que el propio Claude Code ofreció, indicada en la notificación. Si ya respondiste en el equipo, los botones de la notificación dejan de funcionar. Si se acaba el tiempo para responder, la solicitud sigue abierta en la ventana de Claude Code: respóndela allí.
 approve.push.title=Claude Code pide permiso
 approve.push.allow=Permitir
 approve.push.deny=Denegar
@@ -306,7 +306,7 @@ limits.auto.notsaved=Claude Code mostró las cifras pero no las guardó.
 wiz.background=Espera su tarea en segundo plano (compilación, pruebas); seguirá solo
 toast.background.title=Claude lleva mucho esperando su tarea en segundo plano
 toast.background.text=lleva {0} esperando. Si la tarea se colgó o es un servidor que quedó en marcha, Claude no seguirá solo.
-label.background.minutes=Avisar si Claude espera su tarea en segundo plano más de (minutos, 0 = nunca; también al móvil)
+label.background.minutes=Avisar si Claude espera su tarea en segundo plano más de (minutos, 0 = nunca)
 status.failed=Detenido por un error
 fail.title=Claude se detuvo por un error
 fail.rate_limit=Se alcanzó un límite de uso o hubo demasiadas solicitudes.

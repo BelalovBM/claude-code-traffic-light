@@ -93,7 +93,7 @@ approve.test.ok=Antwort erhalten: {0}. Die Fernfreigabe funktioniert.
 approve.test.none=Keine Antwort innerhalb von 90 Sekunden. Prüfen Sie, ob die ntfy-App Aktionen ausführen darf und der Status „Wartet auf Antworten“ zeigt.
 approve.test.senderror=der Test-Push konnte nicht gesendet werden.
 approve.test.tool=Testanfrage
-approve.hint=Erlauben und Ablehnen gelten einmal. Immer fügt die Regel hinzu, die Claude Code selbst angeboten hat; sie steht in der Nachricht. Antworten Sie zuerst am Computer oder nicht rechtzeitig, wird die normale Abfrage verwendet.
+approve.hint=Erlauben und Ablehnen gelten einmal. Immer fügt die Regel hinzu, die Claude Code selbst angeboten hat; sie steht in der Nachricht. Haben Sie schon am Computer geantwortet, wirken die Schaltflächen in der Nachricht nicht mehr. Ist die Zeit zum Antworten abgelaufen, bleibt die Anfrage im Fenster von Claude Code offen: Antworten Sie dort.
 approve.push.title=Claude Code bittet um Erlaubnis
 approve.push.allow=Erlauben
 approve.push.deny=Ablehnen
@@ -306,7 +306,7 @@ limits.auto.notsaved=Claude Code zeigte die Werte, speicherte sie aber nicht.
 wiz.background=Wartet auf eigene Hintergrundaufgabe (Build, Tests); macht selbst weiter
 toast.background.title=Claude wartet schon lange auf seine Hintergrundaufgabe
 toast.background.text=wartet seit {0}. Hängt die Aufgabe oder läuft ein Server weiter, macht Claude nicht von selbst weiter.
-label.background.minutes=Melden, wenn Claude länger auf seine Hintergrundaufgabe wartet als (Minuten, 0 = nie; auch ans Handy)
+label.background.minutes=Melden, wenn Claude länger auf seine Hintergrundaufgabe wartet als (Minuten, 0 = nie)
 status.failed=Wegen eines Fehlers angehalten
 fail.title=Claude hat wegen eines Fehlers angehalten
 fail.rate_limit=Ein Nutzungslimit ist erreicht oder es gab zu viele Anfragen.
