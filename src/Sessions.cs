@@ -84,11 +84,12 @@ namespace Semaphore
                 {
                     var t = o as IDictionary<string, object>;
                     string status = t == null ? null : Str(t, "status");
-                    // The list is meant to hold work in flight only; a task it still lists as ended does not count.
-                    if (!Ended(status)) running++;
+                    string what = t == null ? null : Str(t, "description");
+                    // The list is meant to hold work in flight only; a task it still lists as ended does not count, nor
+                    // does the watch Claude Code keeps on a published artifact, which runs for as long as the session.
+                    if (!Ended(status) && !ArtifactWatch(t == null ? null : Str(t, "type"), what)) running++;
                     if (t != null)
                     {
-                        string what = Str(t, "description");
                         if (string.IsNullOrEmpty(what)) what = Str(t, "command");
                         if (what != null && what.Length > 80) what = what.Substring(0, 80) + "...";
                         text.Add(Str(t, "type") + " " + status + ": " + what);
@@ -98,6 +99,12 @@ namespace Semaphore
                 e.BackgroundTaskText = string.Join("; ", text);
             }
             return e;
+        }
+
+        static bool ArtifactWatch(string type, string description)
+        {
+            return type == "monitor" && description != null
+                && description.StartsWith("live updates for artifact", StringComparison.OrdinalIgnoreCase);
         }
 
         static bool Ended(string status)

@@ -190,6 +190,8 @@ namespace Semaphore.Tests
             HookEvent listed = HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[{\"id\":\"a\",\"type\":\"shell\",\"status\":\"completed\",\"description\":\"tests\"},{\"id\":\"b\",\"type\":\"monitor\",\"status\":\"running\",\"description\":\"watch\"}]}");
             Check("a task the list shows as ended does not count, and the list is kept for the log",
                 listed.BackgroundTasks == 1 && listed.BackgroundTaskText == "shell completed: tests; monitor running: watch", listed.BackgroundTaskText);
+            Check("the watch on a published artifact is no background work",
+                HookEvent.Parse("{\"hook_event_name\":\"Stop\",\"session_id\":\"x\",\"background_tasks\":[{\"id\":\"a\",\"type\":\"monitor\",\"status\":\"running\",\"description\":\"live updates for artifact https://claude.ai/artifact/x (re-publishes)\"}]}").BackgroundTasks == 0);
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"<task-notification>\"}");
             Check("the next turn ends the background wait", !s.InBackground);
             c = Apply(store, "{\"hook_event_name\":\"Stop\"," + b + "}");
