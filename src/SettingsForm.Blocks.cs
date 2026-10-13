@@ -51,8 +51,9 @@ namespace Semaphore
             };
         }
 
-        // Label width that leaves room for a small number box at the end of the row.
-        int NumberLabelWidth { get { return (int)Math.Min(RowWidth / Ui.Scale - 100, 420); } }
+        // Label width that leaves room for a small number box at the end of the row: the label takes the rest, so even a
+        // long one stays on one line where the card is wide enough, and the boxes of a card line up at its right.
+        int NumberLabelWidth { get { return (int)(RowWidth / Ui.Scale) - 90; } }
         void OnUi(Action action)
         {
             try { BeginInvoke(action); }

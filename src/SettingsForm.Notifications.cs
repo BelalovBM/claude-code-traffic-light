@@ -12,14 +12,16 @@ namespace Semaphore
         // Which Claude Code the background /usage starts: the one found by itself, or a file the user points to.
         Control ClaudeWhere()
         {
-            var box = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true };
-            var text = new Label { AutoSize = true, Tag = "muted", Margin = Ui.Pad(0, 6, 8, 3) };
+            // The width is taken now: RowWidth is the card's only while the card is built, and a long path must wrap
+            // inside the card instead of widening it (which brought a horizontal scroll bar).
+            int width = RowWidth - Ui.S(48);
+            var box = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(width, 0) };
+            var text = new Label { AutoSize = true, Tag = "muted", Margin = Ui.Pad(0, 6, 8, 3), MaximumSize = new Size(width, 0) };
             var choose = new Button { Text = Loc.T("btn.claude.choose"), AutoSize = true, Margin = Ui.Pad(0, 0, 8, 3) };
             var auto = new LinkLabel { Text = Loc.T("link.claude.auto"), AutoSize = true, Margin = Ui.Pad(0, 6, 0, 3) };
             Action show = () =>
             {
                 string found = UsageRefresh.FindClaude(cfg.ClaudePath);
-                text.MaximumSize = new Size(RowWidth - Ui.S(60), 0);
                 text.Text = found == null
                     ? Loc.T(string.IsNullOrWhiteSpace(cfg.ClaudePath) ? "limits.claude.none" : "limits.claude.missing", cfg.ClaudePath)
                     : Loc.T(string.IsNullOrWhiteSpace(cfg.ClaudePath) ? "limits.claude.found" : "limits.claude.chosen", found);
@@ -103,12 +105,14 @@ namespace Semaphore
                 }
                 var master = (CheckBox)Check(Loc.T("chk.limits.show"), cfg.LimitsShow, v => cfg.LimitsShow = v);
                 c.Controls.Add(master);
+                // The labels of the two steps are long: they take the whole row but the field, on one line where it fits.
+                int stepLabel = NumberLabelWidth - 24;
                 var parts = new System.Collections.Generic.List<Control>
                 {
                     Check(Loc.T("chk.limits.push"), cfg.LimitsInPush, v => cfg.LimitsInPush = v),
                     Check(Loc.T("chk.limits.events"), cfg.LimitsEvents, v => cfg.LimitsEvents = v),
-                    Row(Loc.T("label.limits.step"), Spin(cfg.LimitsStep, 0, 50, v => cfg.LimitsStep = v), NumberLabelWidth - 24),
-                    Row(Loc.T("label.limits.step.week"), Spin(cfg.LimitsStepWeek, 0, 50, v => cfg.LimitsStepWeek = v), NumberLabelWidth - 24),
+                    Row(Loc.T("label.limits.step"), Spin(cfg.LimitsStep, 0, 50, v => cfg.LimitsStep = v), stepLabel),
+                    Row(Loc.T("label.limits.step.week"), Spin(cfg.LimitsStepWeek, 0, 50, v => cfg.LimitsStepWeek = v), stepLabel),
                 };
                 var auto = (CheckBox)Check(Loc.T("chk.limits.auto"), cfg.LimitsAutoRefresh, v => cfg.LimitsAutoRefresh = v);
                 parts.Add(auto);
@@ -122,7 +126,6 @@ namespace Semaphore
                     c.Controls.Add(part);
                 }
                 where.Margin = Ui.Pad(48, 0, 3, 6);
-                where.Width = RowWidth - Ui.S(48);
                 where.Enabled = cfg.LimitsShow && cfg.LimitsAutoRefresh;
                 master.CheckedChanged += (s, e) =>
                 {

@@ -133,17 +133,23 @@ namespace Semaphore
             return new Size(Math.Min(width, area.Width - Ui.S(40)), Math.Min(height, area.Height - Ui.S(80)));
         }
 
+        // A page scrolls up and down only: its width is made to fit the window, so a horizontal bar could only come
+        // from a few pixels of rounding when the vertical bar appears (a "More" opened), and would scroll nothing.
         FlowLayoutPanel NewPagePanel()
         {
-            return new FlowLayoutPanel
+            var panel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
-                AutoScroll = true,
                 Padding = Ui.Pad(16, 6, 16, 8),
                 TabIndex = 1,
             };
+            panel.HorizontalScroll.Maximum = 0;
+            panel.HorizontalScroll.Enabled = false;
+            panel.HorizontalScroll.Visible = false;
+            panel.AutoScroll = true;
+            return panel;
         }
 
         void BuildPage(FlowLayoutPanel panel)
@@ -283,8 +289,9 @@ namespace Semaphore
             if (content != null) { Controls.Remove(content); content.Dispose(); }
             refresher = null;
             // What is left of the window for controls after the navigation, the page padding and a scroll bar.
+            // The cards add their margins (3 on each side) to that width, so a few pixels more are kept free.
             RowWidth = Math.Max(Ui.S(300), Math.Min(Ui.S(ContentWidth),
-                ClientSize.Width - Ui.S(NavWidth) - Ui.S(32) - SystemInformation.VerticalScrollBarWidth - Ui.S(4)));
+                ClientSize.Width - Ui.S(NavWidth) - Ui.S(32) - SystemInformation.VerticalScrollBarWidth - Ui.S(10)));
             content = NewPagePanel();
             BuildPage(content);
             Controls.Add(content);
