@@ -53,7 +53,7 @@ def title():
 
 def languages():
     """The closing frame: the seven languages of the program, each written in itself, and how it fits Windows."""
-    img = canvas("7 languages", "light, dark and system theme; high contrast; display scaling and several monitors")
+    img = canvas("7 languages", "light, dark or system theme; follows Windows high contrast; display scaling, several monitors")
     d = ImageDraw.Draw(img)
     names = ["English", "Русский", "Español", "Deutsch", "Français", "Português", "中文"]
     try:
