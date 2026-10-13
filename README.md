@@ -61,6 +61,8 @@ A request shows up in a panel near the tray; the state changes come as ordinary 
 2. In the tray app open **Settings → Phone**, enable ntfy, scan the QR code or subscribe to the shown topic manually.
 3. Press **Send test**.
 
+**On a smartwatch or fitness band:** the pushes are ordinary notifications of the ntfy app, so a watch or band paired with the phone shows them once ntfy is allowed in its notification settings (in the watch's companion app on the phone). Whether the answer buttons work there depends on the watch.
+
 The topic name works like a password: anyone who knows it can read and send messages to it. A long random one is generated for you; keep it private. By default a push contains only the project folder name; the chat title and Claude's message text are sent only if you enable "Include Claude's message text". You can use your own ntfy server.
 
 ## Your own ntfy server (optional)
