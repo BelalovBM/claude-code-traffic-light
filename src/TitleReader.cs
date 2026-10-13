@@ -150,6 +150,11 @@ namespace Semaphore
             for (int i = lines.Length - 1; i >= 0; i--)
             {
                 string line = lines[i];
+                // A compaction after the last reply: the old size no longer holds, and the new one is known only with
+                // the next reply, so the context is reported as unknown (zero tokens).
+                if (line.IndexOf("\"subtype\":\"compact_boundary\"", StringComparison.Ordinal) >= 0
+                    && line.IndexOf("\"isSidechain\":true", StringComparison.Ordinal) < 0)
+                    return true;
                 if (line.IndexOf("\"usage\"", StringComparison.Ordinal) < 0 || line.IndexOf("\"role\":\"assistant\"", StringComparison.Ordinal) < 0) continue;
                 if (line.IndexOf("\"isSidechain\":true", StringComparison.Ordinal) >= 0) continue;
                 Match m = Regex.Match(line, "\"message\":\\{\"model\":\"([^\"]+)\"");

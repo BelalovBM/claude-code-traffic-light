@@ -147,6 +147,9 @@ namespace Semaphore.Tests
             long tokens; string model;
             Check("the context is the input of the last main reply", TitleReader.ReadContext(tp, out tokens, out model) && tokens == 402010 && model == "claude-opus-5-5",
                 tokens + " " + model);
+            string compacted = "{\"isSidechain\":false,\"type\":\"system\",\"subtype\":\"compact_boundary\",\"compactMetadata\":{\"trigger\":\"manual\",\"preTokens\":402010}}";
+            tp = Transcript("ctx2", File.ReadAllText(tp).TrimEnd('\n', '\r'), compacted);
+            Check("after a compaction the old size is not shown", TitleReader.ReadContext(tp, out tokens, out model) && tokens == 0, tokens.ToString());
         }
 
         // ---- a stop that only waits for a background task ----
