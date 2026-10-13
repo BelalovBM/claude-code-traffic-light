@@ -15,6 +15,9 @@ namespace Semaphore
             Padding = Ui.Pad(14);
             Margin = Ui.Pad(3, 10, 3, 6);
             DoubleBuffered = true;
+            // The border follows the edge: when "More" opens and the card grows, the old bottom edge would otherwise
+            // stay painted across it.
+            ResizeRedraw = true;
         }
 
         // A plain Panel does not move its children by Padding, so the single content
