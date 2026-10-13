@@ -15,6 +15,8 @@
 - After `/compact` the session's menu entry kept the context size from before the compaction until the next reply.
 - The clock lamp could stay on for a session that had published a page on claude.ai: Claude Code lists its watch on that page as a background task that never ends. Tasks Claude Code itself lists as finished no longer count either.
 - A stray frame line across the panel near the tray when it grew, and across a settings card when its **More** opened.
+- In the settings, the labels of number fields wrapped onto two lines; they now take the row up to the field, which stands at the right. A page could get a horizontal scroll bar when its **More** opened; pages now scroll only up and down.
+- The usage figures of the background `/usage` that repeat the last ones replace them instead of piling up, so the history the estimate learns from is not pushed out.
 
 ## 0.9.6 (beta)
 
