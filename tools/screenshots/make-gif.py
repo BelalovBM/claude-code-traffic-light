@@ -27,12 +27,13 @@ def canvas(caption, sub=None):
 
 def scene(picture, caption, sub=None):
     img = canvas(caption, sub)
-    pic = Image.open(work / picture).convert("RGB")
+    # A picture with a transparent background (the round watch faces) lies on the canvas, not on black.
+    pic = Image.open(work / picture).convert("RGBA")
     room_w, room_h = W - 40, H - 110
     scale = min(1.0, room_w / pic.width, room_h / pic.height)
     if scale < 1.0:
         pic = pic.resize((int(pic.width * scale), int(pic.height * scale)), Image.LANCZOS)
-    img.paste(pic, ((W - pic.width) // 2, 95 + (room_h - pic.height) // 2))
+    img.paste(pic, ((W - pic.width) // 2, 95 + (room_h - pic.height) // 2), pic)
     return img
 
 
@@ -89,7 +90,10 @@ toasts = stack(["toast-done.png", "toast-error.png"])
 # The phone: the top of the screenshot, a permission prompt with its buttons and the start of a question.
 phone = Image.open(target.parent / "phone-ntfy.jpg").convert("RGB")
 phone.crop((0, 0, phone.width, 1060)).save(work / "phone.png")
+# The watch: the same question in three steps, ending with the answer buttons on the wrist.
+Image.open(target.parent / "watch-question.png").save(work / "watch-question.png")
 
+watch = scene("watch-question.png", "On your wrist", "a smartwatch shows the same push; where it shows the buttons, answer from there")
 frames = [
     (title(), 2600),
     (scene("1-working.png", "Every session in the tray menu", "with its state and time, and Claude's usage limits on top"), 3000),
@@ -99,9 +103,12 @@ frames = [
     (scene("3-done.png", "Answered: it goes on, then it is done", "a notification only when a session needs you"), 2800),
     (scene(toasts, "Windows notifications", "what was done when it finishes; what happened when an error stops it"), 3600),
     (scene("phone.png", "On the phone, when you are away", "pushes through ntfy; answer a prompt or a question with a tap"), 3400),
+    (watch, 3400),
     (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
     (languages(), 2600),
 ]
-images = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f, _ in frames]
+# Screenshots need few colours; the photo of the watch gets the most a GIF frame can hold, so its red dot stays red.
+images = [f.quantize(colors=256 if f is watch else 128, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+          for f, _ in frames]
 images[0].save(target, save_all=True, append_images=images[1:], duration=[ms for _, ms in frames], loop=0, optimize=True)
 print(f"{target}  {target.stat().st_size // 1024} KB, {len(frames)} frames")

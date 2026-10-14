@@ -51,7 +51,9 @@
   .shots img { display: block; max-width: 100%; height: auto; }
   .shots figcaption { font-size: 15px; color: var(--muted); margin-top: 6px; }
   .phone li { margin-bottom: 8px; }
-  .phone img.watch { width: 160px; margin: 14px 0; border-radius: 22px; }
+  .phone img.watch { width: 120px; margin: 0; border-radius: 18px; }
+  .wrist { display: flex; align-items: center; gap: 18px; margin: 14px 0; flex-wrap: wrap; }
+  .phone .wrist img.watches { flex: 1 1 260px; width: auto; min-width: 0; max-width: 430px; border: 0; border-radius: 0; }
   @media (max-width: 860px) { .shots { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 760px) { .phone, .phone.wide { grid-template-columns: minmax(0, 1fr); } .phone img { max-width: min(100%, 396px); margin: 0 auto; } }
   footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 15px; color: var(--muted); }
@@ -68,7 +70,7 @@
       <a class="button" href="https://github.com/BelalovBM/claude-code-traffic-light">Source code on GitHub</a>
     </div>
     <p class="small">Free and open source (GPL-3.0). One portable .exe, no installer, no administrator rights, no telemetry. Beta 0.9.</p>
-    <img class="demo" src="demo.gif" width="760" height="470" alt="Two Claude Code sessions in the tray menu; one asks a question in a panel near the tray, is answered, goes on and finishes">
+    <img class="demo" src="demo.gif" width="760" height="470" alt="Two Claude Code sessions in the tray menu; one asks a question in a panel near the tray, is answered, goes on and finishes; the same question on a phone and on a smartwatch with its answer buttons">
   </header>
 
   <h2>What the colours mean</h2>
@@ -127,10 +129,13 @@
         <li><strong>Questions</strong> with answer options get a button for each of the first three answers.</li>
         <li><strong>Finished tasks</strong> are reported only when they ran long enough for you to look away.</li>
         <li><strong>Usage limits</strong> close every push, so you see what is left without opening Claude.</li>
-        <li><strong>On a smartwatch or fitness band</strong> too: allow ntfy in the watch's notification settings on the phone.</li>
+        <li><strong>On a smartwatch or fitness band</strong> too: allow ntfy in the watch's notification settings on the phone. A watch that shows notification buttons lets you answer from your wrist.</li>
         <li>Answer on the computer first, and the phone is told the buttons no longer work.</li>
       </ul>
-      <img class="watch" src="watch-ntfy.jpg" width="390" height="590" loading="lazy" alt="A fitness band showing the same kind of push: demo-app, Claude asks a question, which test runner should I set up, and the usage limits">
+      <div class="wrist">
+        <img class="watch" src="watch-ntfy.jpg" width="390" height="590" loading="lazy" alt="A fitness band showing the same kind of push: demo-app, Claude asks a question, which test runner should I set up, and the usage limits">
+        <img class="watches" src="watch-question.png" width="1060" height="340" loading="lazy" alt="A round smartwatch showing the same push in three steps: Claude asks a question, the two answers with their descriptions, and the buttons 1) Vitest and 2) Jest under the line with the usage limits">
+      </div>
       <p class="small">Answering from the phone is off until you turn it on. The topic name is random and secret, and buttons work once, only for the request still waiting.</p>
     </div>
   </div>

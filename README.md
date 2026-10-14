@@ -15,7 +15,7 @@ A tray traffic light for [Claude Code](https://claude.com/claude-code) on Window
 
 It works with Claude Code in the console and in the VS Code extension, and shows every running session at once. The icon shows the most urgent state. The menu also shows Claude's usage limits (5 hours and the week) and how full each session's context is.
 
-![The five lamps; two sessions at work with the usage limits on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp](docs/demo.gif)
+![The five lamps; two sessions at work with the usage limits on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp; the same question on a phone and on a smartwatch with its answer buttons; seven languages](docs/demo.gif)
 
 
 ## Quick start
@@ -61,9 +61,11 @@ A request shows up in a panel near the tray; the state changes come as ordinary 
 2. In the tray app open **Settings → Phone**, enable ntfy, scan the QR code or subscribe to the shown topic manually.
 3. Press **Send test**.
 
-**On a smartwatch or fitness band:** the pushes are ordinary notifications of the ntfy app, so a watch or band paired with the phone shows them once ntfy is allowed in its notification settings (in the watch's companion app on the phone). Whether the answer buttons work there depends on the watch.
+**On a smartwatch or fitness band:** the pushes are ordinary notifications of the ntfy app, so a watch or band paired with the phone shows them once ntfy is allowed in its notification settings (in the watch's companion app on the phone). A fitness band shows the text; a smartwatch that shows the buttons of a notification lets you answer a question or a permission prompt from your wrist, as below.
 
 <img src="docs/watch-ntfy.jpg" width="195" alt="A fitness band showing the push: demo-app, Claude asks a question, which test runner should I set up, and the usage limits">
+
+<img src="docs/watch-question.png" width="530" alt="A round smartwatch showing the same push in three steps: Claude asks a question, the two answers with their descriptions, and the buttons 1) Vitest and 2) Jest under the line with the usage limits">
 
 The topic name works like a password: anyone who knows it can read and send messages to it. A long random one is generated for you; keep it private. By default a push contains only the project folder name; the chat title and Claude's message text are sent only if you enable "Include Claude's message text". You can use your own ntfy server.
 
