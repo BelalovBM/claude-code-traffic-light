@@ -45,7 +45,9 @@ Get-Process ClaudeCodeTrafficLight -ErrorAction SilentlyContinue | Where-Object 
 if (Test-Path $box) { Remove-Item $box -Recurse -Force }
 New-Item -ItemType Directory -Force "$box\data", "$box\home\.claude" | Out-Null
 [IO.File]::WriteAllText("$box\home\.claude.json", '{"oauthAccount":{"organizationType":"claude_pro"}}')
-[IO.File]::WriteAllText("$box\data\config.json", '{"FirstRunDone":true,"Language":"' + $Lang + '","StartupNotice":false,"Theme":"dark"}')
+# CHECK_CLAUDE_PATH: a Claude Code path to put in the settings, to see how the page tells a missing file.
+$claudePath = if ($env:CHECK_CLAUDE_PATH) { ',"LimitsAutoRefresh":true,"ClaudePath":"' + ($env:CHECK_CLAUDE_PATH -replace '\\', '\\') + '"' } else { '' }
+[IO.File]::WriteAllText("$box\data\config.json", '{"FirstRunDone":true,"Language":"' + $Lang + '","StartupNotice":false,"Theme":"dark"' + $claudePath + '}')
 $env:TRAFFICLIGHT_DATA_DIR = "$box\data"
 $env:TRAFFICLIGHT_CLAUDE_DIR = "$box\home\.claude"
 $app = Start-Process $exe -PassThru

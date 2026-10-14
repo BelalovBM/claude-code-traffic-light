@@ -16,9 +16,10 @@ namespace Semaphore
             // inside the card instead of widening it (which brought a horizontal scroll bar).
             int width = RowWidth - Ui.S(48);
             var box = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(width, 0) };
-            var text = new Label { AutoSize = true, Tag = "muted", Margin = Ui.Pad(0, 6, 8, 3), MaximumSize = new Size(width, 0) };
+            // "keep": the colour is set here (grey, or the warning colour when nothing is found), not by the theme.
+            var text = new Label { AutoSize = true, Tag = "keep", Margin = Ui.Pad(0, 6, 8, 3), MaximumSize = new Size(width, 0) };
             var choose = new Button { Text = Loc.T("btn.claude.choose"), AutoSize = true, Margin = Ui.Pad(0, 0, 8, 3) };
-            var auto = new LinkLabel { Text = Loc.T("link.claude.auto"), AutoSize = true, Margin = Ui.Pad(0, 6, 0, 3) };
+            var auto = new LinkLabel { Text = Loc.T("link.claude.auto"), AutoSize = true, Margin = Ui.Pad(0, 6, 0, 3), LinkColor = Palette.Link, ActiveLinkColor = Palette.LinkActive };
             Action show = () =>
             {
                 string found = UsageRefresh.FindClaude(cfg.ClaudePath);
@@ -32,6 +33,11 @@ namespace Semaphore
             {
                 using (var d = new OpenFileDialog { Filter = "Claude Code (claude.exe, claude.cmd)|claude.exe;claude.cmd|*.exe;*.cmd|*.exe;*.cmd", CheckFileExists = true })
                 {
+                    // Where the file is now, or else where Claude Code's installer puts it (the user's folder if not).
+                    string found = UsageRefresh.FindClaude(cfg.ClaudePath);
+                    string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    string usual = Path.Combine(home, ".local", "bin");
+                    d.InitialDirectory = found != null ? Path.GetDirectoryName(found) : Directory.Exists(usual) ? usual : home;
                     if (d.ShowDialog(this) != DialogResult.OK) return;
                     cfg.ClaudePath = d.FileName;
                     cfg.Save();
