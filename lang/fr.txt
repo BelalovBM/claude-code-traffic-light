@@ -264,13 +264,13 @@ diag.requests=Le journal des demandes (requests.log) liste chaque demande d'auto
 ask.more.note=Il y a {0} réponses et le téléphone ne peut afficher que trois boutons : les trois premières sont des boutons, choisissez les autres sur l'ordinateur.
 sec.limits=Limites d'utilisation de Claude
 chk.limits.show=Suivre les limites d'utilisation de Claude : dans le menu, l'info-bulle de l'icône et les notifications
-chk.limits.auto=Préciser les limites tout seul : lancer /usage de Claude Code en arrière-plan quand l'estimation peut s'écarter de plus d'un point
+chk.limits.auto=Préciser les limites tout seul : lancer /usage de Claude Code en arrière-plan quand l'estimation peut s'écarter de plus de 1 %
 chk.limits.push=Ajouter une ligne avec les limites à chaque notification sur le téléphone
 chk.limits.events=Prévenir quand une limite est épuisée selon l'estimation, quand elle revient, et quand une fenêtre utilisée se termine et qu'une nouvelle commence
 label.limits.step=Prévenir de l'utilisation de la limite de 5 heures tous les (%, 0 = jamais)
 label.limits.step.week=Prévenir de l'utilisation de la limite hebdomadaire tous les (%, 0 = jamais)
 limits.hint=Les chiffres exacts viennent de Claude Code : il les garde quand vous lancez /usage ou atteignez une limite. Le programme ne demande rien à Anthropic et ne touche pas à votre connexion Claude. Les avis sur les limites arrivent sur cet ordinateur (si les notifications y sont activées) et sur le téléphone (s'il est connecté).
-limits.hint.estimate=Entre deux /usage, l'utilisation est estimée d'après les journaux de session de cet ordinateur (signe « ≈ »), séparément pour chaque modèle ; chaque nouveau /usage corrige l'estimation. L'utilisation de Claude sur d'autres appareils n'y figure qu'au prochain /usage. Avec « Préciser les limites tout seul », le programme lance /usage de Claude Code tant qu'une session travaille, quand l'estimation peut s'écarter de plus d'un point (au plus toutes les 5 minutes et 100 fois par jour) : caché, sans fenêtre, sans session enregistrée et sans consommer de limite. Claude Code interroge Anthropic avec sa propre connexion ; le programme ne la voit jamais.
+limits.hint.estimate=Entre deux /usage, l'utilisation est estimée d'après les journaux de session de cet ordinateur (signe « ≈ »), séparément pour chaque modèle ; chaque nouveau /usage corrige l'estimation. L'utilisation de Claude sur d'autres appareils n'y figure qu'au prochain /usage. Avec « Préciser les limites tout seul », le programme lance /usage de Claude Code tant qu'une session travaille, quand l'estimation peut s'écarter de plus de 1 % (1 % de la limite entière : ≈60 % affiché, c'est 59–61 % en réalité ; au plus toutes les 5 minutes et 100 fois par jour) : caché, sans fenêtre, sans session enregistrée et sans consommer de limite. Claude Code interroge Anthropic avec sa propre connexion ; le programme ne la voit jamais.
 limits.menu.title=Limites d'utilisation de Claude
 limits.menu.setup=Lancez /usage dans Claude une fois pour voir les limites
 limits.menu.exact=exact à {0} : {1} · actualiser : /usage dans Claude

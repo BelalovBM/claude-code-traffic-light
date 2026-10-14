@@ -142,8 +142,8 @@
       <p>How much of Claude's 5-hour and weekly limits you have used, and when each resets, without typing <code>/usage</code> every time.</p>
       <ul>
         <li><strong>Exact</strong> right after <code>/usage</code>: Claude Code keeps those figures on your computer, and the app reads them.</li>
-        <li><strong>Estimated</strong> in between (marked ≈), because Claude Code gives the current figures only on <code>/usage</code>: the app adds what your sessions used since, each model weighed by your own past figures. So far that stayed within one or two points; every <code>/usage</code> puts it right again.</li>
-        <li><strong>Exact all along</strong>, if you switch it on: whenever the estimate may be a point off while you work (much closer from 90% on, never more often than every 5 minutes), the app runs Claude Code's own <code>/usage</code> in the background. It asks no model, so it uses no limit.</li>
+        <li><strong>Estimated</strong> in between (marked ≈), because Claude Code gives the current figures only on <code>/usage</code>: the app adds what your sessions used since, each model weighed by your own past figures. So far that stayed within one or two percentage points; every <code>/usage</code> puts it right again.</li>
+        <li><strong>Exact all along</strong>, if you switch it on: whenever the estimate may be more than 1% off while you work (much closer from 90% on, never more often than every 5 minutes), the app runs Claude Code's own <code>/usage</code> in the background. It asks no model, so it uses no limit.</li>
         <li>The same figures on the second line of the icon tooltip and at the end of every push; optionally a notice, here and on the phone, every N percent, when a limit runs out, when it is back and when a used window ends.</li>
       </ul>
       <p class="small">The app itself never contacts Anthropic and never touches your Claude sign-in: in the background it only starts Claude Code's own command. Use on other devices shows up at the next <code>/usage</code>. A sign-in without a subscription (an API key) has no such limits, and the app shows none.</p>
