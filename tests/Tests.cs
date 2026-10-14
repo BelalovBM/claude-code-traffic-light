@@ -341,9 +341,25 @@ namespace Semaphore.Tests
                 !UsageRefresh.Allowed(t0.AddMinutes(-4), 0, 0, t0) && UsageRefresh.Allowed(t0.AddMinutes(-5), 0, 0, t0)
                 && !UsageRefresh.Allowed(t0.AddMinutes(-19), 2, 0, t0) && UsageRefresh.Allowed(t0.AddMinutes(-20), 2, 0, t0)
                 && UsageRefresh.Gap(50) == TimeSpan.FromMinutes(60));
-            Check("the brake: a hundred runs a day at most, and a clock put back cannot open it",
-                !UsageRefresh.Allowed(t0.AddHours(-3), 0, 100, t0)
+            Check("the brake: the daily limit lies above what five minutes let through, and a clock put back cannot open it",
+                UsageRefresh.PerDay > 24 * 60 / 5
+                && !UsageRefresh.Allowed(t0.AddHours(-3), 0, UsageRefresh.PerDay, t0)
+                && UsageRefresh.Allowed(t0.AddHours(-3), 0, UsageRefresh.PerDay - 1, t0)
                 && !UsageRefresh.Allowed(t0.AddHours(2), 0, 0, t0));
+            Check("the threshold comes down as the estimate misses more, never below two points",
+                UsageRefresh.Rise(10, 2, 0.03) == 10 && UsageRefresh.Rise(10, 2, 0.1) == 5
+                && UsageRefresh.Rise(10, 2, 0.2) == 2.5 && UsageRefresh.Rise(10, 2, 0.6) == 2);
+            LimitView shown = new LimitView { Known = true, HasExact = true, ExactPercent = 40, Percent = 50, Reset = t0.AddHours(3) };
+            double missed = UsageRefresh.Learn(0.03, shown, 48, t0.AddHours(3));
+            Check("a miss of two points on ten added is learnt, smoothed with the earlier ones",
+                Math.Abs(missed - (0.5 * 0.03 + 0.5 * 0.2)) < 1e-9, missed.ToString());
+            Check("a small addition, another window or an exact figure teach nothing",
+                UsageRefresh.Learn(0.03, new LimitView { Known = true, HasExact = true, ExactPercent = 40, Percent = 41, Reset = t0.AddHours(3) }, 45, t0.AddHours(3)) == 0.03
+                && UsageRefresh.Learn(0.03, shown, 48, t0.AddHours(8)) == 0.03
+                && UsageRefresh.Learn(0.03, new LimitView { Known = true, Exact = true, HasExact = true, Percent = 50, Reset = t0.AddHours(3) }, 48, t0.AddHours(3)) == 0.03);
+            Check("with a missing estimate, two points of rise are enough to ask",
+                UsageRefresh.Reason(view(40, 43, 10), calm, 0.25, 0.03, t0.AddMinutes(-9), t0, t0) != null
+                && UsageRefresh.Reason(view(40, 43, 10), calm, 0.03, 0.03, t0.AddMinutes(-9), t0, t0) == null);
             Check("a sign-in counts as without a subscription only with neither a plan nor figures of /usage",
                 UsageTracker.NoSubscriptionIn("{\"oauthAccount\":{\"emailAddress\":\"x\"}}")
                 && !UsageTracker.NoSubscriptionIn("{\"oauthAccount\":{\"organizationType\":\"claude_pro\"}}")

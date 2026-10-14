@@ -65,6 +65,9 @@ namespace Semaphore
         // ~/.claude.json was read and names no plan: a sign-in by API key (or Bedrock, Vertex), which has no 5-hour
         // or weekly limit of a subscription.
         public bool NoSubscription;
+        // How far the estimate was off at the last exact figures, as a share of what it had added since the figure
+        // before (smoothed): what the background /usage sets its threshold by (see UsageRefresh.Rise).
+        public double FiveMiss = UsageRefresh.UsualMiss, WeekMiss = UsageRefresh.UsualMiss;
     }
 
     // The arithmetic, apart from files, so that it can be tested.
@@ -446,6 +449,17 @@ namespace Semaphore
             if (a == null) return;
             a.Plan = plan;
             lock (gate) if (anchors.Any(x => x.AtMs == a.AtMs)) return;
+            // Before the new figure replaces it: how far the estimate shown until now was from it.
+            LimitsSnapshot shown = snapshot;
+            double five0 = fiveMiss, week0 = weekMiss;
+            if (a.Five.HasValue) fiveMiss = UsageRefresh.Learn(fiveMiss, shown.Five, a.Five.Value, a.FiveReset);
+            if (a.Week.HasValue) weekMiss = UsageRefresh.Learn(weekMiss, shown.Week, a.Week.Value, a.WeekReset);
+            if (fiveMiss != five0 || weekMiss != week0)
+                Log.Write(string.Format(CultureInfo.InvariantCulture,
+                    "Usage limits: the estimate was {0:0.0}/{1:0.0} against {2}/{3}; misses {4:0.00}/{5:0.00}, /usage after a rise of {6:0.0}/{7:0.0} points",
+                    shown.Five.Percent, shown.Week.Percent, a.Five, a.Week, fiveMiss, weekMiss,
+                    UsageRefresh.Rise(UsageRefresh.FiveRise, UsageRefresh.NearFiveRise, fiveMiss),
+                    UsageRefresh.Rise(UsageRefresh.WeekRise, UsageRefresh.NearWeekRise, weekMiss)));
             Recount(a);
             lock (gate)
             {
@@ -467,6 +481,8 @@ namespace Semaphore
         static string Fmt(double? v) { return v.HasValue ? v.Value.ToString("0", CultureInfo.InvariantCulture) : "?"; }
 
         volatile string currentPlan;
+        // Learnt anew after each start: the first exact figures set them.
+        double fiveMiss = UsageRefresh.UsualMiss, weekMiss = UsageRefresh.UsualMiss;
         volatile bool noSubscription;
 
         static readonly Regex PlanRx =new Regex("\"organizationType\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.Compiled);
@@ -641,7 +657,7 @@ namespace Semaphore
         {
             List<UsageAnchor> list;
             lock (gate) list = anchors.ToList();
-            var s = new LimitsSnapshot { AnyAnchor = list.Count > 0, NoSubscription = noSubscription };
+            var s = new LimitsSnapshot { AnyAnchor = list.Count > 0, NoSubscription = noSubscription, FiveMiss = fiveMiss, WeekMiss = weekMiss };
             s.Five = View(list, now, true);
             s.Week = View(list, now, false);
             return s;

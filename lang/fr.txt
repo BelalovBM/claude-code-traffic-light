@@ -270,7 +270,7 @@ chk.limits.events=Prévenir quand une limite est épuisée selon l'estimation, q
 label.limits.step=Prévenir de l'utilisation de la limite de 5 heures tous les (%, 0 = jamais)
 label.limits.step.week=Prévenir de l'utilisation de la limite hebdomadaire tous les (%, 0 = jamais)
 limits.hint=Les chiffres exacts viennent de Claude Code : il les garde quand vous lancez /usage ou atteignez une limite. Le programme ne demande rien à Anthropic et ne touche pas à votre connexion Claude. Les avis sur les limites arrivent sur cet ordinateur (si les notifications y sont activées) et sur le téléphone (s'il est connecté).
-limits.hint.estimate=Entre deux /usage, l'utilisation est estimée d'après les journaux de session de cet ordinateur (signe « ≈ »), séparément pour chaque modèle ; chaque nouveau /usage corrige l'estimation. L'utilisation de Claude sur d'autres appareils n'y figure qu'au prochain /usage. Avec « Préciser les limites tout seul », le programme lance /usage de Claude Code tant qu'une session travaille, quand l'estimation peut s'écarter de plus de 1 % (1 % de la limite entière : ≈60 % affiché, c'est 59–61 % en réalité ; au plus toutes les 5 minutes et 100 fois par jour) : caché, sans fenêtre, sans session enregistrée et sans consommer de limite. Claude Code interroge Anthropic avec sa propre connexion ; le programme ne la voit jamais.
+limits.hint.estimate=Entre deux /usage, l'utilisation est estimée d'après les journaux de session de cet ordinateur (signe « ≈ »), séparément pour chaque modèle ; chaque nouveau /usage corrige l'estimation. L'utilisation de Claude sur d'autres appareils n'y figure qu'au prochain /usage. Avec « Préciser les limites tout seul », le programme lance /usage de Claude Code tant qu'une session travaille, quand l'estimation peut s'écarter de plus de 1 % (1 % de la limite entière : ≈60 % affiché, c'est 59–61 % en réalité ; plus souvent si l'estimation commence à s'écarter, au plus toutes les 5 minutes) : caché, sans fenêtre, sans session enregistrée et sans consommer de limite. Claude Code interroge Anthropic avec sa propre connexion ; le programme ne la voit jamais.
 limits.menu.title=Limites d'utilisation de Claude
 limits.menu.setup=Lancez /usage dans Claude une fois pour voir les limites
 limits.menu.exact=exact à {0} : {1} · actualiser : /usage dans Claude
@@ -292,6 +292,8 @@ limits.push.reset.title=Nouvelle fenêtre de limite Claude : {0}
 limits.push.reset.text=Elle repart de 0 %. La fenêtre précédente : {0}.
 limits.auto.failed.title=Impossible de préciser les limites
 limits.auto.failed.text={0}\nLes limites restent estimées (≈). Vérifiez que Claude Code démarre et que vous y êtes connecté.
+limits.auto.cap.title=Précision des limites suspendue jusqu'à minuit
+limits.auto.cap.text=/usage a été lancé 300 fois aujourd'hui en arrière-plan, plus qu'il ne devrait. Jusqu'à minuit les limites sont estimées (≈) ; lancez /usage vous-même pour les chiffres exacts.
 limits.auto.noclaude=Claude Code est introuvable sur cet ordinateur.
 limits.auto.timeout=Claude Code n'a pas répondu en une minute.
 limits.auto.nofigures=Claude Code n'a donné aucun chiffre : {0}

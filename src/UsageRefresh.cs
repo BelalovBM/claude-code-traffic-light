@@ -17,6 +17,11 @@ namespace Semaphore
         // (two or three percent of the rise); asking at half that keeps it there with room to spare. The week fills
         // about seven times slower, so its rise is measured in smaller steps.
         internal const double FiveRise = 10, WeekRise = 5;
+        // The thresholds above hold while the estimate misses by about this share of what it added (two or three
+        // percent, as it did on the figures so far). When it misses by more (a model, an effort or a size of context
+        // the weights were not learnt on), the threshold comes down so that the expected miss stays half a point:
+        // a tenth off gives 5, a fifth 2.5, and never below NearFiveRise (NearWeekRise for the week).
+        internal const double UsualMiss = 0.03, AllowedMiss = 0.5;
         // From 90% on, where a point decides whether the work can go on, much closer: a rise of two points (one for the
         // week) and an exact figure no older than a quarter of an hour.
         internal const double NearEnd = 90, NearFiveRise = 2, NearWeekRise = 1;
@@ -27,15 +32,43 @@ namespace Semaphore
         // after each failure in a row up to an hour, and at most a hundred runs a day. Claude Code itself asks Anthropic
         // at most about once a minute, so a run sooner would only repeat the same figures anyway.
         internal static readonly TimeSpan MinGap = TimeSpan.FromMinutes(5), MaxGap = TimeSpan.FromMinutes(60);
-        internal const int PerDay = 100;
+        // A last line, above what the five minutes can let through in a day (288): reached only if the brake itself
+        // failed (a clock that jumps), never by a long day of work.
+        internal const int PerDay = 300;
 
         // Why an exact figure is worth asking for now, or null. Only while some session did something since the last
         // run: nothing is asked while Claude is idle.
         internal static string Reason(LimitView five, LimitView week, DateTime lastRun, DateTime lastActivity, DateTime nowUtc)
         {
+            return Reason(five, week, UsualMiss, UsualMiss, lastRun, lastActivity, nowUtc);
+        }
+
+        internal static string Reason(LimitView five, LimitView week, double fiveMiss, double weekMiss, DateTime lastRun, DateTime lastActivity, DateTime nowUtc)
+        {
             if (lastActivity <= lastRun) return null;
-            string r = Reason(five, FiveRise, NearFiveRise, nowUtc);
-            return r ?? Reason(week, WeekRise, NearWeekRise, nowUtc);
+            string r = Reason(five, Rise(FiveRise, NearFiveRise, fiveMiss), NearFiveRise, nowUtc);
+            return r ?? Reason(week, Rise(WeekRise, NearWeekRise, weekMiss), NearWeekRise, nowUtc);
+        }
+
+        // The rise of the estimate at which an exact figure is asked for, by how much the estimate has been missing.
+        internal static double Rise(double usual, double least, double miss)
+        {
+            if (miss <= 0) return usual;
+            return Math.Max(least, Math.Min(usual, AllowedMiss / miss));
+        }
+
+        // A new exact figure against the estimate shown just before it, in the same window: the miss as a share of
+        // what the estimate had added, smoothed with the earlier ones so that one figure does not swing it, and so
+        // that the threshold goes back up as the estimate gets right again. A small addition says nothing (the exact
+        // figures are whole percents), nor does another window.
+        internal static double Learn(double miss, LimitView shown, double exact, DateTime exactReset)
+        {
+            if (shown == null || !shown.Known || shown.Exact || !shown.HasExact || shown.NotStarted) return miss;
+            if (shown.Reset == DateTime.MinValue || Math.Abs((shown.Reset - exactReset).TotalMinutes) >= 30) return miss;
+            double added = shown.Percent - shown.ExactPercent;
+            if (added < 3 || exact < shown.ExactPercent - 5) return miss;
+            double now = Math.Abs(shown.Percent - exact) / added;
+            return 0.5 * miss + 0.5 * Math.Min(1, now);
         }
 
         static string Reason(LimitView v, double rise, double nearRise, DateTime nowUtc)

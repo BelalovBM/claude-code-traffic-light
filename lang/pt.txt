@@ -270,7 +270,7 @@ chk.limits.events=Avisar quando um limite se esgotar pela estimativa, quando vol
 label.limits.step=Avisar sobre o uso do limite de 5 horas a cada (%, 0 = nunca)
 label.limits.step.week=Avisar sobre o uso do limite semanal a cada (%, 0 = nunca)
 limits.hint=Os números exatos vêm do Claude Code: ele os guarda quando você executa /usage ou atinge um limite. O programa não pede nada à Anthropic e não toca no seu login do Claude. Os avisos sobre os limites chegam a este computador (se as notificações aqui estiverem ativadas) e ao celular (se estiver conectado).
-limits.hint.estimate=Entre dois /usage o uso é estimado pelos registros de sessão deste computador (marcado «≈»), separadamente para cada modelo; cada novo /usage corrige a estimativa. O uso do Claude em outros dispositivos só entra na estimativa no próximo /usage. Com «Afinar os limites sozinho» ligado, o programa executa /usage do Claude Code enquanto alguma sessão trabalha, quando a estimativa puder desviar mais de 1% (1% do limite inteiro: ≈60% mostrado são de facto 59–61%; no máximo a cada 5 minutos e 100 vezes por dia): oculto, sem janela, sem guardar sessão e sem gastar limite. O Claude Code consulta a Anthropic com o seu próprio login; o programa nunca o vê.
+limits.hint.estimate=Entre dois /usage o uso é estimado pelos registros de sessão deste computador (marcado «≈»), separadamente para cada modelo; cada novo /usage corrige a estimativa. O uso do Claude em outros dispositivos só entra na estimativa no próximo /usage. Com «Afinar os limites sozinho» ligado, o programa executa /usage do Claude Code enquanto alguma sessão trabalha, quando a estimativa puder desviar mais de 1% (1% do limite inteiro: ≈60% mostrado são de facto 59–61%; mais vezes se a estimativa começar a falhar, no máximo a cada 5 minutos): oculto, sem janela, sem guardar sessão e sem gastar limite. O Claude Code consulta a Anthropic com o seu próprio login; o programa nunca o vê.
 limits.menu.title=Limites de uso do Claude
 limits.menu.setup=Execute /usage no Claude uma vez para ver os limites
 limits.menu.exact=exato às {0}: {1} · atualizar: /usage no Claude
@@ -292,6 +292,8 @@ limits.push.reset.title=Nova janela do limite do Claude: {0}
 limits.push.reset.text=Recomeça em 0%. A janela anterior usou {0}.
 limits.auto.failed.title=Não foi possível afinar os limites
 limits.auto.failed.text={0}\nOs limites continuam estimados (≈). Verifique se o Claude Code arranca e tem sessão iniciada.
+limits.auto.cap.title=Afinar os limites em pausa até à meia-noite
+limits.auto.cap.text=O /usage correu hoje 300 vezes em segundo plano, mais do que devia. Até à meia-noite os limites são estimados (≈); execute /usage você mesmo para os valores exatos.
 limits.auto.noclaude=O Claude Code não foi encontrado neste computador.
 limits.auto.timeout=O Claude Code não respondeu num minuto.
 limits.auto.nofigures=O Claude Code não deu valores: {0}

@@ -35,7 +35,7 @@ namespace Semaphore
 
         // When switched on: Claude Code's /usage, run hidden when the estimate may have drifted (see UsageRefresh).
         readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
-        int refreshing, refreshFailures;
+        int refreshing, refreshFailures, capNoticeDay;
 
         // The limits are shown and watched at all: switched on, and the sign-in has a subscription with such limits.
         bool LimitsOn(LimitsSnapshot s)
@@ -51,10 +51,23 @@ namespace Semaphore
             DateTime nowUtc = DateTime.UtcNow;
             DateTime lastRun = new DateTime(Math.Max(0, Math.Min(Config.LimitsAutoLastUtcTicks, DateTime.MaxValue.Ticks)), DateTimeKind.Utc);
             DateTime activity = store.All.Select(s => s.LastEvent.ToUniversalTime()).DefaultIfEmpty(DateTime.MinValue).Max();
-            string reason = UsageRefresh.Reason(snap.Five, snap.Week, lastRun, activity, nowUtc);
+            string reason = UsageRefresh.Reason(snap.Five, snap.Week, snap.FiveMiss, snap.WeekMiss, lastRun, activity, nowUtc);
             if (reason == null) return;
-            int today = nowUtc.Year * 10000 + nowUtc.Month * 100 + nowUtc.Day;
+            // The day of the count is the local one: it starts again at midnight.
+            DateTime local = DateTime.Now;
+            int today = local.Year * 10000 + local.Month * 100 + local.Day;
             int runsToday = Config.LimitsAutoDay == today ? Config.LimitsAutoCount : 0;
+            if (runsToday >= UsageRefresh.PerDay)
+            {
+                // Only if the brake itself failed; the limits are then estimated until midnight, and the user is told once.
+                if (capNoticeDay != today)
+                {
+                    capNoticeDay = today;
+                    Log.Write("Usage limits: " + UsageRefresh.PerDay + " runs of /usage today, no more until midnight");
+                    if (!Paused) Balloon(Loc.T("limits.auto.cap.title"), Loc.T("limits.auto.cap.text"), Level.Waiting, 12000);
+                }
+                return;
+            }
             if (!UsageRefresh.Allowed(lastRun, refreshFailures, runsToday, nowUtc)) return;
             if (System.Threading.Interlocked.Exchange(ref refreshing, 1) == 1) return;
             // Counted before the run, whatever comes of it: a run that hangs or fails still waits out the brake.
