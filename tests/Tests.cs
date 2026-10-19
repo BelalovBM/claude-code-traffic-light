@@ -364,6 +364,13 @@ namespace Semaphore.Tests
                 UsageTracker.NoSubscriptionIn("{\"oauthAccount\":{\"emailAddress\":\"x\"}}")
                 && !UsageTracker.NoSubscriptionIn("{\"oauthAccount\":{\"organizationType\":\"claude_pro\"}}")
                 && !UsageTracker.NoSubscriptionIn("{\"cachedUsageUtilization\":{\"fetchedAtMs\":1}}"));
+            string head = "You are currently using your subscription to power your Claude Code usage\n\n";
+            Check("the figures of /usage are read from either line",
+                UsageRefresh.Figures(head + "Current session: 30% used · resets 10pm\nCurrent week (all models): 23% used · resets Oct 21") == "5 hours 30%, week 23%"
+                && UsageRefresh.Figures(head + "Current week (all models): 23% used · resets Oct 21") == "week 23%"
+                && UsageRefresh.Figures(head + "What's contributing to your limits usage?") == null);
+            Check("an answer with only the header is no breakdown, anything else without figures is",
+                UsageRefresh.OnlyHeader(head) && !UsageRefresh.OnlyHeader("Error: not logged in") && !UsageRefresh.OnlyHeader(head + "Current session: 3% used"));
             Check("the same figures again replace the last one instead of piling up",
                 UsageTracker.SameFigures(new UsageAnchor { Five = 40, Week = 20, FiveResetMs = 1000000, WeekResetMs = 5000000 },
                                          new UsageAnchor { Five = 40, Week = 20, FiveResetMs = 1000000 + 60000, WeekResetMs = 5000000 })

@@ -35,7 +35,8 @@ namespace Semaphore
 
         // When switched on: Claude Code's /usage, run hidden when the estimate may have drifted (see UsageRefresh).
         readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
-        int refreshing, refreshFailures, capNoticeDay;
+        int refreshing, refreshFailures, refreshBreakdowns, capNoticeDay;
+        bool refreshTold;
 
         // The limits are shown and watched at all: switched on, and the sign-in has a subscription with such limits.
         bool LimitsOn(LimitsSnapshot s)
@@ -80,19 +81,24 @@ namespace Semaphore
             System.Threading.ThreadPool.QueueUserWorkItem(_ =>
             {
                 string error = null;
-                try { error = UsageRefresh.Run(chosen); }
+                bool passing = false;
+                try { error = UsageRefresh.Run(chosen, out passing); }
                 finally { System.Threading.Interlocked.Exchange(ref refreshing, 0); }
-                ui.Post(__ => RefreshDone(error), null);
+                ui.Post(__ => RefreshDone(error, passing), null);
             });
         }
 
         // A run that fails now and then (the network, a slow start) is no news: the estimate stays, and the next run
-        // waits twice as long. Three in a row say something is wrong (no Claude Code, a sign-in to renew, no way to
-        // Anthropic), once, until a run works again.
-        void RefreshDone(string error)
+        // waits twice as long. Three breakdowns in a row say something is wrong (no Claude Code, a sign-in to renew, no
+        // way to Anthropic), once, until a run works again. An answer without figures (Claude Code worked, Anthropic
+        // sent none this time) is told only when it lasts: six in a row, with the waits growing to an hour.
+        void RefreshDone(string error, bool passing)
         {
-            if (error == null) { refreshFailures = 0; return; }
-            if (++refreshFailures != 3) return;
+            if (error == null) { refreshFailures = 0; refreshBreakdowns = 0; refreshTold = false; return; }
+            refreshFailures++;
+            if (!passing) refreshBreakdowns++;
+            if (refreshTold || (refreshBreakdowns < 3 && refreshFailures < 6)) return;
+            refreshTold = true;
             if (!Paused) Balloon(Loc.T("limits.auto.failed.title"), Loc.T("limits.auto.failed.text", error), Level.Waiting, 12000);
         }
 

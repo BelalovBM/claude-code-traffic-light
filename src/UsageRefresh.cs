@@ -161,10 +161,30 @@ namespace Semaphore
             catch (Exception) { return 0; }
         }
 
-        // Runs /usage once (on a worker thread: it takes a few seconds) and says in the log how it went. Null when the
-        // figures came, otherwise why not, in words for the user.
-        internal static string Run(string chosen)
+        // The figures in what /usage printed: "5 hours 30%, week 23%", either alone, or null when there is none. Claude
+        // Code leaves out a line whose limit Anthropic did not report (the 5-hour one before a window starts, say), and
+        // prints only its header when no figures came at all.
+        internal static string Figures(string text)
         {
+            Match five = Regex.Match(text ?? "", @"Current session:\s*(\d+)%");
+            Match week = Regex.Match(text ?? "", @"Current week \(all models\):\s*(\d+)%");
+            if (!five.Success && !week.Success) return null;
+            return (five.Success ? "5 hours " + five.Groups[1].Value + "%" : "") + (five.Success && week.Success ? ", " : "")
+                + (week.Success ? "week " + week.Groups[1].Value + "%" : "");
+        }
+
+        // Only the header ("You are currently using your subscription..."): Claude Code ran and is signed in, but had no
+        // figures from Anthropic this time. Not a breakdown: it is tried again later, and told only if it lasts.
+        internal static bool OnlyHeader(string text)
+        {
+            return Figures(text) == null && (text ?? "").IndexOf("You are currently using", StringComparison.Ordinal) >= 0;
+        }
+
+        // Runs /usage once (on a worker thread: it takes a few seconds) and says in the log how it went. Null when the
+        // figures came, otherwise why not, in words for the user; "passing" when Claude Code worked but had no figures.
+        internal static string Run(string chosen, out bool passing)
+        {
+            passing = false;
             string claude = FindClaude(chosen);
             if (claude == null) { Log.Write("Usage limits: no Claude Code found to run /usage"); return Loc.T("limits.auto.noclaude"); }
             long before = FetchedAt();
@@ -197,24 +217,29 @@ namespace Semaphore
                         return Loc.T("limits.auto.timeout");
                     }
                     string text = output.Result + "\n" + errors.Result;
-                    Match m = Regex.Match(text, @"Current session:\s*(\d+)%");
+                    string figures = Figures(text);
                     // Printed figures count only once Claude Code saved them where the program reads them: otherwise the
                     // reason to ask would stay and the next run would come as soon as the brake allows.
                     long after = FetchedAt();
                     bool saved = after != before || DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - after < 2 * 60 * 1000;
-                    if (m.Success && saved)
+                    if (figures != null && saved)
                     {
-                        Log.Write("Usage limits: /usage in the background, " + m.Groups[1].Value + "% in " + watch.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s");
+                        Log.Write("Usage limits: /usage in the background, " + figures + " in " + watch.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s");
                         return null;
                     }
-                    if (m.Success)
+                    if (figures != null)
                     {
                         Log.Write("Usage limits: /usage in the background printed figures but ~/.claude.json did not change");
                         return Loc.T("limits.auto.notsaved");
                     }
-                    string first = text.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) ?? "(no output)";
+                    // The whole answer goes to the log, so that the reason can be seen; the user gets its first line.
+                    string[] lines = text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToArray();
+                    string all = string.Join(" | ", lines);
+                    if (all.Length > 600) all = all.Substring(0, 600) + "...";
+                    passing = OnlyHeader(text);
+                    Log.Write("Usage limits: /usage in the background gave no figures (exit " + p.ExitCode + (passing ? ", only the header" : "") + "): " + (all.Length > 0 ? all : "(no output)"));
+                    string first = lines.Length > 0 ? lines[0] : "(no output)";
                     if (first.Length > 160) first = first.Substring(0, 160);
-                    Log.Write("Usage limits: /usage in the background gave no figures (exit " + p.ExitCode + "): " + first);
                     return Loc.T("limits.auto.nofigures", first);
                 }
             }

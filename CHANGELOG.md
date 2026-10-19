@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.8 (beta)
+
+**Fixed**
+- The background `/usage` took an answer without the 5-hour line (Claude Code leaves it out when Anthropic reports no 5-hour figure) for a failure, and three such answers in a row brought the notice "Could not refine the limits". The weekly figure alone now counts, an answer with no figures at all (Claude Code worked, Anthropic sent none this time) is tried again later and told only if it lasts six times in a row, and the whole answer goes to the log.
+
 ## 0.9.7 (beta)
 
 **New**
