@@ -368,6 +368,16 @@ namespace Semaphore
             }
             else old = s.State;
 
+            // Claude Code also prepares a compaction in the background (it calls it "precompute") and runs the PreCompact
+            // hook for it with the trigger "auto", but sends PostCompact only if the summary is used. A real automatic
+            // compaction happens within a turn, after a prompt; one asked for in an idle session is /compact ("manual").
+            // So an automatic one while the session is idle or waiting is that preparation: the session is not busy.
+            if (e.Name == "PreCompact" && e.Trigger != "manual" && (old == State.Idle || old == State.Waiting))
+            {
+                Log.Write("[" + s.ShortId + "] compaction prepared in the background, the session stays " + old.Value.ToString().ToLowerInvariant());
+                return null;
+            }
+
             if (!string.IsNullOrEmpty(e.Cwd)) s.Cwd = e.Cwd;
             s.LastEvent = now;
 

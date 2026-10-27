@@ -3,6 +3,7 @@
 ## 0.9.8 (beta)
 
 **Fixed**
+- An idle session could show "compacting" for twenty minutes without compacting anything. Newer Claude Code prepares a compaction in the background and sends the same "compaction starts" event for it, but no "compaction done" until the summary is used. An automatic compaction announced while a session is idle is now taken for that preparation, and the session stays as it was; `/compact` and a compaction within a turn show as before.
 - The background `/usage` took an answer without the 5-hour line (Claude Code leaves it out when Anthropic reports no 5-hour figure) for a failure, and three such answers in a row brought the notice "Could not refine the limits". The weekly figure alone now counts, an answer with no figures at all (Claude Code worked, Anthropic sent none this time) is tried again later and told only if it lasts six times in a row, and the whole answer goes to the log.
 
 ## 0.9.7 (beta)

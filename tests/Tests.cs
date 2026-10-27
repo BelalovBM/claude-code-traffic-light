@@ -114,6 +114,12 @@ namespace Semaphore.Tests
             Apply(store, "{\"hook_event_name\":\"PreCompact\"," + b + ",\"trigger\":\"manual\"}");
             c = Apply(store, "{\"hook_event_name\":\"PostCompact\"," + b + ",\"trigger\":\"manual\"}");
             Check("after /compact the session is ready", c.New == State.Idle);
+            c = Apply(store, "{\"hook_event_name\":\"PreCompact\"," + b + ",\"trigger\":\"auto\"}");
+            Check("a compaction prepared in the background of an idle session changes nothing",
+                c == null && store.Find("st1").State == State.Idle && store.Overall() == Level.Idle);
+            c = Apply(store, "{\"hook_event_name\":\"PreCompact\"," + b + ",\"trigger\":\"manual\"}");
+            Check("a /compact in an idle session is shown", c.New == State.Compacting);
+            Apply(store, "{\"hook_event_name\":\"PostCompact\"," + b + ",\"trigger\":\"manual\"}");
 
             c = Apply(store, "{\"hook_event_name\":\"SessionEnd\"," + b + "}");
             Check("session end removes it", c.New == null && store.Find("st1") == null && store.Overall() == Level.None);
