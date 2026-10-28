@@ -149,25 +149,30 @@ namespace Semaphore
         void AddLimitsToMenu(ToolStripItemCollection items)
         {
             LimitsSnapshot s = usage.Snapshot;
-            bool cost = Config.CostShow && s.Month.Tokens > 0;
-            if (!LimitsOn(s))
-            {
-                // Without the limits (a sign-in by API key, or switched off) the use at API prices has a block of its own.
-                if (!cost) return;
-                var own = new ToolStripLabel(Loc.T("cost.menu.title"));
-                own.ForeColor = Theme.Muted;
-                items.Add(own);
-                AddCostLines(items, s);
-                items.Add(new ToolStripSeparator());
-                return;
-            }
+            AddLimitLines(items, s);
+            // The use at API prices is a block of its own below the limits (or alone, for a sign-in by API key): other
+            // figures in another unit, with their own title.
+            if (!Config.CostShow || s.Month.Tokens <= 0) return;
+            var title = new ToolStripLabel(Loc.T("cost.menu.title"));
+            title.ForeColor = Theme.Muted;
+            items.Add(title);
+            CultureInfo c = LimitCulture();
+            items.Add(new ToolStripLabel(Loc.T("cost.menu.today", ApiPrices.Dollars(s.Today.Usd, c), ApiPrices.Tokens(s.Today.Tokens, c))) { ForeColor = Theme.Fore });
+            items.Add(new ToolStripLabel(Loc.T("cost.menu.month", ApiPrices.Dollars(s.Month.Usd, c), ApiPrices.Tokens(s.Month.Tokens, c))) { ForeColor = Theme.Fore });
+            if (s.Month.Unpriced.Count > 0)
+                items.Add(MutedLine(Loc.T("cost.menu.unpriced", string.Join(", ", s.Month.Unpriced))));
+            items.Add(new ToolStripSeparator());
+        }
+
+        void AddLimitLines(ToolStripItemCollection items, LimitsSnapshot s)
+        {
+            if (!LimitsOn(s)) return;
             var title = new ToolStripLabel(Loc.T("limits.menu.title"));
             title.ForeColor = Theme.Muted;
             items.Add(title);
             if (!s.AnyAnchor)
             {
                 items.Add(MutedLine(Loc.T("limits.menu.setup")));
-                if (cost) AddCostLines(items, s);
                 items.Add(new ToolStripSeparator());
                 return;
             }
@@ -179,19 +184,7 @@ namespace Semaphore
                     (s.Five.HasExact ? Math.Round(s.Five.ExactPercent) + "%" : "?") + " / " + (s.Week.HasExact ? Math.Round(s.Week.ExactPercent) + "%" : "?"))));
             else if (exact == null)
                 items.Add(MutedLine(Loc.T("limits.menu.old")));
-            if (cost) AddCostLines(items, s);
             items.Add(new ToolStripSeparator());
-        }
-
-        // "At API prices: today ≈ $3.49 · 30 days ≈ $1,098": what this computer's use of Claude Code would cost by the
-        // token (see ApiPrices). One line, the dollars first; the tokens, mostly reads of the cache, are in its tooltip.
-        static void AddCostLines(ToolStripItemCollection items, LimitsSnapshot s)
-        {
-            CultureInfo c = LimitCulture();
-            ToolStripLabel line = MutedLine(Loc.T("cost.menu.line", ApiPrices.Dollars(s.Today.Usd, c), ApiPrices.Dollars(s.Month.Usd, c)));
-            line.ToolTipText = Loc.T("cost.menu.tip", ApiPrices.Tokens(s.Today.Tokens, c), ApiPrices.Tokens(s.Month.Tokens, c))
-                + (s.Month.Unpriced.Count > 0 ? "\n" + Loc.T("cost.menu.unpriced", string.Join(", ", s.Month.Unpriced)) : "");
-            items.Add(line);
         }
 
         static ToolStripLabel MutedLine(string text)
