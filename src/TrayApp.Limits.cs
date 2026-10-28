@@ -183,15 +183,15 @@ namespace Semaphore
             items.Add(new ToolStripSeparator());
         }
 
-        // "Today: 120M tokens · ≈ $38 at API prices" and the same for 30 days: what this computer's use of Claude Code
-        // would cost by the token (see ApiPrices).
+        // "At API prices: today ≈ $3.49 · 30 days ≈ $1,098": what this computer's use of Claude Code would cost by the
+        // token (see ApiPrices). One line, the dollars first; the tokens, mostly reads of the cache, are in its tooltip.
         static void AddCostLines(ToolStripItemCollection items, LimitsSnapshot s)
         {
             CultureInfo c = LimitCulture();
-            items.Add(MutedLine(Loc.T("cost.menu.today", ApiPrices.Tokens(s.Today.Tokens, c), ApiPrices.Dollars(s.Today.Usd, c))));
-            items.Add(MutedLine(Loc.T("cost.menu.month", ApiPrices.Tokens(s.Month.Tokens, c), ApiPrices.Dollars(s.Month.Usd, c))));
-            if (s.Month.Unpriced.Count > 0)
-                items.Add(MutedLine(Loc.T("cost.menu.unpriced", string.Join(", ", s.Month.Unpriced))));
+            ToolStripLabel line = MutedLine(Loc.T("cost.menu.line", ApiPrices.Dollars(s.Today.Usd, c), ApiPrices.Dollars(s.Month.Usd, c)));
+            line.ToolTipText = Loc.T("cost.menu.tip", ApiPrices.Tokens(s.Today.Tokens, c), ApiPrices.Tokens(s.Month.Tokens, c))
+                + (s.Month.Unpriced.Count > 0 ? "\n" + Loc.T("cost.menu.unpriced", string.Join(", ", s.Month.Unpriced)) : "");
+            items.Add(line);
         }
 
         static ToolStripLabel MutedLine(string text)
