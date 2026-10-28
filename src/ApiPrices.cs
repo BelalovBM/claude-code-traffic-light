@@ -40,7 +40,7 @@ namespace Semaphore
             { "claude-opus-4-7", new Price { Input = 5, Output = 25 } },
             { "claude-opus-4-6", new Price { Input = 5, Output = 25 } },
             { "claude-opus-4-5", new Price { Input = 5, Output = 25 } },
-            { "claude-sonnet-5-5", new Price { Input = 2, Output = 10, CacheRead = 0.20 } },
+            { "claude-sonnet-5-5", new Price { Input = 2, Output = 10, CacheRead = 0.10 } },
             { "claude-sonnet-5", new Price { Input = 2, Output = 10, CacheRead = 0.20 } },
             { "claude-sonnet-4-6", new Price { Input = 3, Output = 15 } },
             { "claude-sonnet-4-5", new Price { Input = 3, Output = 15 } },
