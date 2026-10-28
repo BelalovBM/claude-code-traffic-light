@@ -292,6 +292,26 @@ namespace Semaphore.Tests
         {
             Check("the reply weighs most, reading the cache least", UsageMath.Cost(0, 0, 0, 1) == 5 && UsageMath.Cost(0, 0, 40, 0) == 1);
 
+            // At API prices: Opus 5.5 is $4 in, $20 out, $0.20 for reading the cache, writing it 1.25 or 2 times the input.
+            double? usd = ApiPrices.Usd("claude-opus-5-5", 1000000, 1000000, 1000000, 1000000, 1000000, 0, false);
+            Check("a reply at API prices counts every kind of token, an hour's cache write dearer", usd.HasValue && Math.Abs(usd.Value - (4 + 5 + 8 + 0.2 + 20)) < 1e-9, usd.ToString());
+            usd = ApiPrices.Usd("claude-haiku-4-5-20251001", 1000000, 0, 0, 1000000, 0, 3, false);
+            Check("a dated model takes its base price, reading at a tenth, web searches on top", usd.HasValue && Math.Abs(usd.Value - (1 + 0.1 + 0.03)) < 1e-9, usd.ToString());
+            Check("fast mode costs twice as much", ApiPrices.Usd("claude-opus-5-5", 0, 0, 0, 0, 1000000, 0, true) == 40);
+            Check("a model of no known price is not guessed", ApiPrices.Usd("claude-opus-6", 1, 0, 0, 0, 1, 0, false) == null && ApiPrices.Usd("<synthetic>", 1, 0, 0, 0, 1, 0, false) == null);
+            Check("a long prompt is dearer where the price says so",
+                ApiPrices.Usd("claude-haiku-5-5", 50000, 0, 0, 0, 0, 0, false) == 0.005 && ApiPrices.Usd("claude-haiku-5-5", 200000, 0, 0, 0, 0, 0, false) == 0.1);
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            Loc.Load("en");
+            Check("token counts are short", ApiPrices.Tokens(740, inv) == "740" && ApiPrices.Tokens(35400, inv) == "35k"
+                && ApiPrices.Tokens(1250000, inv) == "1.3M" && ApiPrices.Tokens(120400000, inv) == "120M" && ApiPrices.Tokens(3160000000, inv) == "3.2B",
+                ApiPrices.Tokens(1250000, inv));
+            Check("dollars have cents only below ten", ApiPrices.Dollars(0.4249, inv) == "$0.42" && ApiPrices.Dollars(1089.4, inv) == "$1,089");
+            File.WriteAllText(ApiPrices.FilePath, "{\"claude-opus-6\":{\"Input\":3,\"Output\":15}}", Utf8);
+            Check("a price added in api-prices.json counts, the built-in ones stay",
+                ApiPrices.Usd("claude-opus-6", 1000000, 0, 0, 1000000, 0, 0, false) == 3.3 && ApiPrices.For("claude-opus-5-5") != null);
+            File.Delete(ApiPrices.FilePath);
+
             // Two models, the dearer one counted 1.5 times: the fit finds that from the anchors alone.
             DateTime now = DateTime.UtcNow;
             var samples = new List<UsageMath.Sample>

@@ -103,6 +103,8 @@ namespace Semaphore
             // Claude's usage limits: where they are shown, and what goes to the phone about them.
             Section(p, Loc.T("sec.limits"), c =>
             {
+                // Apart from the limits: a sign-in by API key has this instead of them.
+                c.Controls.Add(Check(Loc.T("chk.cost.show"), cfg.CostShow, v => cfg.CostShow = v));
                 // A sign-in by API key has no such limits: the switch would do nothing, so it says so instead.
                 if (!UsageTracker.HasSubscription())
                 {

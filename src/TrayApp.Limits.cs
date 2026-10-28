@@ -149,13 +149,25 @@ namespace Semaphore
         void AddLimitsToMenu(ToolStripItemCollection items)
         {
             LimitsSnapshot s = usage.Snapshot;
-            if (!LimitsOn(s)) return;
+            bool cost = Config.CostShow && s.Month.Tokens > 0;
+            if (!LimitsOn(s))
+            {
+                // Without the limits (a sign-in by API key, or switched off) the use at API prices has a block of its own.
+                if (!cost) return;
+                var own = new ToolStripLabel(Loc.T("cost.menu.title"));
+                own.ForeColor = Theme.Muted;
+                items.Add(own);
+                AddCostLines(items, s);
+                items.Add(new ToolStripSeparator());
+                return;
+            }
             var title = new ToolStripLabel(Loc.T("limits.menu.title"));
             title.ForeColor = Theme.Muted;
             items.Add(title);
             if (!s.AnyAnchor)
             {
                 items.Add(MutedLine(Loc.T("limits.menu.setup")));
+                if (cost) AddCostLines(items, s);
                 items.Add(new ToolStripSeparator());
                 return;
             }
@@ -167,7 +179,19 @@ namespace Semaphore
                     (s.Five.HasExact ? Math.Round(s.Five.ExactPercent) + "%" : "?") + " / " + (s.Week.HasExact ? Math.Round(s.Week.ExactPercent) + "%" : "?"))));
             else if (exact == null)
                 items.Add(MutedLine(Loc.T("limits.menu.old")));
+            if (cost) AddCostLines(items, s);
             items.Add(new ToolStripSeparator());
+        }
+
+        // "Today: 120M tokens · ≈ $38 at API prices" and the same for 30 days: what this computer's use of Claude Code
+        // would cost by the token (see ApiPrices).
+        static void AddCostLines(ToolStripItemCollection items, LimitsSnapshot s)
+        {
+            CultureInfo c = LimitCulture();
+            items.Add(MutedLine(Loc.T("cost.menu.today", ApiPrices.Tokens(s.Today.Tokens, c), ApiPrices.Dollars(s.Today.Usd, c))));
+            items.Add(MutedLine(Loc.T("cost.menu.month", ApiPrices.Tokens(s.Month.Tokens, c), ApiPrices.Dollars(s.Month.Usd, c))));
+            if (s.Month.Unpriced.Count > 0)
+                items.Add(MutedLine(Loc.T("cost.menu.unpriced", string.Join(", ", s.Month.Unpriced))));
         }
 
         static ToolStripLabel MutedLine(string text)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.9 (beta)
+
+**New**
+- **Use at API prices.** Under the limits the menu shows the tokens Claude Code used today and in the last 30 days, and what they would cost at Anthropic's API prices: on a subscription, to see what the same work would cost by the token; with a sign-in by API key, which has no limits to show, close to the bill. Every kind of token at its own price (input, writing the cache for 5 minutes or an hour, reading it, the reply with its thinking), web searches and fast mode too. The prices of the current models are built in; others go into `api-prices.json` next to the program. **Settings → Notifications → Show the use … at API prices** switches it off.
+
 ## 0.9.8 (beta)
 
 **Fixed**

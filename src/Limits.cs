@@ -68,6 +68,16 @@ namespace Semaphore
         // How far the estimate was off at the last exact figures, as a share of what it had added since the figure
         // before (smoothed): what the background /usage sets its threshold by (see UsageRefresh.Rise).
         public double FiveMiss = UsageRefresh.UsualMiss, WeekMiss = UsageRefresh.UsualMiss;
+        // The use of today (the local day) and of the last 30 days, in tokens and at API prices.
+        public Spend Today = new Spend(), Month = new Spend();
+    }
+
+    sealed class Spend
+    {
+        public long Tokens;
+        public double Usd;
+        // Models used with no API price known: their tokens are counted, their cost is not.
+        public List<string> Unpriced = new List<string>();
     }
 
     // The arithmetic, apart from files, so that it can be tested.
@@ -195,9 +205,12 @@ namespace Semaphore
             public DateTime At;   // UTC
             public string Model;
             public double Cost;
+            public long Tokens;
+            public double? Usd;  // at API prices; null when the model has none
         }
 
-        const int KeepDays = 8;
+        // A month of transcripts, for the use at API prices; the limits need only the last week of it.
+        const int KeepDays = 31;
         readonly object gate = new object();
         readonly Dictionary<string, Entry> entries = new Dictionary<string, Entry>();
         readonly Dictionary<string, long> offsets = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
@@ -227,6 +240,7 @@ namespace Semaphore
         }
 
         int busy;
+        bool spendLogged;
 
         void Update()
         {
@@ -239,6 +253,13 @@ namespace Semaphore
                 ReadClaudeJson();
                 LimitsSnapshot s = Compute(DateTime.UtcNow);
                 snapshot = s;
+                if (!spendLogged)
+                {
+                    spendLogged = true;
+                    Log.Write(string.Format(CultureInfo.InvariantCulture, "Use at API prices: today {0:0.0}M tokens ${1:0.00}, 30 days {2:0.0}M tokens ${3:0.00}{4}",
+                        s.Today.Tokens / 1e6, s.Today.Usd, s.Month.Tokens / 1e6, s.Month.Usd,
+                        s.Month.Unpriced.Count > 0 ? ", no price for " + string.Join(", ", s.Month.Unpriced) : ""));
+                }
             }
             catch (Exception ex) { Log.Write("Usage limits: " + ex.Message); }
             finally { Interlocked.Exchange(ref busy, 0); }
@@ -247,7 +268,7 @@ namespace Semaphore
         // ---- the transcripts: what each reply used ----
 
         static readonly Regex ModelRx = new Regex("\"message\":\\{\"model\":\"([^\"]+)\",\"id\":\"([^\"]+)\"", RegexOptions.Compiled);
-        static readonly Regex NumRx = new Regex("\"(input_tokens|cache_creation_input_tokens|cache_read_input_tokens|output_tokens)\":(\\d+)", RegexOptions.Compiled);
+        static readonly Regex NumRx = new Regex("\"(input_tokens|cache_creation_input_tokens|cache_read_input_tokens|output_tokens|ephemeral_5m_input_tokens|ephemeral_1h_input_tokens|web_search_requests)\":(\\d+)", RegexOptions.Compiled);
         static readonly Regex TimeRx = new Regex("\"timestamp\":\"([^\"]+)\"", RegexOptions.Compiled);
         static readonly Regex RequestRx = new Regex("\"requestId\":\"([^\"]+)\"", RegexOptions.Compiled);
 
@@ -322,7 +343,8 @@ namespace Semaphore
                 && line.IndexOf("\"isSidechain\":true", StringComparison.Ordinal) < 0)
                 lastModel[currentPath] = model.Groups[1].Value;
             // The usage and the time come after the reply text, so the last match of each is the real one.
-            long input = 0, write = 0, readCache = 0, output = 0;
+            long input = 0, write = 0, readCache = 0, output = 0, searches = 0;
+            long? write5m = null, write1h = null;
             foreach (Match m in NumRx.Matches(line))
             {
                 long v = long.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
@@ -331,9 +353,14 @@ namespace Semaphore
                     case "input_tokens": input = v; break;
                     case "cache_creation_input_tokens": write = v; break;
                     case "cache_read_input_tokens": readCache = v; break;
+                    case "ephemeral_5m_input_tokens": write5m = v; break;
+                    case "ephemeral_1h_input_tokens": write1h = v; break;
+                    case "web_search_requests": searches = v; break;
                     default: output = v; break;
                 }
             }
+            // Writes for an hour cost more than for 5 minutes; without the split they count as 5-minute ones.
+            if (!write5m.HasValue && !write1h.HasValue) write5m = write;
             MatchCollection times = TimeRx.Matches(line);
             if (times.Count == 0) return;
             DateTime at;
@@ -342,7 +369,15 @@ namespace Semaphore
             MatchCollection req = RequestRx.Matches(line);
             // A reply is written in several lines with the same message id; the last one counts.
             string key = model.Groups[2].Value + "|" + (req.Count > 0 ? req[req.Count - 1].Groups[1].Value : "");
-            var e = new Entry { At = at, Model = model.Groups[1].Value, Cost = UsageMath.Cost(input, write, readCache, output) };
+            // Like the usage, the speed is the last one in the line: the reply text before it may quote the words.
+            int speed = line.LastIndexOf("\"speed\":\"", StringComparison.Ordinal);
+            bool fast = speed >= 0 && string.CompareOrdinal(line, speed + 9, "fast\"", 0, 5) == 0;
+            var e = new Entry
+            {
+                At = at, Model = model.Groups[1].Value, Cost = UsageMath.Cost(input, write, readCache, output),
+                Tokens = input + write + readCache + output,
+                Usd = ApiPrices.Usd(model.Groups[1].Value, input, write5m ?? 0, write1h ?? 0, readCache, output, searches, fast),
+            };
             lock (gate) entries[key] = e;
         }
 
@@ -660,6 +695,22 @@ namespace Semaphore
             var s = new LimitsSnapshot { AnyAnchor = list.Count > 0, NoSubscription = noSubscription, FiveMiss = fiveMiss, WeekMiss = weekMiss };
             s.Five = View(list, now, true);
             s.Week = View(list, now, false);
+            s.Today = SpendSince(DateTime.Today.ToUniversalTime());
+            s.Month = SpendSince(now.AddDays(-30));
+            return s;
+        }
+
+        Spend SpendSince(DateTime from)
+        {
+            var s = new Spend();
+            lock (gate)
+                foreach (Entry e in entries.Values)
+                {
+                    if (e.At < from) continue;
+                    s.Tokens += e.Tokens;
+                    if (e.Usd.HasValue) s.Usd += e.Usd.Value;
+                    else if (!s.Unpriced.Contains(e.Model)) s.Unpriced.Add(e.Model);
+                }
             return s;
         }
 

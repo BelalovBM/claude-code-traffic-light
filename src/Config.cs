@@ -232,6 +232,9 @@ namespace Semaphore
         // (LimitsInPush), a notice every LimitsStep percent of the 5-hour window and every LimitsStepWeek percent of the
         // week (0: none), and the events (LimitsEvents): a limit ran out by the estimate, is back, a used window ended.
         public bool LimitsShow { get; set; }
+        // The use of today and of 30 days in tokens and at API prices, in the menu (apart from the limits: it is also
+        // what a sign-in by API key has instead of them).
+        public bool CostShow { get; set; }
         public bool LimitsInPush { get; set; }
         public int LimitsStep { get; set; }
         public int LimitsStepWeek { get; set; }
@@ -288,6 +291,7 @@ namespace Semaphore
             ToastDone = true;
             StaleMinutes = 30;
             LimitsShow = true;
+            CostShow = true;
             LimitsInPush = true;
             LimitsEvents = true;
             BackgroundNotifyMinutes = 30;
