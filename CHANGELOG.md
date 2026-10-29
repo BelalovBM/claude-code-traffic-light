@@ -9,6 +9,7 @@
 
 **Fixed**
 - How full the context is could show 100% at half the real size. Newer Claude Code prepares a compaction in the background and notes the size at which it started; that size was taken for the point where Claude Code compacts. Only compactions made at that point count now, and the limits learnt before are learnt again from the transcripts.
+- A "finished" notice right after a prompt, when Claude Code put to use a compaction it had prepared in the background: the restart of the session that follows a compaction was taken for the end of the turn.
 - Reading the cache on Sonnet 5.5 is priced at $0.10 per million tokens (it was counted at $0.20).
 - The settings page stayed empty when the statistics window had been opened first.
 - An indented check box in the settings could cut off its last line (in English, "Refine the limits by itself …").

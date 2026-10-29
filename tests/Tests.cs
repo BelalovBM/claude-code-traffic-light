@@ -120,6 +120,13 @@ namespace Semaphore.Tests
             c = Apply(store, "{\"hook_event_name\":\"PreCompact\"," + b + ",\"trigger\":\"manual\"}");
             Check("a /compact in an idle session is shown", c.New == State.Compacting);
             Apply(store, "{\"hook_event_name\":\"PostCompact\"," + b + ",\"trigger\":\"manual\"}");
+            // A summary prepared in the background is put to use on the next prompt: the session restarts and works on.
+            Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"go on\"}");
+            c = Apply(store, "{\"hook_event_name\":\"SessionStart\"," + b + ",\"source\":\"compact\"}");
+            Check("the restart after a compaction does not finish the turn", c == null || c.New == State.Working, c == null ? "" : c.New.ToString());
+            c = Apply(store, "{\"hook_event_name\":\"PostCompact\"," + b + ",\"trigger\":\"auto\"}");
+            Check("and the turn goes on after it", c.New == State.Working);
+            Apply(store, "{\"hook_event_name\":\"Stop\"," + b + "}");
 
             c = Apply(store, "{\"hook_event_name\":\"SessionEnd\"," + b + "}");
             Check("session end removes it", c.New == null && store.Find("st1") == null && store.Overall() == Level.None);

@@ -10,6 +10,8 @@ namespace Semaphore
     sealed class HookEvent
     {
         public string Name, SessionId, Cwd, Tool, ToolDetail, Message, NotificationType, Prompt, TranscriptPath, HostName, ToolInputText, Trigger;
+        // SessionStart: why the session (re)starts: startup, resume, clear or compact.
+        public string Source;
         public long HostHwnd;
         public int ProcessId;
         public long ProcessStart;
@@ -43,6 +45,7 @@ namespace Semaphore
                 TranscriptPath = Str(d, "transcript_path"),
                 HostName = Str(d, "tl_host"),
                 Trigger = Str(d, "trigger"),
+                Source = Str(d, "source"),
                 Error = Str(d, "error"),
                 LastMessage = Str(d, "last_assistant_message"),
             };
@@ -377,6 +380,9 @@ namespace Semaphore
                 Log.Write("[" + s.ShortId + "] compaction prepared in the background, the session stays " + old.Value.ToString().ToLowerInvariant());
                 return null;
             }
+            // A compaction restarts the session in the middle of what it was doing: within a turn, or when a summary
+            // prepared in the background is put to use on the next prompt. It ends nothing; PostCompact comes next.
+            if (e.Name == "SessionStart" && e.Source == "compact" && old != null) target = old;
 
             if (!string.IsNullOrEmpty(e.Cwd)) s.Cwd = e.Cwd;
             s.LastEvent = now;
@@ -414,7 +420,7 @@ namespace Semaphore
 
             if (e.Name == "PreCompact") s.CompactTrigger = e.Trigger;
             // After a /compact nothing follows, so the session is ready; an automatic one continues the task.
-            if (e.Name == "PostCompact" && s.CompactTrigger == "manual") target = State.Idle;
+            if (e.Name == "PostCompact" && (e.Trigger ?? s.CompactTrigger) == "manual") target = State.Idle;
 
             if (e.Name == "PreToolUse")
             {
