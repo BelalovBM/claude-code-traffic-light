@@ -417,9 +417,8 @@ namespace Semaphore
             return y + link.Height + margin;
         }
 
-        // The headings of the bars. The bar and the figure right after it are one thing, the share in the leading unit,
-        // and have one heading over both; on a subscription the share of the dollars and the dollars follow under "at
-        // API prices".
+        // The headings of the bars: over the bars what they show (the share of the weekly limit, or of the dollars with
+        // an API key); on a subscription "at API prices" over the share of the dollars and the dollars at the right.
         int Captions(Painter c, int left, int y, int inner)
         {
             int[] cols = Columns(left, inner);
@@ -428,12 +427,11 @@ namespace Semaphore
             return y + Font.Height + Ui.S(2);
         }
 
-        // The right edges of the number columns: the share the bar shows, then on a subscription the share of the
-        // dollars, and the dollars.
+        // Where the bars end, then the right edges of the share of the dollars (on a subscription) and of the dollars.
         int[] Columns(int left, int inner)
         {
             int right = left + inner;
-            return Limit ? new[] { right - Ui.S(150), right - Ui.S(90), right } : new[] { right - Ui.S(90), 0, right };
+            return Limit ? new[] { right - Ui.S(150), right - Ui.S(80), right } : new[] { right - Ui.S(90), 0, right };
         }
 
         int LabelWidth(int inner) { return Math.Min(Ui.S(240), inner / 2 - Ui.S(40)); }
@@ -445,16 +443,19 @@ namespace Semaphore
             int[] cols = Columns(left, inner);
             int labelWidth = LabelWidth(inner);
             int barLeft = BarLeft(left, inner);
-            int barRight = cols[0] - Ui.S(48);
+            // A full bar (100%) ends here; room is kept after it for its figure. No track behind the bar: the figure
+            // stands on the plain card.
+            int barRight = cols[0] - c.Width("100%") - Ui.S(8);
             int h = Math.Max(c.Measure(label, labelWidth), Font.Height);
             c.Text(label, left, y, labelWidth, Theme.Fore);
+            int length = 0;
             if (barRight > barLeft)
             {
-                int length = (int)Math.Round((barRight - barLeft) * Math.Max(0, Math.Min(1, Share(a))));
-                c.Fill(barLeft, y + Ui.S(3), barRight - barLeft, Font.Height - Ui.S(6), Theme.Hover);
+                length = (int)Math.Round((barRight - barLeft) * Math.Max(0, Math.Min(1, Share(a))));
                 c.Fill(barLeft, y + Ui.S(3), length, Font.Height - Ui.S(6), Palette.AccentBar);
             }
-            c.Right(Percent(Share(a)), cols[0], y, Theme.Fore);
+            // The figure of the bar right at its end, moving with it: it reads as the bar's own value, not as a column.
+            c.Text(Percent(Share(a)), barLeft + length + Ui.S(6), y, Ui.S(60), Theme.Fore, c.Bold);
             if (Limit) c.Right(Percent(report.Total.Usd > 0 ? a.Usd / report.Total.Usd : 0), cols[1], y, Theme.Muted);
             c.Right(ApiPrices.Dollars(a.Usd, Culture), cols[2], y, Limit ? Theme.Muted : Theme.Fore);
             return y + h + Ui.S(6);
