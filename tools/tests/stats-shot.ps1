@@ -110,11 +110,15 @@ try {
     # The first reading of a month of transcripts takes a while.
     Start-Sleep 25
     # Each period in the size the window takes for it by itself.
-    $titles = @{ ru = 'Статистика расхода'; en = 'Usage statistics' }
+    # The titles of the windows in the language of the run, from its file of texts.
+    $texts = @{}
+    foreach ($line in [IO.File]::ReadAllLines((Join-Path $root "lang\$Lang.txt"), [Text.Encoding]::UTF8)) {
+        $i = $line.IndexOf('='); if ($i -gt 0) { $texts[$line.Substring(0, $i)] = $line.Substring($i + 1) }
+    }
     $kind = if ($Real) { 'real' } else { 'demo' }
     foreach ($period in 0, 1, 2) {
         & $exe --stats $period | Out-Null
-        $h = Window $titles[$Lang]
+        $h = Window $texts['stats.title']
         if ($h -eq [IntPtr]::Zero) { 'NO STATS WINDOW'; return }
         Start-Sleep 3
         [Shot]::Save($h, "$out\stats-$kind-$period-$Lang-$Theme.png")
@@ -122,7 +126,7 @@ try {
     }
     & $exe --page 4 | Out-Null
     Start-Sleep 12
-    $s = Window ($(if ($Lang -eq 'ru') { 'Claude Code Traffic Light — Настройки' } else { 'Claude Code Traffic Light — Settings' }))
+    $s = Window $texts['settings.title']
     if ($s -ne [IntPtr]::Zero) {
         Start-Sleep 2
         # The page scrolled to its end, where the card of the prices is, as the mouse wheel does it (a scroll
