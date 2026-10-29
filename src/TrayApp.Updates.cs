@@ -5,7 +5,8 @@ using System.Windows.Forms;
 namespace Semaphore
 {
     // New versions: looked for once a day when that is switched on (or when asked from the About page). A newer one
-    // gets an entry at the top of the menu and one notice; nothing is downloaded or installed by itself.
+    // gets an entry at the top of the menu and one notice; nothing is downloaded or installed by itself. The prices of
+    // the models from LiteLLM come on the same daily round.
     sealed partial class TrayApp
     {
         readonly System.Windows.Forms.Timer updateTimer = new System.Windows.Forms.Timer { Interval = 60 * 1000 };
@@ -17,11 +18,34 @@ namespace Semaphore
             updateTimer.Tick += (s, e) =>
             {
                 updateTimer.Interval = 60 * 60 * 1000;
-                if (!Config.CheckUpdates || AppPaths.IsSandbox) return;
+                if (AppPaths.IsSandbox) return;
+                // The prices of the models from LiteLLM, on the same daily round.
+                if (Config.PricesAuto && DateTime.Now.Ticks - Config.PricesLoadedTicks >= TimeSpan.FromHours(23).Ticks)
+                    LoadPricesNow(null);
+                if (!Config.CheckUpdates) return;
                 if (DateTime.Now.Ticks - Config.UpdateCheckedTicks < TimeSpan.FromHours(23).Ticks) return;
                 CheckUpdatesNow(null);
             };
             updateTimer.Start();
+        }
+
+        // Loads LiteLLM's prices and applies them; also for the button in the settings. done gets the number of prices
+        // that changed, or the error, on the UI thread.
+        public void LoadPricesNow(Action<int, string> done)
+        {
+            ApiPrices.LoadLiteLlm((prices, error) => ui.Post(_ =>
+            {
+                int changed = 0;
+                if (error == null)
+                {
+                    changed = ApiPrices.Compare(prices).Count;
+                    ApiPrices.Apply(prices, DateTime.Now);
+                    Config.PricesLoadedTicks = DateTime.Now.Ticks;
+                    Config.Save();
+                    Log.Write("Prices from LiteLLM applied, " + changed + " changed");
+                }
+                if (done != null) done(changed, error);
+            }, null));
         }
 
         // Also for the About page; onResult runs on the UI thread.

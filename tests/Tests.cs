@@ -337,18 +337,14 @@ namespace Semaphore.Tests
             ApiPrices.SetOwn("claude-opus-6", 9, 45, null);
             var changes = ApiPrices.Compare(loaded);
             Check("the comparison names a changed price and a price typed in, not an unchanged one",
-                changes.Count == 2 && changes.Any(x => x.Model == "claude-sonnet-5-5" && x.Old.CacheRead == 0.10) && changes.Any(x => x.Model == "claude-opus-6" && x.Own));
-            ApiPrices.Apply(loaded, new string[0], new DateTime(2026, 10, 29, 1, 40, 0));
-            Check("applying keeps a price typed in unless chosen, and notes where the others came from",
-                ApiPrices.For("claude-opus-6").Input == 9 && ApiPrices.For("claude-sonnet-5-5").Source == ApiPrices.FromLiteLlm
+                changes.Count == 2 && changes.Any(x => x.Model == "claude-sonnet-5-5" && x.Old.CacheRead == 0.10) && changes.Any(x => x.Model == "claude-opus-6"));
+            ApiPrices.SetOwn("claude-opus-7", 7, 35, null);
+            ApiPrices.Apply(loaded, new DateTime(2026, 10, 29, 1, 40, 0));
+            Check("LiteLLM goes first: it replaces a price typed in and notes where the prices came from",
+                ApiPrices.For("claude-opus-6").Input == 5 && ApiPrices.For("claude-opus-6").Source == ApiPrices.FromLiteLlm
                 && ApiPrices.For("claude-sonnet-5-5").Date == "2026-10-29 01:40" && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.2);
-            ApiPrices.Apply(loaded, new[] { "claude-opus-6" }, DateTime.Now);
-            Check("a price typed in is replaced when chosen", ApiPrices.For("claude-opus-6").Input == 5);
-            ApiPrices.Price same = loaded["claude-opus-6"];
-            ApiPrices.SetOwn("claude-opus-6", same.Input, same.Output, same.CacheRead);
-            ApiPrices.Apply(loaded, new string[0], DateTime.Now);
-            Check("a price typed in that is the same as the loaded one goes over to it",
-                ApiPrices.For("claude-opus-6").Source == ApiPrices.FromLiteLlm);
+            Check("a price typed in stays for a model LiteLLM does not have",
+                ApiPrices.For("claude-opus-7").Input == 7 && ApiPrices.For("claude-opus-7").Source == ApiPrices.FromYou);
             ApiPrices.Clear();
             Check("default prices drop what was typed and loaded", !File.Exists(ApiPrices.FilePath) && ApiPrices.For("claude-opus-6") == null
                 && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.10 && ApiPrices.For("claude-sonnet-5-5").Source == null);

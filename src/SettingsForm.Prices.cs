@@ -16,6 +16,7 @@ namespace Semaphore
             Section(p, Loc.T("sec.cost"), c =>
             {
                 c.Controls.Add(Check(Loc.T("chk.cost.show"), cfg.CostShow, v => cfg.CostShow = v));
+                c.Controls.Add(Check(Loc.T("chk.prices.auto"), cfg.PricesAuto, v => cfg.PricesAuto = v));
                 // The prices in a part of the card that scrolls by itself: it keeps the height it has with More closed,
                 // so opening More (or a longer result) does not lengthen the page. Room for the scroll bar is kept
                 // from the start, so nothing moves when it appears.
@@ -29,7 +30,6 @@ namespace Semaphore
                 area.Controls.Add(inner);
                 c.Controls.Add(area);
                 c = inner;
-                c.Controls.Add(Header(Loc.T("prices.title")));
                 var table = Column(RowWidth, Ui.Pad(0));
                 c.Controls.Add(table);
                 var buttons = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = Ui.Pad(0, 6, 0, 0), MaximumSize = new Size(RowWidth, 0) };
@@ -37,9 +37,12 @@ namespace Semaphore
                 var reset = new Button { Text = Loc.T("btn.prices.reset"), AutoSize = true, Margin = Ui.Pad(0, 0, 8, 3) };
                 buttons.Controls.Add(load);
                 buttons.Controls.Add(reset);
-                c.Controls.Add(buttons);
+                // One line next to the buttons: when the prices last came from LiteLLM, or what a press just did.
                 Label result = ResultLabel();
-                c.Controls.Add(result);
+                result.Margin = Ui.Pad(0, 7, 0, 3);
+                result.MaximumSize = new Size(RowWidth - buttons.GetPreferredSize(Size.Empty).Width - Ui.S(8), 0);
+                buttons.Controls.Add(result);
+                c.Controls.Add(buttons);
 
                 // The rows are built again after a change of the prices, later than the card: with the card's width
                 // taken now, and in the colours of the card.
@@ -67,35 +70,27 @@ namespace Semaphore
                     fill();
                     SetResult(result, Loc.T("prices.reset.done"), Palette.StatusOk);
                 };
+                // When the prices last came from LiteLLM, by the daily round or by the button.
+                Func<string> loaded = () => cfg.PricesLoadedTicks > 0
+                    ? Loc.T("prices.loaded", new DateTime(cfg.PricesLoadedTicks).ToString("g", Loc.Culture))
+                    : Loc.T("prices.loaded.never");
+                SetResult(result, loaded(), Theme.Muted);
                 load.Click += (s, e) =>
                 {
                     load.Enabled = false;
                     SetResult(result, Loc.T("prices.load.busy"), Theme.Muted);
-                    ApiPrices.LoadLiteLlm((prices, error) => OnUi(() =>
+                    app.LoadPricesNow((changed, error) =>
                     {
+                        if (load.IsDisposed) return;
                         load.Enabled = true;
                         if (error != null) { SetResult(result, Loc.T("prices.load.failed", error), Palette.StatusError); return; }
-                        DateTime when = DateTime.Now;
-                        List<ApiPrices.Change> changes = ApiPrices.Compare(prices);
-                        if (changes.Count == 0)
-                        {
-                            ApiPrices.Apply(prices, new string[0], when);
-                            fill();
-                            SetResult(result, Loc.T("prices.load.same"), Palette.StatusOk);
-                            return;
-                        }
-                        using (var d = new PricesDialog(changes, when, Icon))
-                        {
-                            if (d.ShowDialog(this) != DialogResult.OK) { SetResult(result, "", Theme.Muted); return; }
-                            ApiPrices.Apply(prices, d.Replace, when);
-                        }
                         fill();
-                        SetResult(result, Loc.T("prices.load.done", changes.Count), Palette.StatusOk);
-                    }));
+                        SetResult(result, changed == 0 ? Loc.T("prices.load.same", loaded()) : Loc.T("prices.load.done", loaded(), changed), Palette.StatusOk);
+                    });
                 };
 
                 // Where the loaded prices come from and where to check them, under More: the card stays short.
-                Control more = Details(c, Note(Loc.T("prices.source")),
+                Control more = Details(c, Note(Loc.T("prices.own")), Note(Loc.T("prices.source")),
                     WebLink(ApiPrices.LiteLlmPage.Replace("https://", ""), ApiPrices.LiteLlmPage),
                     Note(Loc.T("prices.check")),
                     WebLink(ApiPrices.AnthropicPage.Replace("https://", ""), ApiPrices.AnthropicPage));
@@ -256,87 +251,6 @@ namespace Semaphore
             if (!(origin is string)) o.Height = Ui.S(24);
             row.Controls.Add(o);
             return row;
-        }
-    }
-
-    // What loading from LiteLLM would change, shown before anything changes: new models, changed prices, and the
-    // prices you typed in, each replaced only if ticked. The source is named with its address.
-    sealed class PricesDialog : Form
-    {
-        readonly List<CheckBox> own = new List<CheckBox>();
-
-        public List<string> Replace { get { return own.Where(c => c.Checked).Select(c => (string)c.Tag).ToList(); } }
-
-        public PricesDialog(List<ApiPrices.Change> changes, DateTime when, Icon icon)
-        {
-            Text = Loc.T("prices.dialog.title");
-            Icon = icon;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox = false;
-            MinimizeBox = false;
-            ShowInTaskbar = false;
-            StartPosition = FormStartPosition.CenterParent;
-            Font = Ui.Font(9f);
-            AutoSize = true;
-            AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            int width = Ui.S(520);
-            var body = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Padding = Ui.Pad(14, 12, 14, 8), MaximumSize = new Size(width + Ui.S(28), Ui.S(560)), AutoScroll = true };
-            Func<string, bool, Label> text = (t, muted) => new Label { Text = t, AutoSize = true, MaximumSize = new Size(width, 0), Margin = Ui.Pad(0, 2, 0, 4), Tag = muted ? "muted" : null };
-            body.Controls.Add(text(Loc.T("prices.dialog.source", when.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture)), false));
-            var link = new LinkLabel { Text = ApiPrices.LiteLlmPage.Replace("https://", ""), AutoSize = true, LinkColor = Palette.Link, ActiveLinkColor = Palette.LinkActive, Margin = Ui.Pad(0, 0, 0, 10) };
-            link.LinkClicked += (s, e) =>
-            {
-                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ApiPrices.LiteLlmPage) { UseShellExecute = true }); }
-                catch { }
-            };
-            body.Controls.Add(link);
-            CultureInfo c = Loc.Culture;
-            var changed = changes.Where(x => !x.Own).ToList();
-            if (changed.Count > 0)
-            {
-                body.Controls.Add(text(Loc.T("prices.dialog.changes"), false));
-                foreach (ApiPrices.Change x in changed)
-                    body.Controls.Add(text(x.Model + "   " + (x.Old == null ? Loc.T("prices.dialog.new", Describe(x.New, c)) : Difference(x.Old, x.New, c)), true));
-            }
-            var mine = changes.Where(x => x.Own).ToList();
-            if (mine.Count > 0)
-            {
-                body.Controls.Add(text(Loc.T("prices.dialog.own"), false));
-                foreach (ApiPrices.Change x in mine)
-                {
-                    var cb = new ThemedCheckBox { Text = x.Model + "   " + Difference(x.Old, x.New, c), AutoSize = true, Tag = x.Model, Margin = Ui.Pad(0, 2, 0, 2), UseMnemonic = false };
-                    own.Add(cb);
-                    body.Controls.Add(cb);
-                }
-            }
-            var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Width = width, Margin = Ui.Pad(0, 12, 0, 0) };
-            var cancel = new Button { Text = Loc.T("btn.cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
-            var ok = new Button { Text = Loc.T("btn.prices.apply"), AutoSize = true, DialogResult = DialogResult.OK };
-            buttons.Controls.Add(cancel);
-            buttons.Controls.Add(ok);
-            body.Controls.Add(buttons);
-            AcceptButton = ok;
-            CancelButton = cancel;
-            Controls.Add(body);
-            Theme.Apply(this);
-        }
-
-        // "input 5, output 25, reading the cache 0.5".
-        static string Describe(ApiPrices.Price p, CultureInfo c)
-        {
-            return Loc.T("prices.dialog.prices", p.Input.ToString("0.###", c), p.Output.ToString("0.###", c), p.Reading.ToString("0.###", c));
-        }
-
-        // Only what differs: "reading the cache 0.2 → 0.1".
-        static string Difference(ApiPrices.Price a, ApiPrices.Price b, CultureInfo c)
-        {
-            var parts = new List<string>();
-            Action<string, double, double> one = (key, x, y) => { if (Math.Abs(x - y) > 1e-9) parts.Add(Loc.T(key) + " " + x.ToString("0.###", c) + " → " + y.ToString("0.###", c)); };
-            one("prices.col.input", a.Input, b.Input);
-            one("prices.col.output", a.Output, b.Output);
-            one("prices.col.read", a.Reading, b.Reading);
-            if (parts.Count == 0) parts.Add(Loc.T("prices.dialog.long"));
-            return string.Join(", ", parts);
         }
     }
 }

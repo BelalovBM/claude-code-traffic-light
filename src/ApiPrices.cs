@@ -177,17 +177,14 @@ namespace Semaphore
 
         internal static bool AnyKept { get { return File.Exists(FilePath); } }
 
-        // The prices loaded from LiteLLM replace those kept so far, except the ones typed in, unless "replace" names them.
-        internal static void Apply(Dictionary<string, Price> loaded, ICollection<string> replace, DateTime when)
+        // The prices loaded from LiteLLM replace those kept so far, typed ones too: LiteLLM goes first, so that the
+        // prices stay current without anyone looking after them. A typed price stays only for a model LiteLLM lacks.
+        internal static void Apply(Dictionary<string, Price> loaded, DateTime when)
         {
             var kept = Kept();
             string date = when.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
             foreach (var kv in loaded)
             {
-                Price own;
-                // A price typed in is kept unless ticked; one the same as the loaded price goes over to it (nothing
-                // changes but where it came from, and later loads update it again).
-                if (kept.TryGetValue(kv.Key, out own) && own.Source == FromYou && !replace.Contains(kv.Key) && !own.SameAs(kv.Value)) continue;
                 kv.Value.Source = FromLiteLlm;
                 kv.Value.Date = date;
                 kept[kv.Key] = kv.Value;
@@ -195,13 +192,11 @@ namespace Semaphore
             Keep(kept);
         }
 
-        // One difference between the prices now and those loaded: a new model (Old null) or a changed price; Own when
-        // the price now is one typed in.
+        // One difference between the prices now and those loaded: a new model (Old null) or a changed price.
         internal sealed class Change
         {
             public string Model;
             public Price Old, New;
-            public bool Own;
         }
 
         internal static List<Change> Compare(Dictionary<string, Price> loaded)
@@ -213,7 +208,7 @@ namespace Semaphore
                 // already is ("claude-haiku-4-5-20251001") is no news.
                 Price now = For(kv.Key);
                 if (now != null && now.SameAs(kv.Value)) continue;
-                list.Add(new Change { Model = kv.Key, Old = now, New = kv.Value, Own = now != null && now.Source == FromYou });
+                list.Add(new Change { Model = kv.Key, Old = now, New = kv.Value });
             }
             return list;
         }

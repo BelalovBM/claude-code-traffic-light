@@ -261,6 +261,11 @@ namespace Semaphore
         public long UpdateCheckedTicks { get; set; }
         public string UpdateNotifiedVersion { get; set; }
 
+        // Load the prices of the models from LiteLLM's open price file once a day (on unless switched off: prices that
+        // need looking after would go stale); when they were last loaded.
+        public bool PricesAuto { get; set; }
+        public long PricesLoadedTicks { get; set; }
+
         // Ids of sessions whose notifications are switched off.
         public List<string> MutedSessions { get; set; }
 
@@ -292,6 +297,7 @@ namespace Semaphore
             StaleMinutes = 30;
             LimitsShow = true;
             CostShow = true;
+            PricesAuto = true;
             LimitsInPush = true;
             LimitsEvents = true;
             BackgroundNotifyMinutes = 30;

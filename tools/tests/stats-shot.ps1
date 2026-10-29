@@ -149,18 +149,12 @@ try {
         [Shot]::Save($s, "$out\settings-more-$Lang-$Theme.png")
         "settings, More open: $out\settings-more-$Lang-$Theme.png"
         if ($Load) {
-            # The button and the dialog are pressed with messages to them: no mouse, no keys.
-            if (-not [Shot]::Press($s, $(if ($Lang -eq 'ru') { 'Обновить цены из LiteLLM' } else { 'Update prices from LiteLLM' }))) { 'NO LOAD BUTTON' }
-            $d = Window ($(if ($Lang -eq 'ru') { 'Цены из LiteLLM' } else { 'Prices from LiteLLM' })) 120
-            if ($d -ne [IntPtr]::Zero) {
-                Start-Sleep 1
-                [Shot]::Save($d, "$out\prices-dialog-$Lang-$Theme.png")
-                "dialog: $out\prices-dialog-$Lang-$Theme.png"
-                if (-not [Shot]::Press($d, $(if ($Lang -eq 'ru') { 'Применить' } else { 'Apply' }))) { 'NO APPLY BUTTON' }
-                Start-Sleep 2
-                [Shot]::Save($s, "$out\settings-loaded-$Lang-$Theme.png")
-                "after loading: $out\settings-loaded-$Lang-$Theme.png"
-            } else { 'NO PRICES DIALOG (see the result line on the page)'; [Shot]::Save($s, "$out\settings-loaded-$Lang-$Theme.png") }
+            # The button is pressed with a message to it (no mouse, no keys); the prices apply as they come, the
+            # 3 MB file takes a while.
+            if (-not [Shot]::Press($s, $texts['btn.prices.load'])) { 'NO LOAD BUTTON' }
+            Start-Sleep 40
+            [Shot]::Save($s, "$out\settings-loaded-$Lang-$Theme.png")
+            "after loading: $out\settings-loaded-$Lang-$Theme.png"
         }
     } else { 'NO SETTINGS WINDOW' }
 }
