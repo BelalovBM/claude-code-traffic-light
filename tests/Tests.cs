@@ -344,6 +344,11 @@ namespace Semaphore.Tests
                 && ApiPrices.For("claude-sonnet-5-5").Date == "2026-10-29 01:40" && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.2);
             ApiPrices.Apply(loaded, new[] { "claude-opus-6" }, DateTime.Now);
             Check("a price typed in is replaced when chosen", ApiPrices.For("claude-opus-6").Input == 5);
+            ApiPrices.Price same = loaded["claude-opus-6"];
+            ApiPrices.SetOwn("claude-opus-6", same.Input, same.Output, same.CacheRead);
+            ApiPrices.Apply(loaded, new string[0], DateTime.Now);
+            Check("a price typed in that is the same as the loaded one goes over to it",
+                ApiPrices.For("claude-opus-6").Source == ApiPrices.FromLiteLlm);
             ApiPrices.Clear();
             Check("default prices drop what was typed and loaded", !File.Exists(ApiPrices.FilePath) && ApiPrices.For("claude-opus-6") == null
                 && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.10 && ApiPrices.For("claude-sonnet-5-5").Source == null);

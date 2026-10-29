@@ -185,7 +185,9 @@ namespace Semaphore
             foreach (var kv in loaded)
             {
                 Price own;
-                if (kept.TryGetValue(kv.Key, out own) && own.Source == FromYou && !replace.Contains(kv.Key)) continue;
+                // A price typed in is kept unless ticked; one the same as the loaded price goes over to it (nothing
+                // changes but where it came from, and later loads update it again).
+                if (kept.TryGetValue(kv.Key, out own) && own.Source == FromYou && !replace.Contains(kv.Key) && !own.SameAs(kv.Value)) continue;
                 kv.Value.Source = FromLiteLlm;
                 kv.Value.Date = date;
                 kept[kv.Key] = kv.Value;
