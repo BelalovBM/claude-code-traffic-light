@@ -90,6 +90,7 @@ namespace Semaphore
                 {
                     part.Margin = Ui.Pad(24, 3, 3, 3);
                     part.Width = RowWidth - Ui.S(24);
+                    FitHeight(part);
                     part.Enabled = cfg.NotificationsEnabled;
                     c.Controls.Add(part);
                 }
@@ -103,8 +104,6 @@ namespace Semaphore
             // Claude's usage limits: where they are shown, and what goes to the phone about them.
             Section(p, Loc.T("sec.limits"), c =>
             {
-                // Apart from the limits: a sign-in by API key has this instead of them.
-                c.Controls.Add(Check(Loc.T("chk.cost.show"), cfg.CostShow, v => cfg.CostShow = v));
                 // A sign-in by API key has no such limits: the switch would do nothing, so it says so instead.
                 if (!UsageTracker.HasSubscription())
                 {
@@ -130,6 +129,7 @@ namespace Semaphore
                 {
                     part.Margin = Ui.Pad(24, 3, 3, 3);
                     part.Width = RowWidth - Ui.S(24);
+                    FitHeight(part);
                     part.Enabled = cfg.LimitsShow;
                     c.Controls.Add(part);
                 }
@@ -142,7 +142,11 @@ namespace Semaphore
                 };
                 auto.CheckedChanged += (s, e) => where.Enabled = master.Checked && auto.Checked;
                 Details(c, Loc.T("limits.hint"), Loc.T("limits.hint.estimate"));
+                c.Controls.Add(StatsLink());
             });
+
+            // The use at API prices has a card of its own: a sign-in by API key has it instead of the limits.
+            CostSection(p);
         }
     }
 }

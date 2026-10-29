@@ -446,6 +446,8 @@ namespace Semaphore
                         ShowMenuAt(new Point(260, 160));
                     else if ("hotkey".Equals(what))
                         OnHotkey();
+                    else if ("stats".Equals(what))
+                        ShowStats();
                     else
                         ShowSettings(page);
                     return;
@@ -655,6 +657,7 @@ namespace Semaphore
                 if (wasDark == Theme.Dark && wasContrast == Theme.HighContrast) return;
                 BuildMenu();
                 if (settings != null && !settings.IsDisposed) settings.ReapplyTheme();
+                if (stats != null && !stats.IsDisposed) stats.ReapplyTheme();
             }, null);
         }
 
@@ -1041,6 +1044,14 @@ namespace Semaphore
             }
 
             menu.Items.Add(new ToolStripSeparator());
+
+            // The statistics belong to the limits and to the use at API prices alike: a window of the program, next
+            // to the settings, not an entry of either block.
+            var statsItem = new GuardedItem(Loc.T("menu.stats"));
+            statsItem.ForeColor = Theme.Fore;
+            statsItem.Enabled = usage.AnyUse;
+            statsItem.Click += (o, e) => ShowStats();
+            menu.Items.Add(statsItem);
 
             var settingsItem = new GuardedItem(Loc.T("menu.settings"));
             settingsItem.ForeColor = Theme.Fore;

@@ -314,6 +314,33 @@ namespace Semaphore.Tests
             File.Delete(ApiPrices.FilePath);
             ApiPrices.Reload();
 
+            // LiteLLM's price file: only Anthropic's own Claude models, in dollars per million, with a long-prompt price.
+            string lite = "{\"sample_spec\":{\"input_cost_per_token\":1},"
+                + "\"claude-sonnet-5-5\":{\"litellm_provider\":\"anthropic\",\"input_cost_per_token\":2e-06,\"output_cost_per_token\":1e-05,\"cache_read_input_token_cost\":2e-07},"
+                + "\"claude-haiku-5-5\":{\"litellm_provider\":\"anthropic\",\"input_cost_per_token\":1e-07,\"output_cost_per_token\":5e-07,\"input_cost_per_token_above_100k_tokens\":5e-07,\"output_cost_per_token_above_100k_tokens\":2.5e-06},"
+                + "\"claude-opus-6\":{\"litellm_provider\":\"anthropic\",\"input_cost_per_token\":5e-06,\"output_cost_per_token\":2.5e-05},"
+                + "\"bedrock/claude-x\":{\"litellm_provider\":\"bedrock\",\"input_cost_per_token\":1},"
+                + "\"claude-on-vertex\":{\"litellm_provider\":\"vertex_ai\",\"input_cost_per_token\":1,\"output_cost_per_token\":1}}";
+            var loaded = ApiPrices.ParseLiteLlm(lite);
+            Check("LiteLLM's file gives only Anthropic's Claude models", loaded.Count == 3 && loaded.ContainsKey("claude-opus-6") && !loaded.ContainsKey("claude-on-vertex"));
+            Check("prices are per million tokens, with the long-prompt price",
+                loaded["claude-sonnet-5-5"].Input == 2 && loaded["claude-sonnet-5-5"].CacheRead == 0.2
+                && loaded["claude-haiku-5-5"].LongFrom == 100000 && loaded["claude-haiku-5-5"].LongOutput == 2.5);
+            Check("a file without Claude models gives nothing", ApiPrices.ParseLiteLlm("{\"gpt\":{\"litellm_provider\":\"openai\"}}").Count == 0);
+            ApiPrices.SetOwn("claude-opus-6", 9, 45, null);
+            var changes = ApiPrices.Compare(loaded);
+            Check("the comparison names a changed price and a price typed in, not an unchanged one",
+                changes.Count == 2 && changes.Any(x => x.Model == "claude-sonnet-5-5" && x.Old.CacheRead == 0.10) && changes.Any(x => x.Model == "claude-opus-6" && x.Own));
+            ApiPrices.Apply(loaded, new string[0], new DateTime(2026, 10, 29, 1, 40, 0));
+            Check("applying keeps a price typed in unless chosen, and notes where the others came from",
+                ApiPrices.For("claude-opus-6").Input == 9 && ApiPrices.For("claude-sonnet-5-5").Source == ApiPrices.FromLiteLlm
+                && ApiPrices.For("claude-sonnet-5-5").Date == "2026-10-29 01:40" && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.2);
+            ApiPrices.Apply(loaded, new[] { "claude-opus-6" }, DateTime.Now);
+            Check("a price typed in is replaced when chosen", ApiPrices.For("claude-opus-6").Input == 5);
+            ApiPrices.Clear();
+            Check("default prices drop what was typed and loaded", !File.Exists(ApiPrices.FilePath) && ApiPrices.For("claude-opus-6") == null
+                && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.10 && ApiPrices.For("claude-sonnet-5-5").Source == null);
+
             // The statistics of a period: two sessions, one with a subagent and a pause of two hours, one with a large
             // context; Opus 5.5 at $4 in, $20 out, $0.20 for reading the cache; one percent of the week per 100k units.
             DateTime st0 = DateTime.UtcNow.AddHours(-5);

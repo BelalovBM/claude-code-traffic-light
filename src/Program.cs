@@ -40,12 +40,13 @@ namespace Semaphore
                 if (!created)
                 {
                     // A second start asks the running instance to show its settings, a given
-                    // settings page, or (for documentation screenshots) the tray menu.
+                    // settings page, the statistics, or (for documentation screenshots) the tray menu.
                     int page = 0;
                     if (args.Length > 1 && args[0] == "--page") int.TryParse(args[1], out page);
                     // --hotkey does what the keyboard shortcut does, so a test needs no simulated key presses.
                     string command = args.Length > 0 && args[0] == "--menu" ? "menu"
-                        : args.Length > 0 && args[0] == "--hotkey" ? "hotkey" : "settings";
+                        : args.Length > 0 && args[0] == "--hotkey" ? "hotkey"
+                        : args.Length > 0 && args[0] == "--stats" ? "stats" : "settings";
                     HookClient.Send("{\"trafficlight_cmd\":\"" + command + "\",\"page\":" + page + "}");
                     return 0;
                 }

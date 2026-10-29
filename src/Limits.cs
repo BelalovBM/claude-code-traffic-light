@@ -749,6 +749,15 @@ namespace Semaphore
             return UsageStats.Build(steps, comps, fromUtc, toUtc, s.NoSubscription ? null : s.WeekWeights);
         }
 
+        // The models used in the last 30 days, for the table of prices.
+        public List<string> SeenModels()
+        {
+            DateTime from = DateTime.UtcNow.AddDays(-30);
+            lock (gate)
+                return entries.Values.Where(e => e.At >= from && !e.Model.StartsWith("<", StringComparison.Ordinal))
+                    .Select(e => e.Model).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
         // Transcripts were read at all: the statistics have something to show.
         public bool AnyUse { get { lock (gate) return entries.Count > 0; } }
 

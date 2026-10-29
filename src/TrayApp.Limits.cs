@@ -11,6 +11,7 @@ namespace Semaphore
     sealed partial class TrayApp
     {
         readonly UsageTracker usage = new UsageTracker();
+        internal UsageTracker Usage { get { return usage; } }
 
         // What was last seen of one limit: its window, the last step that was pushed, whether it ran out.
         sealed class LimitWatch
@@ -266,6 +267,51 @@ namespace Semaphore
             string k = Math.Round(s.ContextTokens / 1000.0).ToString("0", CultureInfo.InvariantCulture);
             int percent = ContextPercent(s);
             return percent < 0 ? Loc.T("menu.session.context", k) : Loc.T("menu.session.context.pct", k, percent);
+        }
+
+        // ---- the statistics window ----
+
+        StatsForm stats;
+
+        internal void ShowStats()
+        {
+            if (stats != null && !stats.IsDisposed)
+            {
+                if (stats.WindowState == FormWindowState.Minimized) stats.WindowState = FormWindowState.Normal;
+                stats.Activate();
+                return;
+            }
+            // In the same DPI mode as the settings: windows of the program in different modes keep the settings from
+            // taking in the controls of their page (it stays empty when the statistics were opened first).
+            using (Native.PerMonitorWindows())
+            {
+                stats = new StatsForm(this, icons[Level.Idle]);
+                stats.Show();
+            }
+            stats.Activate();
+        }
+
+        // The prices are on the notifications page of the settings, in their own card.
+        internal void ShowPriceSettings()
+        {
+            ShowSettings(1);
+        }
+
+        internal void FocusSessionById(string id)
+        {
+            Session s = store.Find(id);
+            if (s != null) Native.FocusSession(s);
+        }
+
+        // A session as the menu names it while it runs; an ended one by the title of its chat, or its short id.
+        internal string StatsSessionName(string id, string path)
+        {
+            Session s = store.Find(id);
+            if (s != null) return SessionLabel(s);
+            string title = null;
+            try { title = TitleReader.Read(path); }
+            catch (Exception) { }
+            return string.IsNullOrWhiteSpace(title) ? Loc.T("stats.session.id", id.Length > 8 ? id.Substring(0, 8) : id) : Shorten(title.Trim(), 60);
         }
 
         // On the tray timer: pushes for a step reached, a limit that ran out by the estimate, and one that is back.

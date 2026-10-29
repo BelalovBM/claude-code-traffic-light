@@ -89,6 +89,16 @@ namespace Semaphore
             return map;
         }
 
+        // Numbers and dates in the program's language (not in the system's).
+        public static System.Globalization.CultureInfo Culture
+        {
+            get
+            {
+                try { return System.Globalization.CultureInfo.GetCultureInfo(Code ?? "en"); }
+                catch (System.Globalization.CultureNotFoundException) { return System.Globalization.CultureInfo.InvariantCulture; }
+            }
+        }
+
         public static string T(string key)
         {
             string v;

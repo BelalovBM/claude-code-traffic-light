@@ -335,6 +335,17 @@ namespace Semaphore
             return cb;
         }
 
+        // A check box made narrower (indented under another one) needs the height of its text at the new width, or
+        // its last line is cut off.
+        void FitHeight(Control part)
+        {
+            var cb = part as CheckBox;
+            if (cb == null) return;
+            Size wrapped = TextRenderer.MeasureText(cb.Text, Font, new Size(cb.Width - Ui.S(24), 0),
+                TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            cb.Height = Math.Max(Ui.S(22), wrapped.Height + Ui.S(6));
+        }
+
         Control LanguageCombo()
         {
             var combo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
