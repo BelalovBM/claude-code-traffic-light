@@ -515,7 +515,7 @@ namespace Semaphore
                 if (c.Painting) sessionsLink = new Rectangle(left, y + Ui.S(4), size.Width, size.Height);
                 y = c.Text(text, left, y + Ui.S(4), size.Width + 2, Palette.Link);
             }
-            return c.Text(Loc.T("stats.sessions.hint"), left, y + Ui.S(6), inner, Theme.Muted);
+            return y;
         }
 
         // "claude-opus-5-5" → "Opus 5.5".

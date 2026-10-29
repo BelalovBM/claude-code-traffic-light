@@ -386,7 +386,6 @@ stats.col.steps=Passos
 stats.col.context=Contexto máx.
 stats.col.week=≈ semana
 stats.sessions.more=e mais {0}
-stats.sessions.hint=Duplo clique numa sessão em curso traz a sua janela para a frente.
 stats.session.id=Sessão {0}
 wiz.background=Aguardando a própria tarefa em segundo plano (build, testes); continua sozinho
 toast.background.title=Claude está há muito tempo aguardando a tarefa em segundo plano

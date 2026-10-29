@@ -386,7 +386,6 @@ stats.col.steps=Étapes
 stats.col.context=Contexte max.
 stats.col.week=≈ semaine
 stats.sessions.more=et {0} de plus
-stats.sessions.hint=Double-cliquez sur une session en cours pour amener sa fenêtre au premier plan.
 stats.session.id=Session {0}
 wiz.background=Attend sa tâche en arrière-plan (build, tests) ; reprendra seul
 toast.background.title=Claude attend depuis longtemps sa tâche en arrière-plan

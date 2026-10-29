@@ -386,7 +386,6 @@ stats.col.steps=Шагов
 stats.col.context=Макс. контекст
 stats.col.week=≈ недели
 stats.sessions.more=и ещё {0}
-stats.sessions.hint=Двойной щелчок по работающей сессии выводит её окно вперёд.
 stats.session.id=Сессия {0}
 wiz.background=Ждёт свою фоновую задачу (сборку, тесты) и продолжит сам
 toast.background.title=Claude давно ждёт фоновую задачу
