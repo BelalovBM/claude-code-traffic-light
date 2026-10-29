@@ -81,10 +81,11 @@ namespace Semaphore
                     }));
                 };
 
-                c.Controls.Add(Note(Loc.T("prices.source")));
-                c.Controls.Add(WebLink(ApiPrices.LiteLlmPage.Replace("https://", ""), ApiPrices.LiteLlmPage));
-                c.Controls.Add(Note(Loc.T("prices.check")));
-                c.Controls.Add(WebLink(ApiPrices.AnthropicPage.Replace("https://", ""), ApiPrices.AnthropicPage));
+                // Where the loaded prices come from and where to check them, under More: the card stays short.
+                Details(c, Note(Loc.T("prices.source")),
+                    WebLink(ApiPrices.LiteLlmPage.Replace("https://", ""), ApiPrices.LiteLlmPage),
+                    Note(Loc.T("prices.check")),
+                    WebLink(ApiPrices.AnthropicPage.Replace("https://", ""), ApiPrices.AnthropicPage));
                 c.Controls.Add(StatsLink());
             });
         }

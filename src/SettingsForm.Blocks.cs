@@ -163,8 +163,13 @@ namespace Semaphore
         // Explanations that are needed once, folded under "More details"; opening them needs no rebuild.
         void Details(FlowLayoutPanel parent, params string[] notes)
         {
+            Details(parent, notes.Select(n => (Control)Note(n)).ToArray());
+        }
+
+        void Details(FlowLayoutPanel parent, params Control[] parts)
+        {
             var body = Column(RowWidth, Ui.Pad(0));
-            foreach (string n in notes) body.Controls.Add(Note(n));
+            foreach (Control part in parts) body.Controls.Add(part);
             body.Visible = false;
             var toggle = new LinkLabel
             {
