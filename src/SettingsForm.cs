@@ -38,8 +38,15 @@ namespace Semaphore
             live.Start();
             Shown += (s, e) => { using (Ui.Use(dpiFactor)) GrowToFit(); };
 
-            // The layout depends on the width (one or two columns), so it is redone when the size settles.
-            ResizeEnd += (s, e) => Rebuild();
+            // The layout depends on the width (one or two columns), so it is redone when the size settles. A size set
+            // by hand is kept: the page scrolls instead of the window growing back.
+            Size before = Size.Empty;
+            ResizeBegin += (s, e) => before = Size;
+            ResizeEnd += (s, e) =>
+            {
+                if (Size != before) sizedByHand = true;
+                Rebuild();
+            };
             Resize += (s, e) =>
             {
                 if (WindowState != lastState) { lastState = WindowState; Rebuild(); }
@@ -306,10 +313,12 @@ namespace Semaphore
 
         // The measure made before the window opened can come out a little short (text wraps a little differently in
         // the real page). If the page shown needs more height and the screen has it, the window grows by that much.
+        bool sizedByHand;
+
         void GrowToFit()
         {
             // Before the window is on the screen its sizes are not final yet; it is checked again once shown.
-            if (content == null || !Visible || WindowState != FormWindowState.Normal) return;
+            if (content == null || !Visible || WindowState != FormWindowState.Normal || sizedByHand) return;
             content.PerformLayout();
             // The page scrolls only if its laid-out content is taller than what is visible of it.
             if (!content.VerticalScroll.Visible) return;

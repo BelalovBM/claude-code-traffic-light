@@ -12,6 +12,7 @@
 - A "finished" notice right after a prompt, when Claude Code put to use a compaction it had prepared in the background: the restart of the session that follows a compaction was taken for the end of the turn.
 - Reading the cache on Sonnet 5.5 is priced at $0.10 per million tokens (it was counted at $0.20).
 - The settings page stayed empty when the statistics window had been opened first.
+- The settings window grew back after being made smaller by hand: a size set by hand is now kept, and the page scrolls.
 - An indented check box in the settings could cut off its last line (in English, "Refine the limits by itself …").
 
 ## 0.9.8 (beta)
