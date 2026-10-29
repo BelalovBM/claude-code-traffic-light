@@ -98,9 +98,9 @@ namespace Semaphore
                     WebLink(ApiPrices.AnthropicPage.Replace("https://", ""), ApiPrices.AnthropicPage));
                 RowWidth = full;
 
-                // The height of the part: what it needs with More closed and at most six models, again after the
-                // rows change; more models scroll, as the sessions in the statistics do. Opened, More is scrolled
-                // into sight; closed, the part goes back to its top.
+                // The height of the part: what it needs with More closed and at most five models (the page then fits a
+                // 1080-point screen), again after the rows change; more models scroll, as the sessions in the
+                // statistics do. Opened, More is scrolled into sight; closed, the part goes back to its top.
                 Action fit = () =>
                 {
                     if (more.Visible) return;
@@ -126,7 +126,7 @@ namespace Semaphore
             });
         }
 
-        const int VisiblePriceRows = 6;
+        const int VisiblePriceRows = 5;
 
         // "Usage statistics": the same window from the card of the limits and from this one.
         Control StatsLink()
