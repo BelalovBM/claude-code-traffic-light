@@ -395,6 +395,8 @@ namespace Semaphore
         static readonly Regex PreTokensRx = new Regex("\"preTokens\":(\\d+)", RegexOptions.Compiled);
 
         static string ContextPath { get { return Path.Combine(AppPaths.DataDir, "context-limits.json"); } }
+        const string ContextVersionKey = "_version";
+        const long ContextVersion = 2;
 
         // The context size at which this model gets compacted, or 0 when no automatic compaction of it was seen.
         public long ContextLimit(string model)
@@ -436,6 +438,9 @@ namespace Semaphore
                     lock (gate) compactions[currentSession + "|" + t.Groups[1].Value] = new UsageCompaction { At = at, Session = currentSession };
             }
             if (line.IndexOf("\"compactMetadata\"", StringComparison.Ordinal) < 0 || line.IndexOf("\"trigger\":\"auto\"", StringComparison.Ordinal) < 0) return;
+            // A summary prepared in the background notes the size at which the preparation started, well below the
+            // point where Claude Code compacts; only a compaction made at that point tells the limit.
+            if (line.IndexOf("\"precomputed\":true", StringComparison.Ordinal) >= 0) return;
             Match m = PreTokensRx.Match(line);
             string model;
             if (!m.Success || currentPath == null || !lastModel.TryGetValue(currentPath, out model)) return;
@@ -455,7 +460,11 @@ namespace Semaphore
             {
                 if (!File.Exists(ContextPath)) return;
                 var d = new JavaScriptSerializer().Deserialize<Dictionary<string, long>>(File.ReadAllText(ContextPath, Encoding.UTF8));
-                if (d != null) lock (gate) foreach (var kv in d) contextLimits[kv.Key] = kv.Value;
+                // A file without the version may hold a limit taken from a background summary; the first pass
+                // learns the limits again from the transcripts.
+                long v;
+                if (d == null || !d.TryGetValue(ContextVersionKey, out v) || v < ContextVersion) { contextChanged = true; return; }
+                lock (gate) foreach (var kv in d) if (kv.Key != ContextVersionKey) contextLimits[kv.Key] = kv.Value;
             }
             catch (Exception ex) { Log.Write("context-limits.json could not be read: " + ex.Message); }
         }
@@ -467,7 +476,9 @@ namespace Semaphore
             try
             {
                 string json;
-                lock (gate) json = new JavaScriptSerializer().Serialize(contextLimits);
+                var d = new Dictionary<string, long> { { ContextVersionKey, ContextVersion } };
+                lock (gate) foreach (var kv in contextLimits) d[kv.Key] = kv.Value;
+                json = new JavaScriptSerializer().Serialize(d);
                 File.WriteAllText(ContextPath, json, new UTF8Encoding(false));
             }
             catch (Exception ex) { Log.Write("context-limits.json could not be written: " + ex.Message); }

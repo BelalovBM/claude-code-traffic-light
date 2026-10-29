@@ -377,6 +377,15 @@ namespace Semaphore.Tests
             Directory.CreateDirectory(demo);
             for (int i = 0; i < SelfCheckDemo.Ids.Length; i++)
                 File.WriteAllText(Path.Combine(demo, SelfCheckDemo.Ids[i] + ".jsonl"), SelfCheckSetup.DemoReplies(i), Utf8);
+            // The context limit comes from a compaction made at the limit, not from a summary prepared in the background.
+            string reply = "{\"timestamp\":\"" + DateTime.UtcNow.AddHours(-2).ToString("o") + "\",\"isSidechain\":false,\"message\":{\"model\":\"claude-test-ctx\",\"id\":\"MID\",\"role\":\"assistant\",\"content\":[],\"usage\":{\"input_tokens\":10,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":1000,\"output_tokens\":5}},\"type\":\"assistant\"}";
+            string ctxDir = Path.Combine(box, "claude", "projects", "ctxtest");
+            Directory.CreateDirectory(ctxDir);
+            File.WriteAllText(Path.Combine(ctxDir, "ctx-limit.jsonl"), string.Join("\n",
+                reply.Replace("MID", "c1"),
+                "{\"type\":\"system\",\"subtype\":\"compact_boundary\",\"compactMetadata\":{\"trigger\":\"auto\",\"preTokens\":968000,\"postTokens\":10000}}",
+                reply.Replace("MID", "c2"),
+                "{\"type\":\"system\",\"subtype\":\"compact_boundary\",\"compactMetadata\":{\"trigger\":\"auto\",\"preTokens\":481000,\"postTokens\":15000,\"durationMs\":47,\"precomputed\":true}}") + "\n", Utf8);
             var tracker = new UsageTracker();
             tracker.Start();
             UsageReport demoReport = null;
@@ -385,10 +394,13 @@ namespace Semaphore.Tests
                 System.Threading.Thread.Sleep(250);
                 demoReport = tracker.Report(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
             }
+            long ctxLimit = tracker.ContextLimit("claude-test-ctx");
             tracker.Stop();
             Directory.Delete(demo, true);
+            Directory.Delete(ctxDir, true);
+            Check("a summary prepared in the background does not lower the context limit", ctxLimit == 968000, ctxLimit.ToString());
             Check("the self-check's replies are read: sessions, cold starts after its breaks, dollars",
-                demoReport.Total.Count > 50 && demoReport.Sessions.Count == SelfCheckDemo.Ids.Length && demoReport.ColdStarts.Count > 0 && demoReport.Total.Usd > 0,
+                demoReport.Total.Count > 50 && demoReport.Sessions.Count(x => x.Session != "ctx-limit") == SelfCheckDemo.Ids.Length && demoReport.ColdStarts.Count > 0 && demoReport.Total.Usd > 0,
                 demoReport.Total.Count + " steps, " + demoReport.Sessions.Count + " sessions, " + demoReport.ColdStarts.Count + " cold");
 
             // Two models, the dearer one counted 1.5 times: the fit finds that from the anchors alone.
