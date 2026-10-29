@@ -10,7 +10,8 @@ namespace Semaphore
     sealed partial class SettingsForm
     {
 
-        // Three blocks, each one job: the link to Claude Code, where things are kept, and taking it all away.
+        // Four blocks, each one job: the link to Claude Code, its use at API prices, where things are kept, and taking
+        // it all away.
         void ConnectionPage(FlowLayoutPanel p)
         {
             Section(p, Loc.T("sec.integration"), c =>
@@ -19,6 +20,8 @@ namespace Semaphore
                 // The list of running sessions is read from files Claude Code does not document; say when it cannot be read.
                 if (SessionRegistry.FormatUnknown) c.Controls.Add(Note(Loc.T("claude.format.note")));
             });
+
+            CostSection(p);
 
             Section(p, Loc.T("sec.diag"), c =>
             {

@@ -144,9 +144,6 @@ namespace Semaphore
                 Details(c, Loc.T("limits.hint"), Loc.T("limits.hint.estimate"));
                 c.Controls.Add(StatsLink());
             });
-
-            // The use at API prices has a card of its own: a sign-in by API key has it instead of the limits.
-            CostSection(p);
         }
     }
 }

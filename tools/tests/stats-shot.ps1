@@ -117,7 +117,7 @@ try {
     $kind = if ($Real) { 'real' } else { 'demo' }
     [Shot]::Save($h, "$out\stats-$kind-$Lang-$Theme.png")
     "stats: $out\stats-$kind-$Lang-$Theme.png"
-    & $exe --page 1 | Out-Null
+    & $exe --page 4 | Out-Null
     Start-Sleep 12
     $s = Window ($(if ($Lang -eq 'ru') { 'Claude Code Traffic Light — Настройки' } else { 'Claude Code Traffic Light — Settings' }))
     if ($s -ne [IntPtr]::Zero) {

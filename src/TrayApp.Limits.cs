@@ -291,10 +291,10 @@ namespace Semaphore
             stats.Activate();
         }
 
-        // The prices are on the notifications page of the settings, in their own card.
+        // The prices are on the Claude Code page of the settings, in their own card.
         internal void ShowPriceSettings()
         {
-            ShowSettings(1);
+            ShowSettings(4);
         }
 
         internal void FocusSessionById(string id)
