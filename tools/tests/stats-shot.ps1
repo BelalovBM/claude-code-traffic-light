@@ -2,8 +2,8 @@
 # (its own settings: no hooks, no phone, no background /usage). With -Real it reads the real transcripts and limits
 # of this computer, read only; the pictures then show real session titles and stay on this computer.
 # With -Load it also presses "Update prices from LiteLLM" (one request to GitHub), pictures the dialog and applies it.
-#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-Lang ru] [-Theme dark]
-param([switch]$Real, [switch]$Load, [switch]$Many, [string]$Lang = 'ru', [string]$Theme = 'dark')
+#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-ApiKey] [-Lang ru] [-Theme dark]
+param([switch]$Real, [switch]$Load, [switch]$Many, [switch]$ApiKey, [string]$Lang = 'ru', [string]$Theme = 'dark')
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 using System; using System.Runtime.InteropServices;
@@ -64,7 +64,8 @@ if ($Real) {
 } else {
     # The made-up sessions of the self-check, written by the program's own code (loaded as a library).
     New-Item -ItemType Directory -Force "$box\home\.claude\projects\demo" | Out-Null
-    [IO.File]::WriteAllText("$box\home\.claude.json", '{"oauthAccount":{"organizationType":"claude_pro"}}')
+    # -ApiKey: a sign-in without a subscription, no plan named and no figures of /usage.
+    [IO.File]::WriteAllText("$box\home\.claude.json", $(if ($ApiKey) { '{}' } else { '{"oauthAccount":{"organizationType":"claude_pro"}}' }))
     $asm = [Reflection.Assembly]::LoadFrom($exe)
     $flags = [Reflection.BindingFlags]'NonPublic,Public,Static'
     $ids = $asm.GetType('Semaphore.SelfCheckDemo').GetField('Ids', $flags).GetValue($null)
@@ -90,7 +91,7 @@ if ($Real) {
     }
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $weekCost = ($cost.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + [string][math]::Round($_.Value) }) -join ','
-    [IO.File]::WriteAllText("$box\data\usage-limits.json", '[{"AtMs":' + $now + ',"Week":40,"WeekResetMs":' + ($now + 5 * 86400000) + ',"WeekCost":{' + $weekCost + '},"CostVersion":3,"Plan":"claude_pro"}]')
+    if (-not $ApiKey) { [IO.File]::WriteAllText("$box\data\usage-limits.json", '[{"AtMs":' + $now + ',"Week":40,"WeekResetMs":' + ($now + 5 * 86400000) + ',"WeekCost":{' + $weekCost + '},"CostVersion":3,"Plan":"claude_pro"}]') }
     $env:TRAFFICLIGHT_CLAUDE_DIR = "$box\home\.claude"
 }
 # -Many: five more models with prices of their own, for the price table longer than it shows.
@@ -121,6 +122,7 @@ try {
         $h = Window $texts['stats.title']
         if ($h -eq [IntPtr]::Zero) { 'NO STATS WINDOW'; return }
         Start-Sleep 3
+        if ($ApiKey) { $kind = 'apikey' }
         [Shot]::Save($h, "$out\stats-$kind-$period-$Lang-$Theme.png")
         "stats: $out\stats-$kind-$period-$Lang-$Theme.png"
     }

@@ -588,8 +588,10 @@ namespace Semaphore
             Func<double, string> figure = v => Limit
                 ? v.ToString(step < 1 ? "0.#" : "0", Culture) + "%"
                 : ApiPrices.Dollars(v, Culture);
+            // The marks of the scale in one form: whole dollars, or cents only when the step is under a dollar.
+            Func<double, string> mark = v => Limit ? figure(v) : "$" + v.ToString(step < 1 ? "N2" : "N0", Culture);
             int marks = (int)Math.Round(top / step);
-            int gutter = Enumerable.Range(0, marks + 1).Max(k => c.Width(figure(k * step))) + Ui.S(8);
+            int gutter = Enumerable.Range(0, marks + 1).Max(k => c.Width(mark(k * step))) + Ui.S(8);
             int plotLeft = left + gutter, plotWidth = inner - gutter;
             // A bar no wider than a bar should be: a week does not stretch across the whole card.
             int slot = Math.Min(plotWidth / count, Ui.S(72));
@@ -603,7 +605,7 @@ namespace Semaphore
             {
                 int ly = bottomLine - (int)Math.Round(chart * k * step / top);
                 c.Fill(plotLeft, ly, slot * count, 1, k == 0 ? Theme.Muted : Theme.Border);
-                c.Right(figure(k * step), plotLeft - Ui.S(6), ly - Font.Height / 2, Theme.Muted);
+                c.Right(mark(k * step), plotLeft - Ui.S(6), ly - Font.Height / 2, Theme.Muted);
             }
             for (int i = 0; i < count; i++)
             {
