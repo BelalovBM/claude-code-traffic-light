@@ -101,11 +101,21 @@ namespace Semaphore
                     WebLink(ApiPrices.AnthropicPage.Replace("https://", ""), ApiPrices.AnthropicPage));
                 RowWidth = full;
 
-                // The height of the part: what it needs with More closed, again after the rows change. Opened, More
-                // is scrolled into sight; closed, the part goes back to its top.
+                // The height of the part: what it needs with More closed and at most six models, again after the
+                // rows change; more models scroll, as the sessions in the statistics do. Opened, More is scrolled
+                // into sight; closed, the part goes back to its top.
                 Action fit = () =>
                 {
-                    if (!more.Visible) area.Height = inner.GetPreferredSize(Size.Empty).Height;
+                    if (more.Visible) return;
+                    int height = inner.GetPreferredSize(Size.Empty).Height;
+                    // The table: a heading, a row per model, the note under them.
+                    int models = table.Controls.Count - 2;
+                    if (models > VisiblePriceRows)
+                    {
+                        Control row = table.Controls[1];
+                        height -= (models - VisiblePriceRows) * (row.GetPreferredSize(Size.Empty).Height + row.Margin.Vertical);
+                    }
+                    area.Height = height;
                 };
                 fit();
                 inner.SizeChanged += (s, e) => fit();
@@ -118,6 +128,8 @@ namespace Semaphore
                 ((FlowLayoutPanel)area.Parent).Controls.Add(StatsLink());
             });
         }
+
+        const int VisiblePriceRows = 6;
 
         // "Usage statistics": the same window from the card of the limits and from this one.
         Control StatsLink()

@@ -2,8 +2,8 @@
 # (its own settings: no hooks, no phone, no background /usage). With -Real it reads the real transcripts and limits
 # of this computer, read only; the pictures then show real session titles and stay on this computer.
 # With -Load it also presses "Update prices from LiteLLM" (one request to GitHub), pictures the dialog and applies it.
-#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Lang ru] [-Theme dark]
-param([switch]$Real, [switch]$Load, [string]$Lang = 'ru', [string]$Theme = 'dark')
+#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-Lang ru] [-Theme dark]
+param([switch]$Real, [switch]$Load, [switch]$Many, [string]$Lang = 'ru', [string]$Theme = 'dark')
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 using System; using System.Runtime.InteropServices;
@@ -93,6 +93,8 @@ if ($Real) {
     [IO.File]::WriteAllText("$box\data\usage-limits.json", '[{"AtMs":' + $now + ',"Week":40,"WeekResetMs":' + ($now + 5 * 86400000) + ',"WeekCost":{' + $weekCost + '},"CostVersion":3,"Plan":"claude_pro"}]')
     $env:TRAFFICLIGHT_CLAUDE_DIR = "$box\home\.claude"
 }
+# -Many: five more models with prices of their own, for the price table longer than it shows.
+if ($Many) { [IO.File]::WriteAllText("$box\data\api-prices.json", "{" + ((1..5 | ForEach-Object { "`"claude-test-$_`":{`"Input`":$_,`"Output`":$(5 * $_),`"Source`":`"you`",`"Date`":`"2026-10-29 12:00`"}" }) -join ",") + "}") }
 $env:TRAFFICLIGHT_DATA_DIR = "$box\data"
 $app = Start-Process $exe -PassThru
 $A = [Windows.Automation.AutomationElement]
