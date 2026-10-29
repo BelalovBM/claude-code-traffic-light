@@ -93,7 +93,7 @@ namespace Semaphore
             dpiFactor = factor;
             using (Ui.Use(dpiFactor))
                 MinimumSize = new Size(Ui.S(760), Ui.S(520));
-            Bounds = bounds;
+            Bounds = Native.InsideScreen(bounds);
             if (changed)
             {
                 Log.Write("Settings window moved to a monitor at " + (dpi * 100 / 96) + "%, rebuilt for it");
@@ -156,6 +156,7 @@ namespace Semaphore
             panel.HorizontalScroll.Enabled = false;
             panel.HorizontalScroll.Visible = false;
             panel.AutoScroll = true;
+            Native.ThemeScrollBars(panel);
             return panel;
         }
 

@@ -170,6 +170,17 @@ namespace Semaphore
             catch { }
         }
 
+        // A window's rectangle made to fit the working area of the monitor it is on: no taller or wider than that,
+        // moved in where it sticks out. Windows suggests a size for another scale without looking at the monitor's.
+        public static System.Drawing.Rectangle InsideScreen(System.Drawing.Rectangle bounds)
+        {
+            var area = System.Windows.Forms.Screen.FromRectangle(bounds).WorkingArea;
+            int width = Math.Min(bounds.Width, area.Width), height = Math.Min(bounds.Height, area.Height);
+            int left = Math.Max(area.Left, Math.Min(bounds.Left, area.Right - width));
+            int top = Math.Max(area.Top, Math.Min(bounds.Top, area.Bottom - height));
+            return new System.Drawing.Rectangle(left, top, width, height);
+        }
+
         // The monitor with the taskbar that holds the icon. When the icon is hidden in the overflow or Windows does
         // not say where it is, the monitor under the mouse: the user has just been there.
         public static System.Windows.Forms.Screen TrayScreen()
@@ -241,11 +252,19 @@ namespace Semaphore
 
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr h, string app, string idList);
 
-        // The scroll bars of a window in the dark colours of Explorer (Windows 10 1809 and later; ignored before).
-        public static void SetDarkScrollBars(IntPtr handle)
+        // The scroll bars of a window in the dark colours of Explorer (Windows 10 1809 and later; ignored before), or
+        // back in the light ones.
+        public static void SetDarkScrollBars(IntPtr handle, bool dark = true)
         {
-            try { SetWindowTheme(handle, "DarkMode_Explorer", null); }
+            try { SetWindowTheme(handle, dark ? "DarkMode_Explorer" : "Explorer", null); }
             catch { }
+        }
+
+        // A scrolling panel with scroll bars in the colours of the theme, now and whenever its window is made again.
+        public static void ThemeScrollBars(System.Windows.Forms.Control panel)
+        {
+            if (panel.IsHandleCreated) SetDarkScrollBars(panel.Handle, Theme.Dark);
+            panel.HandleCreated += (s, e) => SetDarkScrollBars(panel.Handle, Theme.Dark);
         }
 
         public static void SetDarkTitleBar(IntPtr handle, bool dark)

@@ -121,7 +121,7 @@ namespace Semaphore
                     if (more.Visible) BeginInvoke((Action)(() => area.AutoScrollPosition = new Point(0, inner.Height)));
                     else area.AutoScrollPosition = Point.Empty;
                 };
-                if (Theme.Dark) area.HandleCreated += (s, e) => Native.SetDarkScrollBars(area.Handle);
+                Native.ThemeScrollBars(area);
                 ((FlowLayoutPanel)area.Parent).Controls.Add(StatsLink());
             });
         }

@@ -54,6 +54,7 @@ namespace Semaphore
             scroller.HorizontalScroll.Enabled = false;
             scroller.HorizontalScroll.Visible = false;
             scroller.AutoScroll = true;
+            Native.ThemeScrollBars(scroller);
             view = new StatsView(app) { Left = 0, Top = 0 };
             scroller.Controls.Add(view);
             scroller.Resize += (s, e) => FitView();
@@ -65,7 +66,7 @@ namespace Semaphore
 
             timer.Tick += (s, e) => Refill();
             // Filled before it shows, so that it opens at the height of its content, in the middle of the screen.
-            Load += (s, e) => { FitSize(); Refill(); CenterToScreen(); };
+            Load += (s, e) => { FitSize(); Refill(); CenterToScreen(); loaded = true; };
             Shown += (s, e) => { timer.Start(); close.Focus(); };
             FormClosed += (s, e) => timer.Dispose();
         }
@@ -114,16 +115,26 @@ namespace Semaphore
                 bottom.Height = Ui.S(50);
                 MinimumSize = new Size(Ui.S(560), Ui.S(420));
             }
-            Bounds = bounds;
+            Bounds = Native.InsideScreen(bounds);
             PlaceClose();
             FitView();
+            // Once open, the height is taken again for this scale and this monitor (a size cut to a smaller screen
+            // would otherwise come back cut).
+            if (loaded)
+            {
+                FitSize();
+                Refill();
+            }
             Invalidate(true);
         }
+
+        bool loaded;
 
         // The theme changed while the window is open: the controls take the new colours, the drawing uses them anyway.
         public void ReapplyTheme()
         {
             Theme.Apply(this);
+            Native.SetDarkScrollBars(scroller.Handle, Theme.Dark);
             BackColor = Theme.Back;
             Invalidate(true);
         }
@@ -161,7 +172,8 @@ namespace Semaphore
             }
             Rectangle screen = Screen.FromControl(this).WorkingArea;
             int frame = Height - ClientSize.Height;
-            Height = Math.Max(MinimumSize.Height, Math.Min(tabs.Height + tallest + bottom.Height + frame, screen.Height));
+            int height = Math.Max(MinimumSize.Height, Math.Min(tabs.Height + tallest + bottom.Height + frame, screen.Height));
+            Bounds = Native.InsideScreen(new Rectangle(Left, Top, Width, height));
         }
 
         void FitView()
