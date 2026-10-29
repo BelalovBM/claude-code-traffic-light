@@ -59,8 +59,10 @@ New-Item -ItemType Directory -Force "$box\data", $out | Out-Null
 [IO.File]::WriteAllText("$box\data\config.json", '{"FirstRunDone":true,"Language":"' + $Lang + '","StartupNotice":false,"Theme":"' + $Theme + '"}')
 if ($Real) {
     # The exact figures seen so far, so that the share of the limit is known.
-    $installed = '$env:LOCALAPPDATA\ClaudeCodeTrafficLight\usage-limits.json'
-    if (Test-Path $installed) { Copy-Item $installed "$box\data\" }
+    # Taken from the copy of the program that runs (the one outside bin), wherever it was put.
+    $running = Get-Process ClaudeCodeTrafficLight -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path -ne $exe } | Select-Object -First 1
+    $installed = if ($running) { Join-Path (Split-Path $running.Path -Parent) 'usage-limits.json' } else { '' }
+    if ($installed -and (Test-Path $installed)) { Copy-Item $installed "$box\data\" }
 } else {
     # The made-up sessions of the self-check, written by the program's own code (loaded as a library).
     New-Item -ItemType Directory -Force "$box\home\.claude\projects\demo" | Out-Null
