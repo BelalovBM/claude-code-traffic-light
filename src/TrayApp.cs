@@ -448,6 +448,10 @@ namespace Semaphore
                         OnHotkey();
                     else if ("stats".Equals(what))
                         ShowStats(page);
+                    else if ("more".Equals(what))
+                    {
+                        if (settings != null && !settings.IsDisposed) settings.OpenDetails();
+                    }
                     else
                         ShowSettings(page);
                     return;

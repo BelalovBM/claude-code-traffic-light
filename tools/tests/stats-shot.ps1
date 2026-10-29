@@ -136,6 +136,12 @@ try {
         Start-Sleep 2
         [Shot]::Save($s, "$out\settings-$Lang-$Theme.png")
         "settings: $out\settings-$Lang-$Theme.png"
+        # More opened in the card of the prices: it scrolls inside the card, the page keeps its length.
+        # A link takes no clicks sent from outside; the program opens the Mores of the page itself.
+        & $exe --more | Out-Null
+        Start-Sleep 2
+        [Shot]::Save($s, "$out\settings-more-$Lang-$Theme.png")
+        "settings, More open: $out\settings-more-$Lang-$Theme.png"
         if ($Load) {
             # The button and the dialog are pressed with messages to them: no mouse, no keys.
             if (-not [Shot]::Press($s, $(if ($Lang -eq 'ru') { 'Обновить цены из LiteLLM' } else { 'Update prices from LiteLLM' }))) { 'NO LOAD BUTTON' }

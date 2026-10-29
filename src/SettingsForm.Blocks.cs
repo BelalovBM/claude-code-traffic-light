@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -166,7 +167,16 @@ namespace Semaphore
             Details(parent, notes.Select(n => (Control)Note(n)).ToArray());
         }
 
-        void Details(FlowLayoutPanel parent, params Control[] parts)
+        // How to open each "More" of the page shown (for pictures of the window: the --more command).
+        readonly List<Action> openers = new List<Action>();
+
+        internal void OpenDetails()
+        {
+            foreach (Action open in openers.ToList()) open();
+        }
+
+        // Returns the folded part, to follow its opening.
+        Control Details(FlowLayoutPanel parent, params Control[] parts)
         {
             var body = Column(RowWidth, Ui.Pad(0));
             foreach (Control part in parts) body.Controls.Add(part);
@@ -179,13 +189,16 @@ namespace Semaphore
                 ActiveLinkColor = Palette.LinkActive,
                 Margin = Ui.Pad(3, 6, 3, 4),
             };
-            toggle.LinkClicked += (s, e) =>
+            Action flip = () =>
             {
                 body.Visible = !body.Visible;
                 toggle.Text = (body.Visible ? "▾  " : "▸  ") + Loc.T(body.Visible ? "details.less" : "details.more");
             };
+            toggle.LinkClicked += (s, e) => flip();
+            openers.Add(() => { if (!body.Visible) flip(); });
             parent.Controls.Add(toggle);
             parent.Controls.Add(body);
+            return body;
         }
 
         // A numbered step: the number stands out, the text wraps next to it.

@@ -154,6 +154,7 @@ namespace Semaphore
 
         void BuildPage(FlowLayoutPanel panel)
         {
+            openers.Clear();
             switch (page)
             {
                 case 0: GeneralPage(panel); break;

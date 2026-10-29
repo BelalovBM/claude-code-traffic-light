@@ -40,14 +40,16 @@ namespace Semaphore
                 if (!created)
                 {
                     // A second start asks the running instance to show its settings, a given
-                    // settings page, the statistics, or (for documentation screenshots) the tray menu.
+                    // settings page, the statistics, or (for documentation screenshots) the tray menu and every
+                    // "More" of the settings page shown.
                     int page = 0;
                     // The page of the settings, or the period of the statistics (0 today, 1 seven days, 2 thirty).
                     if (args.Length > 1 && (args[0] == "--page" || args[0] == "--stats")) int.TryParse(args[1], out page);
                     // --hotkey does what the keyboard shortcut does, so a test needs no simulated key presses.
                     string command = args.Length > 0 && args[0] == "--menu" ? "menu"
                         : args.Length > 0 && args[0] == "--hotkey" ? "hotkey"
-                        : args.Length > 0 && args[0] == "--stats" ? "stats" : "settings";
+                        : args.Length > 0 && args[0] == "--stats" ? "stats"
+                        : args.Length > 0 && args[0] == "--more" ? "more" : "settings";
                     HookClient.Send("{\"trafficlight_cmd\":\"" + command + "\",\"page\":" + page + "}");
                     return 0;
                 }

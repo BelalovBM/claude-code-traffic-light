@@ -16,6 +16,19 @@ namespace Semaphore
             Section(p, Loc.T("sec.cost"), c =>
             {
                 c.Controls.Add(Check(Loc.T("chk.cost.show"), cfg.CostShow, v => cfg.CostShow = v));
+                // The prices in a part of the card that scrolls by itself: it keeps the height it has with More closed,
+                // so opening More (or a longer result) does not lengthen the page. Room for the scroll bar is kept
+                // from the start, so nothing moves when it appears.
+                int full = RowWidth;
+                var area = new Panel { AutoScroll = true, Width = full, Margin = Ui.Pad(0) };
+                area.HorizontalScroll.Maximum = 0;
+                area.HorizontalScroll.Enabled = false;
+                area.HorizontalScroll.Visible = false;
+                RowWidth = full - SystemInformation.VerticalScrollBarWidth - Ui.S(4);
+                var inner = Column(RowWidth, Ui.Pad(0));
+                area.Controls.Add(inner);
+                c.Controls.Add(area);
+                c = inner;
                 c.Controls.Add(Header(Loc.T("prices.title")));
                 var table = Column(RowWidth, Ui.Pad(0));
                 c.Controls.Add(table);
@@ -82,11 +95,27 @@ namespace Semaphore
                 };
 
                 // Where the loaded prices come from and where to check them, under More: the card stays short.
-                Details(c, Note(Loc.T("prices.source")),
+                Control more = Details(c, Note(Loc.T("prices.source")),
                     WebLink(ApiPrices.LiteLlmPage.Replace("https://", ""), ApiPrices.LiteLlmPage),
                     Note(Loc.T("prices.check")),
                     WebLink(ApiPrices.AnthropicPage.Replace("https://", ""), ApiPrices.AnthropicPage));
-                c.Controls.Add(StatsLink());
+                RowWidth = full;
+
+                // The height of the part: what it needs with More closed, again after the rows change. Opened, More
+                // is scrolled into sight; closed, the part goes back to its top.
+                Action fit = () =>
+                {
+                    if (!more.Visible) area.Height = inner.GetPreferredSize(Size.Empty).Height;
+                };
+                fit();
+                inner.SizeChanged += (s, e) => fit();
+                more.VisibleChanged += (s, e) =>
+                {
+                    if (more.Visible) BeginInvoke((Action)(() => area.AutoScrollPosition = new Point(0, inner.Height)));
+                    else area.AutoScrollPosition = Point.Empty;
+                };
+                if (Theme.Dark) area.HandleCreated += (s, e) => Native.SetDarkScrollBars(area.Handle);
+                ((FlowLayoutPanel)area.Parent).Controls.Add(StatsLink());
             });
         }
 

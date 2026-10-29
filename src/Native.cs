@@ -239,6 +239,15 @@ namespace Semaphore
             return false;
         }
 
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr h, string app, string idList);
+
+        // The scroll bars of a window in the dark colours of Explorer (Windows 10 1809 and later; ignored before).
+        public static void SetDarkScrollBars(IntPtr handle)
+        {
+            try { SetWindowTheme(handle, "DarkMode_Explorer", null); }
+            catch { }
+        }
+
         public static void SetDarkTitleBar(IntPtr handle, bool dark)
         {
             try
