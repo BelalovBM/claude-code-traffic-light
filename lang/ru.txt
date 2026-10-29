@@ -385,7 +385,6 @@ stats.col.model=Модель
 stats.col.steps=Шагов
 stats.col.context=Макс. контекст
 stats.col.week=≈ недели
-stats.sessions.more=и ещё {0}
 stats.session.id=Сессия {0}
 wiz.background=Ждёт свою фоновую задачу (сборку, тесты) и продолжит сам
 toast.background.title=Claude давно ждёт фоновую задачу

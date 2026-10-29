@@ -385,7 +385,6 @@ stats.col.model=模型
 stats.col.steps=步数
 stats.col.context=最大上下文
 stats.col.week=≈ 周
-stats.sessions.more=还有 {0} 个
 stats.session.id=会话 {0}
 wiz.background=正在等待自己的后台任务（构建、测试），完成后会自动继续
 toast.background.title=Claude 已等待后台任务很久

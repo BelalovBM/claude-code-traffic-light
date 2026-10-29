@@ -385,7 +385,6 @@ stats.col.model=Modell
 stats.col.steps=Schritte
 stats.col.context=Größter Kontext
 stats.col.week=≈ Woche
-stats.sessions.more=und {0} weitere
 stats.session.id=Sitzung {0}
 wiz.background=Wartet auf eigene Hintergrundaufgabe (Build, Tests); macht selbst weiter
 toast.background.title=Claude wartet schon lange auf seine Hintergrundaufgabe

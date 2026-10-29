@@ -55,7 +55,6 @@ namespace Semaphore
             scroller.HorizontalScroll.Visible = false;
             scroller.AutoScroll = true;
             view = new StatsView(app) { Left = 0, Top = 0 };
-            view.Expanded += () => { FitView(); FitHeight(); };
             scroller.Controls.Add(view);
             scroller.Resize += (s, e) => FitView();
             Controls.Add(scroller);
@@ -66,7 +65,7 @@ namespace Semaphore
 
             timer.Tick += (s, e) => Refill();
             // Filled before it shows, so that it opens at the height of its content, in the middle of the screen.
-            Load += (s, e) => { Refill(); CenterToScreen(); };
+            Load += (s, e) => { FitSize(); Refill(); CenterToScreen(); };
             Shown += (s, e) => { timer.Start(); close.Focus(); };
             FormClosed += (s, e) => timer.Dispose();
         }
@@ -134,11 +133,15 @@ namespace Semaphore
         {
             // A period chosen before the window is made: the figures come when it loads.
             if (!IsHandleCreated) return;
-            DateTime now = DateTime.UtcNow;
-            DateTime from = tabs.Selected == 0 ? DateTime.Today.ToUniversalTime() : now.AddDays(tabs.Selected == 1 ? -7 : -30);
-            view.Show(app.Usage.Report(from, now), tabs.Selected);
+            view.Show(Report(tabs.Selected), tabs.Selected);
             FitView();
-            FitHeight();
+        }
+
+        UsageReport Report(int period)
+        {
+            DateTime now = DateTime.UtcNow;
+            DateTime from = period == 0 ? DateTime.Today.ToUniversalTime() : now.AddDays(period == 1 ? -7 : -30);
+            return app.Usage.Report(from, now);
         }
 
         public void ShowPeriod(int period)
@@ -146,26 +149,19 @@ namespace Semaphore
             tabs.Choose(Math.Max(0, Math.Min(2, period)));
         }
 
-        bool fitted;
-
-        // The window as tall as its content, so that it needs no scroll bar where the screen allows: at the first
-        // showing exactly, later only taller (a period with more to show), never jumping back.
-        void FitHeight()
+        // One size for all the periods, taken when the window opens: as tall as the tallest of them needs, as far as
+        // the screen allows. Another period or a scrolled list of sessions never changes it.
+        void FitSize()
         {
+            int tallest = 0;
+            for (int period = 0; period < 3; period++)
+            {
+                view.Show(Report(period), period);
+                tallest = Math.Max(tallest, view.Measure(ClientSize.Width));
+            }
             Rectangle screen = Screen.FromControl(this).WorkingArea;
             int frame = Height - ClientSize.Height;
-            int need = tabs.Height + view.Height + bottom.Height;
-            int height = Math.Min(need + frame, screen.Height);
-            if (fitted && height <= Height) return;
-            fitted = true;
-            // Twice: measured with a scroll bar the text wraps more, and without it the content is a little shorter.
-            for (int pass = 0; pass < 2; pass++)
-            {
-                int top = Math.Max(screen.Top, Math.Min(Top, screen.Bottom - height));
-                Bounds = new Rectangle(Left, top, Width, Math.Max(MinimumSize.Height, height));
-                FitView();
-                height = Math.Min(tabs.Height + view.Height + bottom.Height + frame, screen.Height);
-            }
+            Height = Math.Max(MinimumSize.Height, Math.Min(tabs.Height + tallest + bottom.Height + frame, screen.Height));
         }
 
         void FitView()
@@ -259,12 +255,7 @@ namespace Semaphore
         string selected;
         // Where things were drawn, for the mouse: the rows of sessions and the link to the prices.
         readonly List<KeyValuePair<Rectangle, string>> rows = new List<KeyValuePair<Rectangle, string>>();
-        Rectangle pricesLink, sessionsLink;
-        // The sessions beyond the first few are shown on request.
-        const int FewSessions = 5;
-        bool allSessions;
-        // The content grew or shrank by a click: the window fits it again.
-        public event Action Expanded;
+        Rectangle pricesLink;
         readonly Dictionary<string, string> names = new Dictionary<string, string>();
         // The bars of the days with the figures each shows under the pointer.
         readonly List<KeyValuePair<Rectangle, string>> days = new List<KeyValuePair<Rectangle, string>>();
@@ -283,6 +274,8 @@ namespace Semaphore
         public void Show(UsageReport r, int period)
         {
             report = r;
+            // Another period starts at the top of its list; the same one keeps its place on the timer.
+            if (period != this.period) firstSession = 0;
             this.period = period;
             names.Clear();
             Invalidate();
@@ -345,7 +338,7 @@ namespace Semaphore
         int Draw(Graphics g, int width, bool paint)
         {
             // The places for the mouse are those of the last painting, not of a measuring pass.
-            if (paint) { rows.Clear(); days.Clear(); pricesLink = sessionsLink = Rectangle.Empty; }
+            if (paint) { rows.Clear(); days.Clear(); pricesLink = sessionList = sessionTrack = sessionThumb = Rectangle.Empty; }
             int margin = Ui.S(16), pad = Ui.S(14);
             int y = Ui.S(12);
             if (report == null) return y;
@@ -470,11 +463,14 @@ namespace Semaphore
         int Sessions(Painter c, int left, int y, int inner)
         {
             // Session | Model | Steps | Largest context | ≈ week | $ API: the numbers take what their heading or their
-            // widest value needs, the name of the session the rest.
-            // The five dearest; the rest behind a link, so that the window seldom needs a scroll bar. The columns are
-            // measured on all of them, so they stay put when the rest open.
+            // widest value needs, the name of the session the rest. A few rows at a time under a heading that stays,
+            // the rest by scrolling the list itself, so that the window keeps its size. The columns are measured on
+            // all the sessions, so they stay put while the list scrolls.
             var all = report.Sessions;
-            var shown = allSessions ? all : all.Take(FewSessions).ToList();
+            bool scrolls = all.Count > VisibleSessions;
+            if (scrolls) inner -= Ui.S(14);
+            firstSession = Math.Max(0, Math.Min(firstSession, all.Count - VisibleSessions));
+            var shown = all;
             Func<string, IEnumerable<string>, int> need = (head, values) =>
                 values.Concat(new[] { head }).Max(t => c.Width(t)) + Ui.S(14);
             int wModel = need(Loc.T("stats.col.model"), shown.Select(r => Model(r.Model)));
@@ -494,7 +490,8 @@ namespace Semaphore
             c.Right(Loc.T("stats.col.api"), edges[5], y, Theme.Muted);
             y += Font.Height + Ui.S(4);
             int rowHeight = Font.Height + Ui.S(8);
-            foreach (UsageSessionRow row in shown)
+            int listTop = y;
+            foreach (UsageSessionRow row in all.Skip(firstSession).Take(VisibleSessions))
             {
                 var box = new Rectangle(left - Ui.S(6), y, inner + Ui.S(12), rowHeight);
                 if (c.Painting) rows.Add(new KeyValuePair<Rectangle, string>(box, row.Session));
@@ -508,14 +505,50 @@ namespace Semaphore
                 c.Right(ApiPrices.Dollars(row.Amount.Usd, Culture), edges[5], ty, Theme.Fore);
                 y += rowHeight;
             }
-            if (all.Count > FewSessions)
+            if (!scrolls) return y;
+
+            // The scroll bar of the list: a thin track at the right with a thumb as long as the visible part.
+            int listHeight = rowHeight * VisibleSessions;
+            var track = new Rectangle(left + inner + Ui.S(8), listTop, Ui.S(6), listHeight);
+            int thumbHeight = Math.Max(Ui.S(16), listHeight * VisibleSessions / all.Count);
+            int thumbTop = track.Top + (int)Math.Round((listHeight - thumbHeight) * (double)firstSession / (all.Count - VisibleSessions));
+            c.Fill(track.X, track.Y, track.Width, track.Height, Theme.Hover);
+            c.Fill(track.X, thumbTop, track.Width, thumbHeight, thumbDrag >= 0 ? Theme.Fore : Theme.Muted);
+            if (c.Painting)
             {
-                string text = allSessions ? "▾  " + Loc.T("details.less") : "▸  " + Loc.T("stats.sessions.more", all.Count - FewSessions);
-                Size size = TextRenderer.MeasureText(text, Font);
-                if (c.Painting) sessionsLink = new Rectangle(left, y + Ui.S(4), size.Width, size.Height);
-                y = c.Text(text, left, y + Ui.S(4), size.Width + 2, Palette.Link);
+                sessionList = new Rectangle(left - Ui.S(6), listTop, track.Right - left + Ui.S(6), listHeight);
+                sessionTrack = Rectangle.Inflate(track, Ui.S(3), 0);
+                sessionThumb = new Rectangle(track.X - Ui.S(3), thumbTop, track.Width + Ui.S(6), thumbHeight);
+                sessionCount = all.Count;
             }
-            return y;
+            return listTop + listHeight;
+        }
+
+        // ---- the list of sessions scrolled by the wheel, the thumb, a click on the track and the keys ----
+
+        const int VisibleSessions = 6;
+        int firstSession, sessionCount;
+        Rectangle sessionList, sessionTrack, sessionThumb;
+        int thumbDrag = -1, dragFirst;
+
+        void ScrollSessions(int first)
+        {
+            first = Math.Max(0, Math.Min(first, sessionCount - VisibleSessions));
+            if (first == firstSession) return;
+            firstSession = first;
+            Invalidate();
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            if (sessionList.Contains(e.Location))
+            {
+                ScrollSessions(firstSession - Math.Sign(e.Delta) * Math.Max(1, SystemInformation.MouseWheelScrollLines));
+                var h = e as HandledMouseEventArgs;
+                if (h != null) h.Handled = true;
+                return;
+            }
+            base.OnMouseWheel(e);
         }
 
         // "claude-opus-5-5" → "Opus 5.5".
@@ -609,7 +642,14 @@ namespace Semaphore
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            Cursor = pricesLink.Contains(e.Location) || sessionsLink.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
+            if (thumbDrag >= 0)
+            {
+                // The thumb follows the pointer: its free run is the whole list.
+                int run = Math.Max(1, sessionTrack.Height - sessionThumb.Height);
+                ScrollSessions(dragFirst + (int)Math.Round((e.Y - thumbDrag) * (double)(sessionCount - VisibleSessions) / run));
+                return;
+            }
+            Cursor = pricesLink.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
             string text = days.Where(d => d.Key.Contains(e.Location)).Select(d => d.Value).FirstOrDefault();
             if (text == tipShown) return;
             tipShown = text;
@@ -634,9 +674,30 @@ namespace Semaphore
         {
             Focus();
             if (pricesLink.Contains(e.Location)) { app.ShowPriceSettings(); return; }
-            if (sessionsLink.Contains(e.Location)) { allSessions = !allSessions; Invalidate(); var h = Expanded; if (h != null) h(); return; }
+            if (sessionThumb.Contains(e.Location))
+            {
+                thumbDrag = e.Y;
+                dragFirst = firstSession;
+                Capture = true;
+                Invalidate();
+                return;
+            }
+            // A click on the track above or below the thumb: a page of the list.
+            if (sessionTrack.Contains(e.Location))
+            {
+                ScrollSessions(firstSession + (e.Y < sessionThumb.Top ? -VisibleSessions : VisibleSessions));
+                return;
+            }
             foreach (var r in rows)
                 if (r.Key.Contains(e.Location)) { selected = r.Value; Invalidate(); }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            if (thumbDrag < 0) return;
+            thumbDrag = -1;
+            Capture = false;
+            Invalidate();
         }
 
         protected override void OnMouseDoubleClick(MouseEventArgs e)
@@ -647,15 +708,20 @@ namespace Semaphore
 
         protected override bool IsInputKey(Keys keyData) { return keyData == Keys.Up || keyData == Keys.Down || base.IsInputKey(keyData); }
 
+        // Up and down move the selection over all the sessions, the list scrolling to keep it in sight.
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (rows.Count == 0) return;
-            int i = rows.FindIndex(r => r.Value == selected);
-            if (e.KeyCode == Keys.Down) i = Math.Min(rows.Count - 1, i + 1);
+            var all = report == null ? new List<UsageSessionRow>() : report.Sessions;
+            if (all.Count == 0) return;
+            int i = all.FindIndex(r => r.Session == selected);
+            if (e.KeyCode == Keys.Down) i = Math.Min(all.Count - 1, i + 1);
             else if (e.KeyCode == Keys.Up) i = Math.Max(0, i - 1);
             else if (e.KeyCode == Keys.Enter && i >= 0) { app.FocusSessionById(selected); return; }
             else return;
-            selected = rows[Math.Max(0, i)].Value;
+            i = Math.Max(0, i);
+            selected = all[i].Session;
+            if (i < firstSession) firstSession = i;
+            else if (i >= firstSession + VisibleSessions) firstSession = i - VisibleSessions + 1;
             Invalidate();
         }
 

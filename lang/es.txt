@@ -385,7 +385,6 @@ stats.col.model=Modelo
 stats.col.steps=Pasos
 stats.col.context=Contexto máx.
 stats.col.week=≈ semana
-stats.sessions.more=y {0} más
 stats.session.id=Sesión {0}
 wiz.background=Espera su tarea en segundo plano (compilación, pruebas); seguirá solo
 toast.background.title=Claude lleva mucho esperando su tarea en segundo plano

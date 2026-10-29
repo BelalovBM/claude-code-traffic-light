@@ -385,7 +385,6 @@ stats.col.model=Model
 stats.col.steps=Steps
 stats.col.context=Largest context
 stats.col.week=≈ week
-stats.sessions.more=and {0} more
 stats.session.id=Session {0}
 wiz.background=Waiting for its own background task (a build, tests); goes on by itself
 toast.background.title=Claude has been waiting long for its background task

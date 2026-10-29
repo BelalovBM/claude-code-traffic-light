@@ -146,7 +146,7 @@ Below the limits the menu also shows, under its own title, how many tokens Claud
 - **What it went on**: reading the context from the cache, writing it there, the replies with their thinking. The bar and the figure next to it are the share of the limit (with an API key, of the dollars); then the share in dollars and the dollars, which differ, as the limit weighs reading the cache less than the price list does.
 - **What made it dearer**, when it is a noticeable share: steps with a context over 600k tokens (each one reads all of it again) and breaks longer than the cache lasts (after them the whole context is written to the cache again), each with what helps (`/compact`, `/clear`); and the number of compactions.
 - **By day**: a bar per day on a scale, with its figure over it for 7 days; pointing at a bar shows that day's share of the limit, dollars and tokens.
-- **Sessions**: name, model, steps, the largest context, the share of the week and the dollars; the five dearest, the rest a click away; a double click brings a running session's window to the front.
+- **Sessions**: name, model, steps, the largest context, the share of the week and the dollars; six at a time, the list scrolls under its headings; a double click brings a running session's window to the front.
 
 Tokens are exact: they are the counters of Anthropic's servers that Claude Code writes into its transcripts. Dollars are tokens × prices. The share of the limit is an estimate (≈), by the same weights as the limits. Not in the transcripts, so not in the statistics: other computers and claude.ai, the summaries Claude Code makes when it compacts, and its small service requests.
 
