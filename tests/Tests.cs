@@ -372,6 +372,25 @@ namespace Semaphore.Tests
             Check("the days add up to the total", Math.Abs(rep.Days.Sum(d => d.Value.Usd) - total) < 1e-9);
             Check("without a subscription there is no limit", !UsageStats.Build(steps, comps, st0.AddDays(-30), DateTime.UtcNow, null).Total.Weeks.HasValue);
 
+            // The replies the self-check writes are read like real ones: the statistics window has something to show.
+            string demo = Path.Combine(box, "claude", "projects", "demo");
+            Directory.CreateDirectory(demo);
+            for (int i = 0; i < SelfCheckDemo.Ids.Length; i++)
+                File.WriteAllText(Path.Combine(demo, SelfCheckDemo.Ids[i] + ".jsonl"), SelfCheckSetup.DemoReplies(i), Utf8);
+            var tracker = new UsageTracker();
+            tracker.Start();
+            UsageReport demoReport = null;
+            for (int i = 0; i < 40 && (demoReport == null || demoReport.Total.Count == 0); i++)
+            {
+                System.Threading.Thread.Sleep(250);
+                demoReport = tracker.Report(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
+            }
+            tracker.Stop();
+            Directory.Delete(demo, true);
+            Check("the self-check's replies are read: sessions, cold starts after its breaks, dollars",
+                demoReport.Total.Count > 50 && demoReport.Sessions.Count == SelfCheckDemo.Ids.Length && demoReport.ColdStarts.Count > 0 && demoReport.Total.Usd > 0,
+                demoReport.Total.Count + " steps, " + demoReport.Sessions.Count + " sessions, " + demoReport.ColdStarts.Count + " cold");
+
             // Two models, the dearer one counted 1.5 times: the fit finds that from the anchors alone.
             DateTime now = DateTime.UtcNow;
             var samples = new List<UsageMath.Sample>

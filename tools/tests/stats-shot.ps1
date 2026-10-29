@@ -62,7 +62,35 @@ if ($Real) {
     $installed = '$env:LOCALAPPDATA\ClaudeCodeTrafficLight\usage-limits.json'
     if (Test-Path $installed) { Copy-Item $installed "$box\data\" }
 } else {
-    New-Item -ItemType Directory -Force "$box\home\.claude" | Out-Null
+    # The made-up sessions of the self-check, written by the program's own code (loaded as a library).
+    New-Item -ItemType Directory -Force "$box\home\.claude\projects\demo" | Out-Null
+    [IO.File]::WriteAllText("$box\home\.claude.json", '{"oauthAccount":{"organizationType":"claude_pro"}}')
+    $asm = [Reflection.Assembly]::LoadFrom($exe)
+    $flags = [Reflection.BindingFlags]'NonPublic,Public,Static'
+    $ids = $asm.GetType('Semaphore.SelfCheckDemo').GetField('Ids', $flags).GetValue($null)
+    $names = $asm.GetType('Semaphore.SelfCheckDemo').GetField('Titles', $flags).GetValue($null)
+    $replies = $asm.GetType('Semaphore.SelfCheckSetup').GetMethod('DemoReplies', $flags)
+    for ($i = 0; $i -lt $ids.Length; $i++) {
+        $text = '{"type":"ai-title","aiTitle":"' + $names[$i] + '","sessionId":"' + $ids[$i] + '"}' + "`n" + $replies.Invoke($null, @($i))
+        [IO.File]::WriteAllText("$box\home\.claude\projects\demo\$($ids[$i]).jsonl", $text, (New-Object Text.UTF8Encoding($false)))
+    }
+    # One exact weekly figure, as if /usage had been run now: 40% of the week for all the demo use, so that the
+    # share of the limit shows.
+    $cost = @{}
+    foreach ($f in Get-ChildItem "$box\home\.claude\projects\demo" -Filter *.jsonl) {
+        foreach ($line in [IO.File]::ReadAllLines($f.FullName)) {
+            if ($line -notmatch '"model":"([^"]+)"') { continue }
+            $m = $Matches[1]
+            $n = @{}
+            foreach ($k in 'input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens') {
+                $n[$k] = if ($line -match ('"' + $k + '":(\d+)')) { [double]$Matches[1] } else { 0 }
+            }
+            $cost[$m] = $cost[$m] + $n.input_tokens + 1.25 * $n.cache_creation_input_tokens + 0.025 * $n.cache_read_input_tokens + 5 * $n.output_tokens
+        }
+    }
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    $weekCost = ($cost.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + [string][math]::Round($_.Value) }) -join ','
+    [IO.File]::WriteAllText("$box\data\usage-limits.json", '[{"AtMs":' + $now + ',"Week":40,"WeekResetMs":' + ($now + 5 * 86400000) + ',"WeekCost":{' + $weekCost + '},"CostVersion":3,"Plan":"claude_pro"}]')
     $env:TRAFFICLIGHT_CLAUDE_DIR = "$box\home\.claude"
 }
 $env:TRAFFICLIGHT_DATA_DIR = "$box\data"
@@ -86,8 +114,9 @@ try {
     Start-Sleep 2
     [Shot]::Size($h, 1000, 1400)
     Start-Sleep 2
-    [Shot]::Save($h, "$out\stats-$Lang-$Theme.png")
-    "stats: $out\stats-$Lang-$Theme.png"
+    $kind = if ($Real) { 'real' } else { 'demo' }
+    [Shot]::Save($h, "$out\stats-$kind-$Lang-$Theme.png")
+    "stats: $out\stats-$kind-$Lang-$Theme.png"
     & $exe --page 1 | Out-Null
     Start-Sleep 12
     $s = Window ($(if ($Lang -eq 'ru') { 'Claude Code Traffic Light — Настройки' } else { 'Claude Code Traffic Light — Settings' }))

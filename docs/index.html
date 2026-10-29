@@ -46,6 +46,7 @@
   .phone img { display: block; width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); }
   .phone.wide { grid-template-columns: minmax(0, 396px) 1fr; }
   .phone ul { margin: 0; padding-left: 20px; }
+  .wide-shot { display: block; max-width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); margin: 8px 0 28px; }
   .shots { display: grid; grid-template-columns: minmax(0, 428px) minmax(0, 362px); gap: 28px; justify-content: start; align-items: start; }
   .shots figure { margin: 0 0 16px; }
   .shots img { display: block; max-width: 100%; height: auto; }
@@ -151,10 +152,12 @@
         <li><strong>Exact all along</strong>, if you switch it on: whenever the estimate may be more than 1% off while you work, the app runs Claude Code's own <code>/usage</code> in the background: more often near the end of a limit, and more often by itself when the estimate starts to miss (a model or an effort it has not learnt yet), never more often than every 5 minutes. It asks no model, so it uses no limit.</li>
         <li>The same figures on the second line of the icon tooltip and at the end of every push; optionally a notice, here and on the phone, every N percent, when a limit runs out, when it is back and when a used window ends.</li>
         <li>Under them, the tokens used today and in 30 days and what they would cost at API prices, every kind of token at its own price: on a subscription, to see what the same work would cost by the token; with an API key, close to the bill.</li>
+        <li><strong>Statistics</strong> in a window of its own: what the use came to, what it went on (reading the cache, writing it, the replies), what made it dearer (a large context, breaks longer than the cache lasts, with what helps), by session and by day.</li>
       </ul>
       <p class="small">The app itself never contacts Anthropic and never touches your Claude sign-in: in the background it only starts Claude Code's own command. Use on other devices shows up at the next <code>/usage</code>. A sign-in without a subscription (an API key) has no such limits, and the app shows none.</p>
     </div>
   </div>
+  <img class="wide-shot" src="stats.png" width="760" height="711" loading="lazy" alt="The statistics window for 30 days: about 40% of the weekly limit, $35 at API prices; what it went on, reading the cache 14%, writing it 61%, replies 24% of the limit; breaks longer than the cache lasts 44%; three sessions with model, steps, largest context, share of the week and dollars; a bar per day">
 
   <h2>Get started</h2>
   <p>1. Download <code>ClaudeCodeTrafficLight.exe</code> from the <a href="https://github.com/BelalovBM/claude-code-traffic-light/releases">releases page</a> and run it.<br>

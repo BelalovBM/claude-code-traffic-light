@@ -746,7 +746,9 @@ namespace Semaphore
                 steps = entries.Values.ToList();
                 comps = compactions.Values.ToList();
             }
-            return UsageStats.Build(steps, comps, fromUtc, toUtc, s.NoSubscription ? null : s.WeekWeights);
+            UsageReport r = UsageStats.Build(steps, comps, fromUtc, toUtc, s.NoSubscription ? null : s.WeekWeights);
+            r.ApiKey = s.NoSubscription;
+            return r;
         }
 
         // The models used in the last 30 days, for the table of prices.

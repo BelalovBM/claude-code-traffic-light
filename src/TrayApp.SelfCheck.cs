@@ -37,7 +37,8 @@ namespace Semaphore
             // Chat titles for the made-up sessions, as Claude Code writes them into its transcripts.
             for (int i = 0; i < SelfCheckDemo.Ids.Length; i++)
                 File.WriteAllText(Path.Combine(claude, "projects", "demo", SelfCheckDemo.Ids[i] + ".jsonl"),
-                    "{\"type\":\"ai-title\",\"aiTitle\":\"" + SelfCheckDemo.Titles[i] + "\",\"sessionId\":\"" + SelfCheckDemo.Ids[i] + "\"}\n", utf8);
+                    "{\"type\":\"ai-title\",\"aiTitle\":\"" + SelfCheckDemo.Titles[i] + "\",\"sessionId\":\"" + SelfCheckDemo.Ids[i] + "\"}\n"
+                    + DemoReplies(i), utf8);
             // Claude Code's settings with this program's hooks, so the connection page shows the connected state.
             string cmd = "\\\"" + Application.ExecutablePath.Replace('\\', '/') + "\\\" --hook trafficlight";
             var hooks = new StringBuilder("{\"hooks\":{");
@@ -55,6 +56,36 @@ namespace Semaphore
                 "{\"FirstRunDone\":true,\"StartupNotice\":false,\"LocalApprove\":true,\"PopupAsk\":false,\"NtfyEnabled\":true,"
                 + "\"SoundWaiting\":false,\"SoundDone\":false,\"ToastWaiting\":false,\"ToastDone\":false,\"Hotkey\":\"\"}", utf8);
             return root;
+        }
+
+        // Replies of Claude over the last days, so that the limits, the use at API prices and the statistics have
+        // something to show: the context grows step by step, with a long break now and then (the cache written again).
+        internal static string DemoReplies(int session)
+        {
+            var sb = new StringBuilder();
+            var rnd = new Random(7 + session);
+            DateTime t = DateTime.UtcNow.AddDays(-6 + session).AddHours(-3);
+            long context = 20000;
+            string model = session == 1 ? "claude-sonnet-5-5" : "claude-opus-5-5";
+            for (int step = 0; step < 60 && t < DateTime.UtcNow; step++)
+            {
+                bool pause = step > 0 && step % 17 == 0;
+                t = t.AddMinutes(pause ? 90 : 1 + rnd.Next(4));
+                long write = pause ? context : 2000 + rnd.Next(8000);
+                long read = pause ? 0 : context;
+                long output = 300 + rnd.Next(3000);
+                context += write - (pause ? context : 0) + output;
+                sb.Append("{\"parentUuid\":null,\"isSidechain\":false,\"type\":\"assistant\",\"message\":{\"model\":\"").Append(model)
+                  .Append("\",\"id\":\"msg_demo_").Append(session).Append('_').Append(step)
+                  .Append("\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":").Append(write)
+                  .Append(",\"cache_read_input_tokens\":").Append(read)
+                  .Append(",\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":").Append(write)
+                  .Append("},\"output_tokens\":").Append(output)
+                  .Append(",\"speed\":\"standard\"}},\"requestId\":\"req_demo_").Append(session).Append('_').Append(step)
+                  .Append("\",\"timestamp\":\"").Append(t.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture))
+                  .Append("\",\"sessionId\":\"").Append(SelfCheckDemo.Ids[session]).Append("\"}\n");
+            }
+            return sb.ToString();
         }
     }
 
@@ -128,6 +159,9 @@ namespace Semaphore
                 Step(300, "close request panel", () => { app.askPanel.Close(); app.askTimer.Start(); });
                 Step(300, "show a notification", () => app.ShowTestNotification());
                 Step(2500, "picture notification", () => SaveScreenRect(CornerOfTray(), "notification.png"));
+                Step(300, "open statistics", () => app.ShowStats());
+                Step(2000, "picture statistics", () => SaveWindow(app.stats, "stats.png"));
+                Step(300, "close statistics", () => app.stats.Close());
                 Step(300, "open welcome window", () => { welcome = new WelcomeForm(app.Config, app.icons[Level.Idle], () => { }); welcome.Show(); });
                 Step(1500, "picture welcome window", () => SaveWindow(welcome, "welcome.png"));
                 Step(300, "close welcome window", () => welcome.Close());

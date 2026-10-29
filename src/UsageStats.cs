@@ -69,6 +69,8 @@ namespace Semaphore
         public List<KeyValuePair<DateTime, UsageAmount>> Days = new List<KeyValuePair<DateTime, UsageAmount>>();
         public List<string> Unpriced = new List<string>();
         public bool LimitKnown;
+        // A sign-in by API key: there is a bill to compare with, and no limit.
+        public bool ApiKey;
     }
 
     // The statistics of a period, apart from files and windows, so that they can be tested.

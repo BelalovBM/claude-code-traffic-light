@@ -3,7 +3,14 @@
 ## 0.9.9 (beta)
 
 **New**
-- **Use at API prices.** A block of its own under the limits shows the tokens Claude Code used today and in the last 30 days, and what they would cost at Anthropic's API prices: on a subscription, to see what the same work would cost by the token; with a sign-in by API key, which has no limits to show, close to the bill. Every kind of token at its own price (input, writing the cache for 5 minutes or an hour, reading it, the reply with its thinking), web searches and fast mode too. The prices of the current models are built in; others go into `api-prices.json` next to the program. **Settings → Notifications → Show the use … at API prices** switches it off.
+- **Use at API prices.** A block of its own under the limits shows the tokens Claude Code used today and in the last 30 days, and what they would cost at Anthropic's API prices: on a subscription, to see what the same work would cost by the token; with a sign-in by API key, which has no limits to show, close to the bill. Every kind of token at its own price (input, writing the cache for 5 minutes or an hour, reading it, the reply with its thinking), web searches and fast mode too. **Settings → Notifications → Use at API prices** switches it off.
+- **Statistics.** **Statistics…** in the tray menu opens a window with the use of today, 7 or 30 days: the total (on a subscription in the share of the weekly limit, with the dollars at API prices next to it), what it went on (reading the cache, writing it, the replies), what made it dearer (a context over 600k tokens, breaks longer than the cache lasts, each with what helps; the compactions), the sessions and the days.
+- **Prices of the models in the settings**, with where each came from (the program, LiteLLM, you): typed in, back to the defaults, or loaded on request from the open price file of LiteLLM on GitHub, with what would change shown first.
+
+**Fixed**
+- Reading the cache on Sonnet 5.5 is priced at $0.10 per million tokens (it was counted at $0.20).
+- The settings page stayed empty when the statistics window had been opened first.
+- An indented check box in the settings could cut off its last line (in English, "Refine the limits by itself …").
 
 ## 0.9.8 (beta)
 

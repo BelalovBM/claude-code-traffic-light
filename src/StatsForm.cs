@@ -377,7 +377,10 @@ namespace Semaphore
 
             // How sure the figures are, and the prices.
             y += Ui.S(2);
-            y = c.Text(Loc.T(Limit ? "stats.accuracy" : "stats.accuracy.api"), margin + Ui.S(4), y, width - 2 * margin, Theme.Muted) + Ui.S(4);
+            y = c.Text(Loc.T(report.ApiKey ? "stats.accuracy.api" : "stats.accuracy"), margin + Ui.S(4), y, width - 2 * margin, Theme.Muted) + Ui.S(4);
+            // A subscription without exact figures yet: the share of the limit comes after the first /usage.
+            if (!report.ApiKey && !Limit)
+                y = c.Text(Loc.T("limits.menu.setup"), margin + Ui.S(4), y, width - 2 * margin, Theme.Muted) + Ui.S(4);
             if (report.Unpriced.Count > 0)
                 y = c.Text(Loc.T("cost.menu.unpriced", string.Join(", ", report.Unpriced)), margin + Ui.S(4), y, width - 2 * margin, Palette.StatusWarn) + Ui.S(4);
             Size link = TextRenderer.MeasureText(Loc.T("stats.prices"), Font);
