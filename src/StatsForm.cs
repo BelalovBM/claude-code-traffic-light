@@ -55,6 +55,7 @@ namespace Semaphore
             scroller.HorizontalScroll.Visible = false;
             scroller.AutoScroll = true;
             view = new StatsView(app) { Left = 0, Top = 0 };
+            view.Expanded += () => { FitView(); FitHeight(); };
             scroller.Controls.Add(view);
             scroller.Resize += (s, e) => FitView();
             Controls.Add(scroller);
@@ -64,7 +65,9 @@ namespace Semaphore
             BackColor = Theme.Back;
 
             timer.Tick += (s, e) => Refill();
-            Shown += (s, e) => { Refill(); timer.Start(); close.Focus(); };
+            // Filled before it shows, so that it opens at the height of its content, in the middle of the screen.
+            Load += (s, e) => { Refill(); CenterToScreen(); };
+            Shown += (s, e) => { timer.Start(); close.Focus(); };
             FormClosed += (s, e) => timer.Dispose();
         }
 
@@ -129,10 +132,40 @@ namespace Semaphore
         // On the timer and on another period: the figures again, the place in the window and the selection kept.
         void Refill()
         {
+            // A period chosen before the window is made: the figures come when it loads.
+            if (!IsHandleCreated) return;
             DateTime now = DateTime.UtcNow;
             DateTime from = tabs.Selected == 0 ? DateTime.Today.ToUniversalTime() : now.AddDays(tabs.Selected == 1 ? -7 : -30);
             view.Show(app.Usage.Report(from, now), tabs.Selected);
             FitView();
+            FitHeight();
+        }
+
+        public void ShowPeriod(int period)
+        {
+            tabs.Choose(Math.Max(0, Math.Min(2, period)));
+        }
+
+        bool fitted;
+
+        // The window as tall as its content, so that it needs no scroll bar where the screen allows: at the first
+        // showing exactly, later only taller (a period with more to show), never jumping back.
+        void FitHeight()
+        {
+            Rectangle screen = Screen.FromControl(this).WorkingArea;
+            int frame = Height - ClientSize.Height;
+            int need = tabs.Height + view.Height + bottom.Height;
+            int height = Math.Min(need + frame, screen.Height);
+            if (fitted && height <= Height) return;
+            fitted = true;
+            // Twice: measured with a scroll bar the text wraps more, and without it the content is a little shorter.
+            for (int pass = 0; pass < 2; pass++)
+            {
+                int top = Math.Max(screen.Top, Math.Min(Top, screen.Bottom - height));
+                Bounds = new Rectangle(Left, top, Width, Math.Max(MinimumSize.Height, height));
+                FitView();
+                height = Math.Min(tabs.Height + view.Height + bottom.Height + frame, screen.Height);
+            }
         }
 
         void FitView()
@@ -145,7 +178,7 @@ namespace Semaphore
         // "Today / 7 days / 30 days": tabs drawn in the colours of the theme, the chosen one bold and underlined.
         sealed class PeriodTabs : Control
         {
-            public int Selected = 2;
+            public int Selected;
             public event Action Changed;
             readonly string[] names = { Loc.T("stats.period.today"), Loc.T("stats.period.week"), Loc.T("stats.period.month") };
             Rectangle[] boxes = new Rectangle[0];
@@ -205,7 +238,7 @@ namespace Semaphore
             protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
             protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
 
-            void Choose(int i)
+            public void Choose(int i)
             {
                 if (i == Selected) return;
                 Selected = i;
@@ -226,8 +259,17 @@ namespace Semaphore
         string selected;
         // Where things were drawn, for the mouse: the rows of sessions and the link to the prices.
         readonly List<KeyValuePair<Rectangle, string>> rows = new List<KeyValuePair<Rectangle, string>>();
-        Rectangle pricesLink;
+        Rectangle pricesLink, sessionsLink;
+        // The sessions beyond the first few are shown on request.
+        const int FewSessions = 5;
+        bool allSessions;
+        // The content grew or shrank by a click: the window fits it again.
+        public event Action Expanded;
         readonly Dictionary<string, string> names = new Dictionary<string, string>();
+        // The bars of the days with the figures each shows under the pointer.
+        readonly List<KeyValuePair<Rectangle, string>> days = new List<KeyValuePair<Rectangle, string>>();
+        readonly ToolTip tip = new ToolTip { InitialDelay = 200, ReshowDelay = 100 };
+        string tipShown;
 
         public StatsView(TrayApp app)
         {
@@ -303,7 +345,7 @@ namespace Semaphore
         int Draw(Graphics g, int width, bool paint)
         {
             // The places for the mouse are those of the last painting, not of a measuring pass.
-            if (paint) { rows.Clear(); pricesLink = Rectangle.Empty; }
+            if (paint) { rows.Clear(); days.Clear(); pricesLink = sessionsLink = Rectangle.Empty; }
             int margin = Ui.S(16), pad = Ui.S(14);
             int y = Ui.S(12);
             if (report == null) return y;
@@ -316,64 +358,57 @@ namespace Semaphore
                 return y + margin;
             }
 
-            // The total.
+            // The total, and what it went on: one card, the whole and its parts.
             y = c.Card(margin, y, width - 2 * margin, pad, yy =>
             {
                 yy = c.Text(Loc.T("stats.total"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(6);
                 string lead = Limit ? LimitTotal(report.Total.Weeks.Value) : ApiPrices.Dollars(report.Total.Usd, Culture) + " " + Loc.T("stats.at.api");
                 yy = c.Text(lead, left, yy, inner, Theme.Fore, c.Big);
                 if (Limit) yy = c.Text(ApiPrices.Dollars(report.Total.Usd, Culture) + " " + Loc.T("stats.at.api"), left, yy + Ui.S(2), inner, Theme.Fore);
-                return c.Text(Loc.T("stats.total.line", ApiPrices.Tokens(report.Total.Tokens, Culture), report.Total.Count.ToString("N0", Culture),
+                yy = c.Text(Loc.T("stats.total.line", ApiPrices.Tokens(report.Total.Tokens, Culture), report.Total.Count.ToString("N0", Culture),
                     ApiPrices.Dollars(report.Total.Usd / Math.Max(1, report.Total.Count), Culture)), left, yy + Ui.S(2), inner, Theme.Muted);
-            });
-
-            // What it went on.
-            y = c.Card(margin, y, width - 2 * margin, pad, yy =>
-            {
-                yy = c.Text(Loc.T("stats.parts"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(4);
+                // What it went on, with the headings of the columns on the same line.
+                yy += Ui.S(12);
+                c.Text(Loc.T("stats.parts"), left, yy, LabelWidth(inner), Theme.Fore, c.Bold);
                 yy = Captions(c, left, yy, inner);
                 yy = Bar(c, Loc.T("stats.part.read"), report.Reading, left, yy, inner);
                 yy = Bar(c, Loc.T("stats.part.write"), report.Writing, left, yy, inner);
-                return Bar(c, Loc.T("stats.part.reply"), report.Replies, left, yy, inner);
-            });
+                yy = Bar(c, Loc.T("stats.part.reply"), report.Replies, left, yy, inner);
 
-            // What made it dearer: only what is a noticeable share, each with what to do about it.
-            y = c.Card(margin, y, width - 2 * margin, pad, yy =>
-            {
-                yy = c.Text(Loc.T("stats.dearer"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(4);
+                // What made it dearer, under the same columns: only what is a noticeable share, each with what to do
+                // about it.
+                yy = c.Text(Loc.T("stats.dearer"), left, yy + Ui.S(8), inner, Theme.Fore, c.Bold) + Ui.S(4);
                 bool any = false;
                 if (Share(report.LargeContext) >= 0.1)
                 {
-                    if (!any) yy = Captions(c, left, yy, inner);
                     any = true;
-                    yy = Bar(c, Loc.T("stats.dear.large"), report.LargeContext, left, yy, inner);
+                    yy = Bar(c, Loc.T("stats.dear.large"), report.LargeContext, left, yy, inner) - Ui.S(4);
                     yy = c.Text(Loc.T("stats.dear.large.tip"), left + Ui.S(12), yy, inner - Ui.S(12), Theme.Muted) + Ui.S(6);
                 }
                 if (Share(report.ColdStarts) >= 0.1)
                 {
-                    if (!any) yy = Captions(c, left, yy, inner);
                     any = true;
-                    yy = Bar(c, Loc.T("stats.dear.cold", report.ColdStarts.Count.ToString("N0", Culture)), report.ColdStarts, left, yy, inner);
+                    yy = Bar(c, Loc.T("stats.dear.cold", report.ColdStarts.Count.ToString("N0", Culture)), report.ColdStarts, left, yy, inner) - Ui.S(4);
                     yy = c.Text(Loc.T("stats.dear.cold.tip"), left + Ui.S(12), yy, inner - Ui.S(12), Theme.Muted) + Ui.S(6);
                 }
                 if (!any) yy = c.Text(Loc.T("stats.dear.none"), left, yy, inner, Theme.Muted) + Ui.S(4);
                 return c.Text(Loc.T("stats.compactions", report.Compactions.ToString("N0", Culture)), left, yy, inner, Theme.Muted);
             });
 
-            // The sessions.
+            // The days, for a period longer than one.
+            if (period > 0 && report.Days.Count > 0)
+                y = c.Card(margin, y, width - 2 * margin, pad, yy =>
+                {
+                    yy = c.Text(Loc.T("stats.days"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(2);
+                    return Days(c, left, yy, inner);
+                });
+
+            // The sessions, last: the one list that can be long.
             y = c.Card(margin, y, width - 2 * margin, pad, yy =>
             {
                 yy = c.Text(Loc.T("stats.sessions"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(4);
                 return Sessions(c, left, yy, inner);
             });
-
-            // The days, for a period longer than one.
-            if (period > 0 && report.Days.Count > 0)
-                y = c.Card(margin, y, width - 2 * margin, pad, yy =>
-                {
-                    yy = c.Text(Loc.T("stats.days"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(4);
-                    return Days(c, left, yy, inner);
-                });
 
             // How sure the figures are, and the prices.
             y += Ui.S(2);
@@ -389,29 +424,35 @@ namespace Semaphore
             return y + link.Height + margin;
         }
 
-        // The column headings of the bars: "≈ limit" over the share of the limit, "$ API" over the share of the dollars
-        // (the dollars themselves need no heading).
+        // The headings of the bars. The bar and the figure right after it are one thing, the share in the leading unit,
+        // and have one heading over both; on a subscription the share of the dollars and the dollars follow under "at
+        // API prices".
         int Captions(Painter c, int left, int y, int inner)
         {
             int[] cols = Columns(left, inner);
-            if (Limit) c.Right(Loc.T("stats.col.limit"), cols[0], y, Theme.Muted);
-            c.Right(Loc.T("stats.col.api"), cols[1], y, Theme.Muted);
+            c.Line(Loc.T(Limit ? "stats.bar.limit" : "stats.bar.api"), BarLeft(left, inner), y, cols[0] - BarLeft(left, inner), Theme.Muted);
+            if (Limit) c.Right(Loc.T("stats.at.api"), cols[2], y, Theme.Muted);
             return y + Font.Height + Ui.S(2);
         }
 
-        // The right edges of the number columns: the share of the limit, the share of the dollars, the dollars.
+        // The right edges of the number columns: the share the bar shows, then on a subscription the share of the
+        // dollars, and the dollars.
         int[] Columns(int left, int inner)
         {
             int right = left + inner;
-            return new[] { right - Ui.S(150), right - Ui.S(90), right };
+            return Limit ? new[] { right - Ui.S(150), right - Ui.S(90), right } : new[] { right - Ui.S(90), 0, right };
         }
+
+        int LabelWidth(int inner) { return Math.Min(Ui.S(240), inner / 2 - Ui.S(40)); }
+
+        int BarLeft(int left, int inner) { return left + LabelWidth(inner) + Ui.S(8); }
 
         int Bar(Painter c, string label, UsageAmount a, int left, int y, int inner)
         {
             int[] cols = Columns(left, inner);
-            int labelWidth = Math.Min(Ui.S(260), inner / 2 - Ui.S(20));
-            int barLeft = left + labelWidth + Ui.S(8);
-            int barRight = cols[0] - Ui.S(60);
+            int labelWidth = LabelWidth(inner);
+            int barLeft = BarLeft(left, inner);
+            int barRight = cols[0] - Ui.S(48);
             int h = Math.Max(c.Measure(label, labelWidth), Font.Height);
             c.Text(label, left, y, labelWidth, Theme.Fore);
             if (barRight > barLeft)
@@ -420,9 +461,9 @@ namespace Semaphore
                 c.Fill(barLeft, y + Ui.S(3), barRight - barLeft, Font.Height - Ui.S(6), Theme.Hover);
                 c.Fill(barLeft, y + Ui.S(3), length, Font.Height - Ui.S(6), Palette.AccentBar);
             }
-            if (Limit) c.Right(Percent(report.Total.Weeks > 0 ? (a.Weeks ?? 0) / report.Total.Weeks.Value : 0), cols[0], y, Theme.Fore);
-            c.Right(Percent(report.Total.Usd > 0 ? a.Usd / report.Total.Usd : 0), cols[1], y, Theme.Fore);
-            c.Right(ApiPrices.Dollars(a.Usd, Culture), cols[2], y, Theme.Fore);
+            c.Right(Percent(Share(a)), cols[0], y, Theme.Fore);
+            if (Limit) c.Right(Percent(report.Total.Usd > 0 ? a.Usd / report.Total.Usd : 0), cols[1], y, Theme.Muted);
+            c.Right(ApiPrices.Dollars(a.Usd, Culture), cols[2], y, Limit ? Theme.Muted : Theme.Fore);
             return y + h + Ui.S(6);
         }
 
@@ -430,7 +471,10 @@ namespace Semaphore
         {
             // Session | Model | Steps | Largest context | ≈ week | $ API: the numbers take what their heading or their
             // widest value needs, the name of the session the rest.
-            var shown = report.Sessions.Take(50).ToList();
+            // The five dearest; the rest behind a link, so that the window seldom needs a scroll bar. The columns are
+            // measured on all of them, so they stay put when the rest open.
+            var all = report.Sessions;
+            var shown = allSessions ? all : all.Take(FewSessions).ToList();
             Func<string, IEnumerable<string>, int> need = (head, values) =>
                 values.Concat(new[] { head }).Max(t => c.Width(t)) + Ui.S(14);
             int wModel = need(Loc.T("stats.col.model"), shown.Select(r => Model(r.Model)));
@@ -464,8 +508,13 @@ namespace Semaphore
                 c.Right(ApiPrices.Dollars(row.Amount.Usd, Culture), edges[5], ty, Theme.Fore);
                 y += rowHeight;
             }
-            if (report.Sessions.Count > 50)
-                y = c.Text(Loc.T("stats.sessions.more", report.Sessions.Count - 50), left, y + Ui.S(4), inner, Theme.Muted);
+            if (all.Count > FewSessions)
+            {
+                string text = allSessions ? "▾  " + Loc.T("details.less") : "▸  " + Loc.T("stats.sessions.more", all.Count - FewSessions);
+                Size size = TextRenderer.MeasureText(text, Font);
+                if (c.Painting) sessionsLink = new Rectangle(left, y + Ui.S(4), size.Width, size.Height);
+                y = c.Text(text, left, y + Ui.S(4), size.Width + 2, Palette.Link);
+            }
             return c.Text(Loc.T("stats.sessions.hint"), left, y + Ui.S(6), inner, Theme.Muted);
         }
 
@@ -478,46 +527,114 @@ namespace Semaphore
             return char.ToUpperInvariant(parts[1][0]) + parts[1].Substring(1) + (digits.Count > 0 ? " " + string.Join(".", digits) : "");
         }
 
+        // A bar a day in the leading unit (≈ % of the weekly limit, or dollars), on a scale with round marks; over each
+        // bar its figure where there is room (7 days), and all the figures of a day when the pointer is on its bar.
         int Days(Painter c, int left, int y, int inner)
         {
             int count = period == 1 ? 7 : 30;
             DateTime last = DateTime.Today, first = last.AddDays(-(count - 1));
+            var amounts = new UsageAmount[count];
             var values = new double[count];
             foreach (var d in report.Days)
             {
                 int i = (int)(d.Key - first).TotalDays;
-                if (i >= 0 && i < count) values[i] = Limit ? d.Value.Weeks ?? 0 : d.Value.Usd;
+                if (i < 0 || i >= count) continue;
+                amounts[i] = d.Value;
+                values[i] = Limit ? 100 * (d.Value.Weeks ?? 0) : d.Value.Usd;
             }
-            double max = Math.Max(values.Max(), 1e-9);
-            string top = Limit ? WeekPercent(max) : ApiPrices.Dollars(max, Culture);
-            y = c.Text(Loc.T("stats.days.max", top), left, y, inner, Theme.Muted) + Ui.S(4);
-            int chart = Ui.S(110);
-            int slot = inner / count;
+            y = c.Text(Loc.T(Limit ? "stats.days.limit" : "stats.days.api"), left, y, inner, Theme.Muted) + Ui.S(8);
+
+            double step = NiceStep(values.Max() / 3);
+            // The top mark at or just under the highest bar: a bar a little above it is cut at the top, which is
+            // better than a third of the chart left empty.
+            double top = Math.Max(step, Math.Ceiling(values.Max() / step - 0.1) * step);
+            Func<double, string> figure = v => Limit
+                ? v.ToString(step < 1 ? "0.#" : "0", Culture) + "%"
+                : ApiPrices.Dollars(v, Culture);
+            int marks = (int)Math.Round(top / step);
+            int gutter = Enumerable.Range(0, marks + 1).Max(k => c.Width(figure(k * step))) + Ui.S(8);
+            int plotLeft = left + gutter, plotWidth = inner - gutter;
+            // A bar no wider than a bar should be: a week does not stretch across the whole card.
+            int slot = Math.Min(plotWidth / count, Ui.S(72));
+            int barWidth = Math.Max(1, Math.Min(slot - Ui.S(3), Ui.S(40)));
+            bool labels = slot >= values.Max(v => c.Width(figure(v))) + Ui.S(4);
+            int chart = Ui.S(80);
+            int chartTop = y + (labels ? Font.Height : Font.Height / 2);
+            int bottomLine = chartTop + chart;
+
+            for (int k = 0; k <= marks; k++)
+            {
+                int ly = bottomLine - (int)Math.Round(chart * k * step / top);
+                c.Fill(plotLeft, ly, slot * count, 1, k == 0 ? Theme.Muted : Theme.Border);
+                c.Right(figure(k * step), plotLeft - Ui.S(6), ly - Font.Height / 2, Theme.Muted);
+            }
             for (int i = 0; i < count; i++)
             {
-                int h = (int)Math.Round(chart * values[i] / max);
+                int x = plotLeft + i * slot + (slot - barWidth) / 2;
+                int h = Math.Min(chart, (int)Math.Round(chart * values[i] / top));
                 if (values[i] > 0 && h < 2) h = 2;
-                c.Fill(left + i * slot + Ui.S(1), y + chart - h, Math.Max(1, slot - Ui.S(3)), h, Palette.AccentBar);
+                c.Fill(x, bottomLine - h, barWidth, h, Palette.AccentBar);
+                if (labels && values[i] > 0)
+                    c.Center(figure(values[i]), x + barWidth / 2, bottomLine - h - Font.Height, Theme.Fore);
+                if (c.Painting && amounts[i] != null)
+                    days.Add(new KeyValuePair<Rectangle, string>(new Rectangle(plotLeft + i * slot, chartTop, slot, chart + 1), DayTip(first.AddDays(i), amounts[i])));
             }
-            c.Fill(left, y + chart, slot * count, 1, Theme.Border);
-            y += chart + Ui.S(4);
-            // A date under the first bar of each week (every day for a week).
+            y = bottomLine + Ui.S(4);
+            // A date under every bar of a week, under the first bar of each week of a month.
             for (int i = 0; i < count; i += period == 1 ? 1 : 7)
-                c.Text(first.AddDays(i).ToString("dd.MM", Culture), left + i * slot, y, Ui.S(60), Theme.Muted);
+                c.Center(first.AddDays(i).ToString("dd.MM", Culture), plotLeft + i * slot + slot / 2, y, Theme.Muted);
             return y + Font.Height;
+        }
+
+        // 1, 2, 2.5 or 5 times a power of ten: the step of the marks for about three of them.
+        static double NiceStep(double raw)
+        {
+            if (raw <= 0) return 1;
+            double power = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+            foreach (double m in new[] { 1, 2, 2.5, 5, 10 })
+                if (m * power >= raw) return m * power;
+            return 10 * power;
+        }
+
+        string DayTip(DateTime day, UsageAmount a)
+        {
+            var parts = new List<string>();
+            if (Limit) parts.Add(Loc.T("stats.limit.percent", Math.Round(100 * (a.Weeks ?? 0)).ToString("0", Culture)));
+            parts.Add(ApiPrices.Dollars(a.Usd, Culture) + " " + Loc.T("stats.at.api"));
+            parts.Add(Loc.T("stats.day.tokens", ApiPrices.Tokens(a.Tokens, Culture)));
+            return day.ToString("ddd dd.MM", Culture) + "\n" + string.Join("\n", parts);
         }
 
         // ---- the mouse and the keys ----
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            Cursor = pricesLink.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
+            Cursor = pricesLink.Contains(e.Location) || sessionsLink.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
+            string text = days.Where(d => d.Key.Contains(e.Location)).Select(d => d.Value).FirstOrDefault();
+            if (text == tipShown) return;
+            tipShown = text;
+            if (text == null) tip.Hide(this);
+            else tip.Show(text, this, e.X + Ui.S(14), e.Y + Ui.S(14));
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            tipShown = null;
+            tip.Hide(this);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) tip.Dispose();
+            base.Dispose(disposing);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             Focus();
             if (pricesLink.Contains(e.Location)) { app.ShowPriceSettings(); return; }
+            if (sessionsLink.Contains(e.Location)) { allSessions = !allSessions; Invalidate(); var h = Expanded; if (h != null) h(); return; }
             foreach (var r in rows)
                 if (r.Key.Contains(e.Location)) { selected = r.Value; Invalidate(); }
         }
@@ -548,7 +665,7 @@ namespace Semaphore
             readonly Graphics g;
             readonly Font font;
             bool paint;
-            public readonly Font Header, Big, Underline;
+            public readonly Font Header, Big, Bold, Underline;
 
             public bool Painting { get { return paint; } }
 
@@ -559,6 +676,7 @@ namespace Semaphore
                 this.paint = paint;
                 Header = new Font(font.FontFamily, font.Size + 1.5f, FontStyle.Bold);
                 Big = new Font(font.FontFamily, font.Size + 5f, FontStyle.Bold);
+                Bold = new Font(font, FontStyle.Bold);
                 Underline = new Font(font, FontStyle.Underline);
             }
 
@@ -595,6 +713,14 @@ namespace Semaphore
                 if (!paint) return;
                 Size s = TextRenderer.MeasureText(g, text, font);
                 TextRenderer.DrawText(g, text, font, new Point(right - s.Width, y), color, TextFormatFlags.NoPrefix);
+            }
+
+            // Text centred on "middle".
+            public void Center(string text, int middle, int y, Color color)
+            {
+                if (!paint) return;
+                Size s = TextRenderer.MeasureText(g, text, font);
+                TextRenderer.DrawText(g, text, font, new Point(middle - s.Width / 2, y), color, TextFormatFlags.NoPrefix);
             }
 
             public void Fill(int x, int y, int w, int h, Color color)

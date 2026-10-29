@@ -447,7 +447,7 @@ namespace Semaphore
                     else if ("hotkey".Equals(what))
                         OnHotkey();
                     else if ("stats".Equals(what))
-                        ShowStats();
+                        ShowStats(page);
                     else
                         ShowSettings(page);
                     return;

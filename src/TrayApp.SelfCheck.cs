@@ -159,7 +159,8 @@ namespace Semaphore
                 Step(300, "close request panel", () => { app.askPanel.Close(); app.askTimer.Start(); });
                 Step(300, "show a notification", () => app.ShowTestNotification());
                 Step(2500, "picture notification", () => SaveScreenRect(CornerOfTray(), "notification.png"));
-                Step(300, "open statistics", () => app.ShowStats());
+                // Seven days: the demo replies lie in the past days, and this period shows the bars of the days too.
+                Step(300, "open statistics", () => app.ShowStats(1));
                 Step(2000, "picture statistics", () => SaveWindow(app.stats, "stats.png"));
                 Step(300, "close statistics", () => app.stats.Close());
                 Step(300, "open welcome window", () => { welcome = new WelcomeForm(app.Config, app.icons[Level.Idle], () => { }); welcome.Show(); });

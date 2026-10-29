@@ -107,16 +107,17 @@ function Window($title, $seconds = 10) {
 try {
     # The first reading of a month of transcripts takes a while.
     Start-Sleep 25
-    & $exe --stats | Out-Null
+    # Each period in the size the window takes for it by itself.
     $titles = @{ ru = 'Статистика расхода'; en = 'Usage statistics' }
-    $h = Window $titles[$Lang]
-    if ($h -eq [IntPtr]::Zero) { 'NO STATS WINDOW'; return }
-    Start-Sleep 2
-    [Shot]::Size($h, 1000, 1400)
-    Start-Sleep 2
     $kind = if ($Real) { 'real' } else { 'demo' }
-    [Shot]::Save($h, "$out\stats-$kind-$Lang-$Theme.png")
-    "stats: $out\stats-$kind-$Lang-$Theme.png"
+    foreach ($period in 0, 1, 2) {
+        & $exe --stats $period | Out-Null
+        $h = Window $titles[$Lang]
+        if ($h -eq [IntPtr]::Zero) { 'NO STATS WINDOW'; return }
+        Start-Sleep 3
+        [Shot]::Save($h, "$out\stats-$kind-$period-$Lang-$Theme.png")
+        "stats: $out\stats-$kind-$period-$Lang-$Theme.png"
+    }
     & $exe --page 4 | Out-Null
     Start-Sleep 12
     $s = Window ($(if ($Lang -eq 'ru') { 'Claude Code Traffic Light — Настройки' } else { 'Claude Code Traffic Light — Settings' }))

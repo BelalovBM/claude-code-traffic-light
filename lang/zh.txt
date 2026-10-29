@@ -371,11 +371,14 @@ stats.dear.none=没有明显的问题。
 stats.compactions=压缩：{0} 次
 stats.sessions=会话
 stats.days=按天
-stats.days.max=最高：{0}
+stats.days.limit=每天占每周限额的 ≈ %；指向柱条可查看数字
+stats.days.api=每天按 API 价格的 $；指向柱条可查看数字
+stats.day.tokens={0} 令牌
 stats.accuracy=令牌是精确的（日志中 Anthropic 服务器的计数）；美元 = 令牌 × 价格；限额占比是估算（≈）。不在日志中：其他电脑和 claude.ai、压缩时生成的摘要、Claude Code 的少量服务请求。
 stats.accuracy.api=令牌是精确的（日志中 Anthropic 服务器的计数）；美元 = 令牌 × 价格。不在日志中：其他电脑、压缩时生成的摘要、Claude Code 的少量服务请求。账单本身在 Anthropic Console → Usage。
 stats.prices=价格…
-stats.col.limit=≈ 限额
+stats.bar.limit=≈ 占每周限额
+stats.bar.api=按 API 价格占比
 stats.col.api=$ API
 stats.col.session=会话
 stats.col.model=模型

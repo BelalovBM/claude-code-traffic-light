@@ -273,11 +273,13 @@ namespace Semaphore
 
         StatsForm stats;
 
-        internal void ShowStats()
+        // Today unless a period is asked for (by the command line, for pictures of the window).
+        internal void ShowStats(int period = 0)
         {
             if (stats != null && !stats.IsDisposed)
             {
                 if (stats.WindowState == FormWindowState.Minimized) stats.WindowState = FormWindowState.Normal;
+                if (period > 0) stats.ShowPeriod(period);
                 stats.Activate();
                 return;
             }
@@ -286,6 +288,7 @@ namespace Semaphore
             using (Native.PerMonitorWindows())
             {
                 stats = new StatsForm(this, icons[Level.Idle]);
+                stats.ShowPeriod(period);
                 stats.Show();
             }
             stats.Activate();

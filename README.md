@@ -138,15 +138,15 @@ Below the limits the menu also shows, under its own title, how many tokens Claud
 
 ### Statistics
 
-**Statistics…** in the tray menu (and a link on both cards of the limits and of the prices) opens a window with the use of today, of 7 or of 30 days:
+**Statistics…** in the tray menu (and a link on both cards of the limits and of the prices) opens a window with the use of today (as it opens), of 7 or of 30 days:
 
-<img src="docs/stats.png" width="600" alt="The statistics window for 30 days: about 40% of the weekly limit, $35 at API prices; what it went on; breaks longer than the cache lasts; three sessions; a bar per day">
+<img src="docs/stats.png" width="600" alt="The statistics window for 7 days: about 40% of the weekly limit, $35 at API prices; what it went on; breaks longer than the cache lasts; a bar per day; three sessions">
 
 - **Total**: on a subscription the share of the weekly limit (≈ 14% of the week, ≈ 2.4 weeks of the limit), with the dollars at API prices next to it; with an API key the dollars; the tokens, the steps and the cost of a step.
-- **What it went on**: reading the context from the cache, writing it there, the replies with their thinking — in the share of the limit and in dollars, which differ, as the limit weighs reading the cache less than the price list does.
+- **What it went on**: reading the context from the cache, writing it there, the replies with their thinking. The bar and the figure next to it are the share of the limit (with an API key, of the dollars); then the share in dollars and the dollars, which differ, as the limit weighs reading the cache less than the price list does.
 - **What made it dearer**, when it is a noticeable share: steps with a context over 600k tokens (each one reads all of it again) and breaks longer than the cache lasts (after them the whole context is written to the cache again), each with what helps (`/compact`, `/clear`); and the number of compactions.
-- **Sessions**: name, model, steps, the largest context, the share of the week and the dollars; a double click brings a running session's window to the front.
-- **By day**: a bar per day.
+- **By day**: a bar per day on a scale, with its figure over it for 7 days; pointing at a bar shows that day's share of the limit, dollars and tokens.
+- **Sessions**: name, model, steps, the largest context, the share of the week and the dollars; the five dearest, the rest a click away; a double click brings a running session's window to the front.
 
 Tokens are exact: they are the counters of Anthropic's servers that Claude Code writes into its transcripts. Dollars are tokens × prices. The share of the limit is an estimate (≈), by the same weights as the limits. Not in the transcripts, so not in the statistics: other computers and claude.ai, the summaries Claude Code makes when it compacts, and its small service requests.
 
