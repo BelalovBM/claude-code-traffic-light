@@ -15,7 +15,7 @@ A tray traffic light for [Claude Code](https://claude.com/claude-code) on Window
 
 It works with Claude Code in the console and in the VS Code extension, and shows every running session at once. The icon shows the most urgent state. The menu also shows Claude's usage limits (5 hours and the week), the tokens used and what they would cost at API prices, and how full each session's context is.
 
-![The five lamps; two sessions at work with the usage limits on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp; the same question on a phone and on a smartwatch with its answer buttons; seven languages](docs/demo.gif)
+![The five lamps; two sessions at work with the usage limits and the use at API prices on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp; the statistics window with the share of the weekly limit and what it went on; the same question on a phone and on a smartwatch with its answer buttons; seven languages](docs/demo.gif)
 
 
 ## Quick start

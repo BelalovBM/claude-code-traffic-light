@@ -92,11 +92,15 @@ phone = Image.open(target.parent / "phone-ntfy.jpg").convert("RGB")
 phone.crop((0, 0, phone.width, 1060)).save(work / "phone.png")
 # The watch: the same question in three steps, ending with the answer buttons on the wrist.
 Image.open(target.parent / "watch-question.png").save(work / "watch-question.png")
+# The statistics: the top of the window (the total and what it went on), large enough to read in a frame, without the
+# dark edges the picture of the window has at its sides.
+stats = Image.open(target.parent / "stats.png").convert("RGB")
+stats.crop((8, 0, stats.width - 8, 380)).save(work / "stats-top.png")
 
 watch = scene("watch-question.png", "On your wrist", "a smartwatch shows the same push; where it shows the buttons, answer from there")
 frames = [
     (title(), 2600),
-    (scene("1-working.png", "Every session in the tray menu", "with its state and time, and Claude's usage limits on top"), 3000),
+    (scene("1-working.png", "Every session in the tray menu", "with its state and time; Claude's usage limits and the use at API prices on top"), 3200),
     (scene("2-panel.png", "Claude asks: answer from a panel", "no switching to its window; or from the phone, through ntfy"), 3800),
     (scene("panel-permission.png", "A permission prompt, in the same panel", "allow once, allow and don't ask again, or open the session window first"), 3800),
     (scene("2-menu-waiting.png", "The light turns red while it waits", "the tray menu says which session needs you"), 2400),
@@ -105,6 +109,7 @@ frames = [
     (scene("phone.png", "On the phone, when you are away", "pushes through ntfy; answer a prompt or a question with a tap"), 3400),
     (watch, 3400),
     (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
+    (scene("stats-top.png", "Statistics of the use", "the share of the weekly limit and the dollars at API prices; what it went on, what made it dearer"), 3600),
     (languages(), 2600),
 ]
 # Screenshots need few colours; the photo of the watch gets the most a GIF frame can hold, so its red dot stays red.
