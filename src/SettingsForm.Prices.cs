@@ -67,6 +67,8 @@ namespace Semaphore
                 reset.Click += (s, e) =>
                 {
                     ApiPrices.Clear();
+                    cfg.PricesLoadedTicks = 0;
+                    cfg.Save();
                     fill();
                     SetResult(result, Loc.T("prices.reset.done"), Palette.StatusOk);
                 };

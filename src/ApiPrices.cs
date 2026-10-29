@@ -46,11 +46,16 @@ namespace Semaphore
         // Each web search Claude makes is $10 per thousand on top of the tokens.
         internal const double WebSearch = 0.01;
 
+        // The day the built-in prices were checked against Anthropic's price list (and LiteLLM's file).
+        internal static readonly DateTime BuiltInDate = new DateTime(2026, 10, 29);
+
         static readonly Dictionary<string, Price> BuiltIn = new Dictionary<string, Price>(StringComparer.OrdinalIgnoreCase)
         {
             { "claude-fable-5-1", new Price { Input = 10, Output = 50, CacheRead = 0.25 } },
             { "claude-mythos-5-1", new Price { Input = 10, Output = 50, CacheRead = 0.25 } },
             { "claude-fable-5", new Price { Input = 10, Output = 50 } },
+            { "claude-mythos-5", new Price { Input = 10, Output = 50 } },
+            { "claude-mythos-preview", new Price { Input = 10, Output = 50 } },
             { "claude-opus-5-5", new Price { Input = 4, Output = 20, CacheRead = 0.20 } },
             { "claude-opus-5", new Price { Input = 5, Output = 25 } },
             { "claude-opus-4-8", new Price { Input = 5, Output = 25 } },
@@ -105,14 +110,20 @@ namespace Semaphore
             lock (found)
             {
                 if (found.TryGetValue(model, out p)) return p;
-                if (!t.TryGetValue(model, out p))
-                {
-                    string key = t.Keys.Where(k => model.StartsWith(k + "-", StringComparison.OrdinalIgnoreCase)).OrderByDescending(k => k.Length).FirstOrDefault();
-                    p = key != null ? t[key] : null;
-                }
+                p = Lookup(t, model);
                 found[model] = p;
                 return p;
             }
+        }
+
+        // The price of a model in a table: its own, or that of the longest name it extends ("claude-haiku-4-5" for
+        // "claude-haiku-4-5-20251001").
+        static Price Lookup(Dictionary<string, Price> t, string model)
+        {
+            Price p;
+            if (t.TryGetValue(model, out p)) return p;
+            string key = t.Keys.Where(k => model.StartsWith(k + "-", StringComparison.OrdinalIgnoreCase)).OrderByDescending(k => k.Length).FirstOrDefault();
+            return key != null ? t[key] : null;
         }
 
         // The price found for each model name, until the prices change.
@@ -179,17 +190,47 @@ namespace Semaphore
 
         // The prices loaded from LiteLLM replace those kept so far, typed ones too: LiteLLM goes first, so that the
         // prices stay current without anyone looking after them. A typed price stays only for a model LiteLLM lacks.
-        internal static void Apply(Dictionary<string, Price> loaded, DateTime when)
+        // The file is kept by a community, so it is not taken on trust: a price missing from it keeps the one known,
+        // and a price far from the one known (a slip of a digit) is left out. Returns the models left out.
+        internal static List<string> Apply(Dictionary<string, Price> loaded, DateTime when)
         {
             var kept = Kept();
+            var skipped = new List<string>();
             string date = when.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
             foreach (var kv in loaded)
             {
-                kv.Value.Source = FromLiteLlm;
-                kv.Value.Date = date;
-                kept[kv.Key] = kv.Value;
+                Price known = Known(kept, kv.Key), p = kv.Value;
+                if (known != null && (Far(p.Input, known.Input) || Far(p.Output, known.Output)))
+                {
+                    skipped.Add(kv.Key);
+                    Log.Write(string.Format(CultureInfo.InvariantCulture, "LiteLLM price of {0} left out: {1}/{2} against {3}/{4} known",
+                        kv.Key, p.Input, p.Output, known.Input, known.Output));
+                    continue;
+                }
+                // Reading the cache is a tenth of the input by default, but less for newer models: a file without the
+                // figure keeps the known one.
+                if (!p.CacheRead.HasValue && known != null) p.CacheRead = known.CacheRead;
+                p.Source = FromLiteLlm;
+                p.Date = date;
+                kept[kv.Key] = p;
             }
             Keep(kept);
+            return skipped;
+        }
+
+        // The price to check a loaded one against: the last one from LiteLLM, or else the built-in one; a typed price
+        // is no measure, it may be anything.
+        static Price Known(Dictionary<string, Price> kept, string model)
+        {
+            Price p;
+            if (kept.TryGetValue(model, out p) && p.Source == FromLiteLlm) return p;
+            return Lookup(BuiltIn, model);
+        }
+
+        // More than five times up or down: no price change of a model was ever like that.
+        static bool Far(double a, double b)
+        {
+            return a <= 0 || b <= 0 || a > 5 * b || b > 5 * a;
         }
 
         // One difference between the prices now and those loaded: a new model (Old null) or a changed price.
@@ -233,7 +274,7 @@ namespace Semaphore
                 object provider;
                 if (!m.TryGetValue("litellm_provider", out provider) || !"anthropic".Equals(provider)) continue;
                 double? input = PerMillion(m, "input_cost_per_token"), output = PerMillion(m, "output_cost_per_token");
-                if (!input.HasValue || !output.HasValue || input <= 0) continue;
+                if (!input.HasValue || !output.HasValue || input <= 0 || output <= 0) continue;
                 var p = new Price { Input = input.Value, Output = output.Value, CacheRead = PerMillion(m, "cache_read_input_token_cost") };
                 // A higher price from a long prompt on: "input_cost_per_token_above_100k_tokens".
                 foreach (string key in m.Keys)
@@ -257,13 +298,15 @@ namespace Semaphore
             catch (Exception) { return null; }
         }
 
-        // Loads the file (on a pool thread; done is called there): the prices, or the error in words for the user.
-        internal static void LoadLiteLlm(Action<Dictionary<string, Price>, string> done)
+        // Loads the file (on a pool thread; done is called there): the prices, or the error in words for the user,
+        // and whether the file came at all (an error after that is in the file, not in the network).
+        internal static void LoadLiteLlm(Action<Dictionary<string, Price>, string, bool> done)
         {
             System.Threading.ThreadPool.QueueUserWorkItem(_ =>
             {
                 Dictionary<string, Price> prices = null;
                 string error = null;
+                bool fetched = false;
                 try
                 {
                     try { System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12; }
@@ -276,12 +319,13 @@ namespace Semaphore
                     using (var resp = req.GetResponse())
                     using (var reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
                         text = reader.ReadToEnd();
+                    fetched = true;
                     prices = ParseLiteLlm(text);
                     if (prices.Count == 0) { error = Loc.T("prices.load.empty"); prices = null; }
                 }
                 catch (Exception ex) { error = ex.Message; }
                 Log.Write(error == null ? "Prices from LiteLLM: " + prices.Count + " Claude models" : "Prices from LiteLLM could not be loaded: " + error);
-                done(prices, error);
+                done(prices, error, fetched);
             });
         }
 

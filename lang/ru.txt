@@ -327,6 +327,7 @@ prices.load.done={0}, изменений: {1}
 prices.load.empty=в файле нет моделей Claude
 prices.loaded=Обновлены из LiteLLM: {0}
 prices.loaded.never=Из LiteLLM ещё не загружались
+prices.asof=цены от {0}
 prices.source=Цены берутся из открытого файла цен LiteLLM — проекта сообщества на GitHub, не Anthropic:
 prices.check=Сверить их можно с официальным прайсом Anthropic:
 link.stats=Статистика расхода

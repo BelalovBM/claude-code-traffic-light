@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -20,7 +21,7 @@ namespace Semaphore
                 updateTimer.Interval = 60 * 60 * 1000;
                 if (AppPaths.IsSandbox) return;
                 // The prices of the models from LiteLLM, on the same daily round.
-                if (Config.PricesAuto && DateTime.Now.Ticks - Config.PricesLoadedTicks >= TimeSpan.FromHours(23).Ticks)
+                if (Config.PricesAuto && DateTime.Now.Ticks - Config.PricesTriedTicks >= TimeSpan.FromHours(23).Ticks)
                     LoadPricesNow(null);
                 if (!Config.CheckUpdates) return;
                 if (DateTime.Now.Ticks - Config.UpdateCheckedTicks < TimeSpan.FromHours(23).Ticks) return;
@@ -33,19 +34,33 @@ namespace Semaphore
         // that changed, or the error, on the UI thread.
         public void LoadPricesNow(Action<int, string> done)
         {
-            ApiPrices.LoadLiteLlm((prices, error) => ui.Post(_ =>
+            ApiPrices.LoadLiteLlm((prices, error, fetched) => ui.Post(_ =>
             {
                 int changed = 0;
+                // The next try a day later once the file came, even if it held nothing to use (no reason to fetch
+                // its 3 MB again within the day); an hour later when the network failed.
+                Config.PricesTriedTicks = fetched ? DateTime.Now.Ticks : DateTime.Now.AddHours(-22).Ticks;
                 if (error == null)
                 {
                     changed = ApiPrices.Compare(prices).Count;
-                    ApiPrices.Apply(prices, DateTime.Now);
+                    List<string> skipped = ApiPrices.Apply(prices, DateTime.Now);
+                    changed = Math.Max(0, changed - skipped.Count);
                     Config.PricesLoadedTicks = DateTime.Now.Ticks;
-                    Config.Save();
-                    Log.Write("Prices from LiteLLM applied, " + changed + " changed");
+                    Log.Write("Prices from LiteLLM applied, " + changed + " changed" + (skipped.Count > 0 ? ", left out: " + string.Join(", ", skipped) : ""));
                 }
+                Config.Save();
                 if (done != null) done(changed, error);
             }, null));
+        }
+
+        // How current the prices are: the day they last came from LiteLLM, or the day the built-in ones were checked.
+        internal DateTime PricesAsOf
+        {
+            get
+            {
+                DateTime loaded = Config.PricesLoadedTicks > 0 ? new DateTime(Config.PricesLoadedTicks) : DateTime.MinValue;
+                return loaded > ApiPrices.BuiltInDate ? loaded.Date : ApiPrices.BuiltInDate;
+            }
         }
 
         // Also for the About page; onResult runs on the UI thread.

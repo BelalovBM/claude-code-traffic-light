@@ -346,6 +346,17 @@ namespace Semaphore.Tests
             Check("a price typed in stays for a model LiteLLM does not have",
                 ApiPrices.For("claude-opus-7").Input == 7 && ApiPrices.For("claude-opus-7").Source == ApiPrices.FromYou);
             ApiPrices.Clear();
+            // The file is not taken on trust: a missing cache-read price keeps the known one (Opus 5.5 reads at a
+            // twentieth, not the default tenth), a price ten times the known one is left out.
+            var odd = ApiPrices.ParseLiteLlm("{\"claude-opus-5-5\":{\"litellm_provider\":\"anthropic\",\"input_cost_per_token\":4e-06,\"output_cost_per_token\":2e-05},"
+                + "\"claude-sonnet-5-5\":{\"litellm_provider\":\"anthropic\",\"input_cost_per_token\":2e-05,\"output_cost_per_token\":1e-04},"
+                + "\"claude-free\":{\"litellm_provider\":\"anthropic\",\"input_cost_per_token\":1e-06,\"output_cost_per_token\":0}}");
+            List<string> left = ApiPrices.Apply(odd, DateTime.Now);
+            Check("a cache-read price missing from LiteLLM keeps the known one",
+                ApiPrices.For("claude-opus-5-5").Source == ApiPrices.FromLiteLlm && ApiPrices.For("claude-opus-5-5").Reading == 0.2);
+            Check("a LiteLLM price far from the known one is left out, and a free model is no price",
+                left.SequenceEqual(new[] { "claude-sonnet-5-5" }) && ApiPrices.For("claude-sonnet-5-5").Input == 2 && !odd.ContainsKey("claude-free"));
+            ApiPrices.Clear();
             Check("default prices drop what was typed and loaded", !File.Exists(ApiPrices.FilePath) && ApiPrices.For("claude-opus-6") == null
                 && ApiPrices.For("claude-sonnet-5-5").CacheRead == 0.10 && ApiPrices.For("claude-sonnet-5-5").Source == null);
 

@@ -357,7 +357,10 @@ namespace Semaphore
                 yy = c.Text(Loc.T("stats.total"), left, yy, inner, Theme.Fore, c.Header) + Ui.S(6);
                 string lead = Limit ? LimitTotal(report.Total.Weeks.Value) : ApiPrices.Dollars(report.Total.Usd, Culture) + " " + Loc.T("stats.at.api");
                 yy = c.Text(lead, left, yy, inner, Theme.Fore, c.Big);
-                if (Limit) yy = c.Text(ApiPrices.Dollars(report.Total.Usd, Culture) + " " + Loc.T("stats.at.api"), left, yy + Ui.S(2), inner, Theme.Fore);
+                // The dollars with how current their prices are, on every period.
+                string asOf = "(" + Loc.T("prices.asof", app.PricesAsOf.ToString("d", Culture)) + ")";
+                if (Limit) yy = c.Text(ApiPrices.Dollars(report.Total.Usd, Culture) + " " + Loc.T("stats.at.api") + " " + asOf, left, yy + Ui.S(2), inner, Theme.Fore);
+                else yy = c.Text(asOf, left, yy + Ui.S(2), inner, Theme.Fore);
                 yy = c.Text(Loc.T("stats.total.line", ApiPrices.Tokens(report.Total.Tokens, Culture), report.Total.Count.ToString("N0", Culture),
                     ApiPrices.Dollars(report.Total.Usd / Math.Max(1, report.Total.Count), Culture)), left, yy + Ui.S(2), inner, Theme.Muted);
                 // What it went on, with the headings of the columns on the same line.

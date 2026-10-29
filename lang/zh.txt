@@ -327,6 +327,7 @@ prices.load.done={0}，更改：{1}
 prices.load.empty=文件中没有 Claude 模型
 prices.loaded=已从 LiteLLM 更新：{0}
 prices.loaded.never=尚未从 LiteLLM 加载
+prices.asof=价格日期 {0}
 prices.source=价格取自 LiteLLM 的开放价格文件，这是 GitHub 上的社区项目，不是 Anthropic：
 prices.check=可以对照 Anthropic 的官方价格表核对：
 link.stats=用量统计

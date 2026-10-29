@@ -154,7 +154,7 @@ namespace Semaphore
             // The use at API prices is a block of its own below the limits (or alone, for a sign-in by API key): other
             // figures in another unit, with their own title.
             if (!Config.CostShow || s.Month.Tokens <= 0) return;
-            var title = new ToolStripLabel(Loc.T("cost.menu.title"));
+            var title = new ToolStripLabel(Loc.T("cost.menu.title") + " (" + Loc.T("prices.asof", PricesAsOf.ToString("d", Loc.Culture)) + ")");
             title.ForeColor = Theme.Muted;
             items.Add(title);
             CultureInfo c = LimitCulture();
