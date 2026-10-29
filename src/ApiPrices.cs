@@ -49,13 +49,16 @@ namespace Semaphore
         };
 
         static Dictionary<string, Price> table;
-        static DateTime fileWritten;
+        static DateTime fileWritten, fileChecked;
 
         internal static string FilePath { get { return Path.Combine(AppPaths.DataDir, "api-prices.json"); } }
 
         // The built-in prices with those of the file over them; the file is read again when it changes.
         static Dictionary<string, Price> Table()
         {
+            // Asked for every step counted: the file is looked at again at most every few seconds.
+            if (table != null && DateTime.UtcNow - fileChecked < TimeSpan.FromSeconds(5)) return table;
+            fileChecked = DateTime.UtcNow;
             string path = FilePath;
             DateTime written = File.Exists(path) ? File.GetLastWriteTimeUtc(path) : DateTime.MinValue;
             if (table != null && written == fileWritten) return table;
@@ -70,6 +73,7 @@ namespace Semaphore
                 catch (Exception ex) { Log.Write("api-prices.json could not be read: " + ex.Message); }
             }
             fileWritten = written;
+            lock (found) found.Clear();
             table = t;
             return t;
         }
@@ -81,9 +85,26 @@ namespace Semaphore
             if (string.IsNullOrEmpty(model)) return null;
             Dictionary<string, Price> t = Table();
             Price p;
-            if (t.TryGetValue(model, out p)) return p;
-            string key = t.Keys.Where(k => model.StartsWith(k + "-", StringComparison.OrdinalIgnoreCase)).OrderByDescending(k => k.Length).FirstOrDefault();
-            return key != null ? t[key] : null;
+            lock (found)
+            {
+                if (found.TryGetValue(model, out p)) return p;
+                if (!t.TryGetValue(model, out p))
+                {
+                    string key = t.Keys.Where(k => model.StartsWith(k + "-", StringComparison.OrdinalIgnoreCase)).OrderByDescending(k => k.Length).FirstOrDefault();
+                    p = key != null ? t[key] : null;
+                }
+                found[model] = p;
+                return p;
+            }
+        }
+
+        // The price found for each model name, until the prices change.
+        static readonly Dictionary<string, Price> found = new Dictionary<string, Price>(StringComparer.OrdinalIgnoreCase);
+
+        // Read the prices again now (after they were changed here), not when the file is next looked at.
+        internal static void Reload()
+        {
+            table = null;
         }
 
         // Dollars for one reply, or null when the model has no price. Fast mode is priced at twice the standard.

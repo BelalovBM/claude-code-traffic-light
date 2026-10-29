@@ -70,6 +70,8 @@ namespace Semaphore
         public double FiveMiss = UsageRefresh.UsualMiss, WeekMiss = UsageRefresh.UsualMiss;
         // The use of today (the local day) and of the last 30 days, in tokens and at API prices.
         public Spend Today = new Spend(), Month = new Spend();
+        // Percent of the weekly limit per unit of cost, per model, as the exact figures taught them; null without them.
+        public UsageMath.Weights WeekWeights;
     }
 
     sealed class Spend
@@ -200,19 +202,11 @@ namespace Semaphore
 
     sealed class UsageTracker
     {
-        struct Entry
-        {
-            public DateTime At;   // UTC
-            public string Model;
-            public double Cost;
-            public long Tokens;
-            public double? Usd;  // at API prices; null when the model has none
-        }
-
         // A month of transcripts, for the use at API prices; the limits need only the last week of it.
         const int KeepDays = 31;
         readonly object gate = new object();
-        readonly Dictionary<string, Entry> entries = new Dictionary<string, Entry>();
+        readonly Dictionary<string, UsageStep> entries = new Dictionary<string, UsageStep>();
+        readonly Dictionary<string, UsageCompaction> compactions = new Dictionary<string, UsageCompaction>();
         readonly Dictionary<string, long> offsets = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         List<UsageAnchor> anchors = new List<UsageAnchor>();
         DateTime claudeJsonWritten;
@@ -259,6 +253,13 @@ namespace Semaphore
                     Log.Write(string.Format(CultureInfo.InvariantCulture, "Use at API prices: today {0:0.0}M tokens ${1:0.00}, 30 days {2:0.0}M tokens ${3:0.00}{4}",
                         s.Today.Tokens / 1e6, s.Today.Usd, s.Month.Tokens / 1e6, s.Month.Usd,
                         s.Month.Unpriced.Count > 0 ? ", no price for " + string.Join(", ", s.Month.Unpriced) : ""));
+                    UsageReport r = Report(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
+                    Func<UsageAmount, string> share = a => string.Format(CultureInfo.InvariantCulture, "{0:0}%/{1}",
+                        100 * a.Usd / Math.Max(r.Total.Usd, 1e-9), r.Total.Weeks > 0 ? (100 * a.Weeks / r.Total.Weeks).Value.ToString("0", CultureInfo.InvariantCulture) + "%" : "-");
+                    Log.Write(string.Format(CultureInfo.InvariantCulture,
+                        "Use of 30 days ($/limit): {0} steps, {1:0.00} weeks of the limit; reading {2}, writing {3}, replies {4}; large context {5}, cold starts {6} ({7}), compactions {8}, sessions {9}",
+                        r.Total.Count, r.Total.Weeks ?? 0, share(r.Reading), share(r.Writing), share(r.Replies), share(r.LargeContext),
+                        share(r.ColdStarts), r.ColdStarts.Count, r.Compactions, r.Sessions.Count));
                 }
             }
             catch (Exception ex) { Log.Write("Usage limits: " + ex.Message); }
@@ -288,6 +289,7 @@ namespace Semaphore
                     if (info.Length < from) from = 0;
                     if (info.Length == from) continue;
                     currentPath = path;
+                    SetSession(path);
                     offsets[path] = ReadFrom(path, from);
                 }
                 catch (IOException) { }
@@ -296,6 +298,7 @@ namespace Semaphore
             lock (gate)
             {
                 foreach (string key in entries.Where(kv => kv.Value.At < since).Select(kv => kv.Key).ToList()) entries.Remove(key);
+                foreach (string key in compactions.Where(kv => kv.Value.At < since).Select(kv => kv.Key).ToList()) compactions.Remove(key);
             }
             SaveContextLimits();
             scanned = true;
@@ -372,11 +375,11 @@ namespace Semaphore
             // Like the usage, the speed is the last one in the line: the reply text before it may quote the words.
             int speed = line.LastIndexOf("\"speed\":\"", StringComparison.Ordinal);
             bool fast = speed >= 0 && string.CompareOrdinal(line, speed + 9, "fast\"", 0, 5) == 0;
-            var e = new Entry
+            var e = new UsageStep
             {
-                At = at, Model = model.Groups[1].Value, Cost = UsageMath.Cost(input, write, readCache, output),
-                Tokens = input + write + readCache + output,
-                Usd = ApiPrices.Usd(model.Groups[1].Value, input, write5m ?? 0, write1h ?? 0, readCache, output, searches, fast),
+                At = at, Model = model.Groups[1].Value, Session = currentSession, Path = currentSessionPath,
+                Sidechain = currentSide || line.IndexOf("\"isSidechain\":true", StringComparison.Ordinal) >= 0,
+                Input = input, Write5m = write5m ?? 0, Write1h = write1h ?? 0, Read = readCache, Output = output, Searches = searches, Fast = fast,
             };
             lock (gate) entries[key] = e;
         }
@@ -400,8 +403,38 @@ namespace Semaphore
             lock (gate) return model != null && contextLimits.TryGetValue(model, out v) ? v : 0;
         }
 
+        // Which session the file being read belongs to: a session's own transcript is <id>.jsonl, a subagent's is
+        // <id>/subagents/<agent>.jsonl and counts with that session.
+        string currentSession, currentSessionPath;
+        bool currentSide;
+
+        void SetSession(string path)
+        {
+            string dir = Path.GetDirectoryName(path);
+            currentSide = string.Equals(Path.GetFileName(dir), "subagents", StringComparison.OrdinalIgnoreCase);
+            if (currentSide)
+            {
+                string sessionDir = Path.GetDirectoryName(dir);
+                currentSession = Path.GetFileName(sessionDir);
+                currentSessionPath = Path.Combine(Path.GetDirectoryName(sessionDir), currentSession + ".jsonl");
+            }
+            else
+            {
+                currentSession = Path.GetFileNameWithoutExtension(path);
+                currentSessionPath = path;
+            }
+        }
+
         void NoteCompaction(string line)
         {
+            if (line.IndexOf("\"compact_boundary\"", StringComparison.Ordinal) >= 0 && currentSession != null)
+            {
+                Match t = TimeRx.Match(line);
+                DateTime at;
+                if (t.Success && DateTime.TryParse(t.Groups[1].Value, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out at))
+                    lock (gate) compactions[currentSession + "|" + t.Groups[1].Value] = new UsageCompaction { At = at, Session = currentSession };
+            }
             if (line.IndexOf("\"compactMetadata\"", StringComparison.Ordinal) < 0 || line.IndexOf("\"trigger\":\"auto\"", StringComparison.Ordinal) < 0) return;
             Match m = PreTokensRx.Match(line);
             string model;
@@ -444,7 +477,7 @@ namespace Semaphore
         {
             var d = new Dictionary<string, double>();
             lock (gate)
-                foreach (Entry e in entries.Values)
+                foreach (UsageStep e in entries.Values)
                     if (e.At >= from && e.At < to)
                     {
                         double v;
@@ -458,7 +491,7 @@ namespace Semaphore
         {
             DateTime first = DateTime.MaxValue;
             lock (gate)
-                foreach (Entry e in entries.Values)
+                foreach (UsageStep e in entries.Values)
                     if (e.At >= t && e.At < first) first = e.At;
             return first;
         }
@@ -693,18 +726,37 @@ namespace Semaphore
             List<UsageAnchor> list;
             lock (gate) list = anchors.ToList();
             var s = new LimitsSnapshot { AnyAnchor = list.Count > 0, NoSubscription = noSubscription, FiveMiss = fiveMiss, WeekMiss = weekMiss };
-            s.Five = View(list, now, true);
-            s.Week = View(list, now, false);
+            UsageMath.Weights unused, week;
+            s.Five = View(list, now, true, out unused);
+            s.Week = View(list, now, false, out week);
+            s.WeekWeights = week;
             s.Today = SpendSince(DateTime.Today.ToUniversalTime());
             s.Month = SpendSince(now.AddDays(-30));
             return s;
         }
 
+        // The statistics of a period (see UsageStats); the share of the limit only with a subscription.
+        public UsageReport Report(DateTime fromUtc, DateTime toUtc)
+        {
+            LimitsSnapshot s = snapshot;
+            List<UsageStep> steps;
+            List<UsageCompaction> comps;
+            lock (gate)
+            {
+                steps = entries.Values.ToList();
+                comps = compactions.Values.ToList();
+            }
+            return UsageStats.Build(steps, comps, fromUtc, toUtc, s.NoSubscription ? null : s.WeekWeights);
+        }
+
+        // Transcripts were read at all: the statistics have something to show.
+        public bool AnyUse { get { lock (gate) return entries.Count > 0; } }
+
         Spend SpendSince(DateTime from)
         {
             var s = new Spend();
             lock (gate)
-                foreach (Entry e in entries.Values)
+                foreach (UsageStep e in entries.Values)
                 {
                     if (e.At < from) continue;
                     s.Tokens += e.Tokens;
@@ -714,8 +766,9 @@ namespace Semaphore
             return s;
         }
 
-        LimitView View(List<UsageAnchor> list, DateTime now, bool five)
+        LimitView View(List<UsageAnchor> list, DateTime now, bool five, out UsageMath.Weights w)
         {
+            w = null;
             var v = new LimitView { Reset = DateTime.MinValue };
             UsageAnchor a = list.Where(x => five ? x.Five.HasValue : x.Week.HasValue).OrderByDescending(x => x.AtMs).FirstOrDefault();
             if (a == null) return v;
@@ -723,7 +776,7 @@ namespace Semaphore
             string plan = currentPlan;
             if (plan != null && a.Plan != null && plan != a.Plan) return v;
             // Only figures of the current plan: another plan's limit has another size.
-            UsageMath.Weights w = UsageMath.Fit(list
+            w = UsageMath.Fit(list
                 .Where(x => a.Plan == null || x.Plan == a.Plan)
                 .Where(x => five ? x.Five.HasValue && x.FiveCost != null : x.Week.HasValue && x.WeekCost != null)
                 .Select(x => new UsageMath.Sample { Cost = five ? x.FiveCost : x.WeekCost, Percent = five ? x.Five.Value : x.Week.Value, At = x.At })
@@ -776,7 +829,8 @@ namespace Semaphore
                 return v;
             }
             if (w == null) return v;   // used since, but nothing to weigh it by yet
-            v.NewModel = since.Keys.Any(m => !w.ByModel.ContainsKey(m));
+            UsageMath.Weights fit = w;
+            v.NewModel = since.Keys.Any(m => !fit.ByModel.ContainsKey(m));
             v.Known = true;
             v.Percent = Math.Min(100, basePercent + UsageMath.Apply(w, since));
             return v;

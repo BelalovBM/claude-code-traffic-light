@@ -308,9 +308,42 @@ namespace Semaphore.Tests
                 ApiPrices.Tokens(1250000, inv));
             Check("dollars have cents only below ten", ApiPrices.Dollars(0.4249, inv) == "$0.42" && ApiPrices.Dollars(1089.4, inv) == "$1,089");
             File.WriteAllText(ApiPrices.FilePath, "{\"claude-opus-6\":{\"Input\":3,\"Output\":15}}", Utf8);
+            ApiPrices.Reload();
             Check("a price added in api-prices.json counts, the built-in ones stay",
                 ApiPrices.Usd("claude-opus-6", 1000000, 0, 0, 1000000, 0, 0, false) == 3.3 && ApiPrices.For("claude-opus-5-5") != null);
             File.Delete(ApiPrices.FilePath);
+            ApiPrices.Reload();
+
+            // The statistics of a period: two sessions, one with a subagent and a pause of two hours, one with a large
+            // context; Opus 5.5 at $4 in, $20 out, $0.20 for reading the cache; one percent of the week per 100k units.
+            DateTime st0 = DateTime.UtcNow.AddHours(-5);
+            var sw = new UsageMath.Weights { Common = 1e-5 };
+            var steps = new List<UsageStep>
+            {
+                new UsageStep { At = st0, Model = "claude-opus-5-5", Session = "a", Path = "a.jsonl", Write1h = 100000, Output = 1000 },
+                new UsageStep { At = st0.AddMinutes(1), Model = "claude-opus-5-5", Session = "a", Path = "a/subagents/x.jsonl", Sidechain = true, Write1h = 200000 },
+                new UsageStep { At = st0.AddHours(2), Model = "claude-opus-5-5", Session = "a", Path = "a.jsonl", Read = 100000, Write1h = 100000 },
+                new UsageStep { At = st0.AddHours(3), Model = "claude-opus-5-5", Session = "b", Path = "b.jsonl", Read = 700000, Output = 2000 },
+                new UsageStep { At = st0.AddHours(3), Model = "claude-opus-6", Session = "b", Path = "b.jsonl", Input = 10 },
+                new UsageStep { At = st0.AddDays(-40), Model = "claude-opus-5-5", Session = "old", Path = "old.jsonl", Output = 1000 },
+            };
+            var comps = new List<UsageCompaction> { new UsageCompaction { At = st0.AddHours(1), Session = "a" }, new UsageCompaction { At = st0.AddDays(-40), Session = "old" } };
+            UsageReport rep = UsageStats.Build(steps, comps, st0.AddDays(-30), DateTime.UtcNow, sw);
+            double total = 0.8 + 0.02 + 1.6 + 0.02 + 0.8 + 0.14 + 0.04;
+            Check("the total of a period is the sum of its steps, older ones left out", Math.Abs(rep.Total.Usd - total) < 1e-9 && rep.Total.Count == 5, rep.Total.Usd.ToString());
+            Check("the parts add up to the total", Math.Abs(rep.Reading.Usd + rep.Writing.Usd + rep.Replies.Usd - total) < 1e-9
+                && Math.Abs(rep.Reading.Usd - 0.16) < 1e-9 && Math.Abs(rep.Replies.Usd - 0.06) < 1e-9);
+            Check("the limit is counted by the weights of the week", rep.LimitKnown && Math.Abs(rep.Total.Weeks.Value - steps.Take(5).Sum(s => s.Cost) * 1e-7) < 1e-12);
+            Check("a large write after a pause longer than the cache lasts is a cold start, its write part only",
+                rep.ColdStarts.Count == 1 && Math.Abs(rep.ColdStarts.Usd - 0.8) < 1e-9);
+            Check("a step with a large context counts as one", rep.LargeContext.Count == 1 && Math.Abs(rep.LargeContext.Usd - 0.18) < 1e-9);
+            Check("compactions of the period are counted", rep.Compactions == 1);
+            Check("a subagent counts with its session, named by the session's own transcript",
+                rep.Sessions.Count == 2 && rep.Sessions[0].Session == "a" && rep.Sessions[0].Steps == 3 && rep.Sessions[0].Path == "a.jsonl" && rep.Sessions[0].Model == "claude-opus-5-5");
+            Check("the largest context of a session is kept", rep.Sessions[1].MaxContext == 700000);
+            Check("a model without a price is named", rep.Unpriced.SequenceEqual(new[] { "claude-opus-6" }));
+            Check("the days add up to the total", Math.Abs(rep.Days.Sum(d => d.Value.Usd) - total) < 1e-9);
+            Check("without a subscription there is no limit", !UsageStats.Build(steps, comps, st0.AddDays(-30), DateTime.UtcNow, null).Total.Weeks.HasValue);
 
             // Two models, the dearer one counted 1.5 times: the fit finds that from the anchors alone.
             DateTime now = DateTime.UtcNow;
