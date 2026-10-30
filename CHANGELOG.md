@@ -11,6 +11,7 @@
 - When the session has no window to bring forward, a notice says so instead of nothing happening.
 - **Answer** on a notification no longer opens the panel of a request answered in the meantime.
 - **Show window**, and a click on a notification, could bring up the wrong window: any program with the name of the session's folder in its title would do, such as Explorer open on that folder or a browser tab. Now only the editor the session runs in is searched, all its windows rather than the first (a second VS Code window could not be found before), and the folder above counts when the session moved into a subfolder.
+- The settings opened from a notification no longer stay behind the other windows.
 
 ## 0.9.9 (beta)
 

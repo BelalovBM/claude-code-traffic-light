@@ -1463,8 +1463,9 @@ namespace Semaphore
         {
             if (settings != null && !settings.IsDisposed)
             {
+                if (settings.WindowState == FormWindowState.Minimized) settings.WindowState = FormWindowState.Normal;
                 settings.GoTo(page);
-                settings.Activate();
+                Native.Activate(settings.Handle);
                 return;
             }
             // Per-monitor aware: on a second monitor with another scale the window draws itself for that monitor
@@ -1475,7 +1476,8 @@ namespace Semaphore
                 settings.GoTo(page);
                 settings.Show();
             }
-            settings.Activate();
+            // Opened from a notification the program is not the active one, and Windows would leave a plain Activate behind.
+            Native.Activate(settings.Handle);
         }
 
         static Level ToLevel(State state)
