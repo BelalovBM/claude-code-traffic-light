@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.10 (beta)
 
 **Changed**
 - **A click on a notification now only closes it**, so a notice in the way can be taken away without being sent to another window. Going back to the session is on a button of its own, **Open the session window**; the notices with something to do have one too (**Answer**, **Open the settings**, **Open the download page**). Where Windows notifications are not available the balloon has no buttons, and a click on it does what the button would.
