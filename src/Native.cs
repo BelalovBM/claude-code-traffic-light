@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32;
 
 namespace Semaphore
@@ -206,48 +208,103 @@ namespace Semaphore
 
         static readonly string[] Editors = { "code", "code - insiders", "cursor", "windsurf", "vscodium" };
 
-        // Editors keep many windows in one process, so those are matched by the folder name in
-        // the title; terminals are focused through the window found in the hook's process chain.
+        // An editor keeps all its windows in one process and the process chain of the hook leads only to that process,
+        // so its window is told by the folder in the title. A terminal is the window found in the chain. With the host
+        // unknown only editors are searched: the folder name also stands in the title of Explorer and of browser tabs.
         public static bool FocusSession(Session s)
         {
             bool editor = s.HostName != null && Array.IndexOf(Editors, s.HostName.ToLowerInvariant()) >= 0;
-            if (editor && FocusProject(s.Cwd)) return true;
-            if (s.HostHwnd != 0)
+            if (editor || s.HostHwnd == 0)
             {
-                IntPtr h = new IntPtr(s.HostHwnd);
-                if (IsWindow(h))
+                IntPtr found = WindowOfFolder(TopWindows(editor ? new[] { s.HostName } : Editors), s.Cwd);
+                if (found != IntPtr.Zero)
                 {
-                    if (IsIconic(h)) ShowWindow(h, 9);
-                    SetForegroundWindow(h);
+                    Log.Write("[" + s.ShortId + "] show window: the editor window of the folder");
+                    Bring(found);
                     return true;
                 }
             }
-            return FocusProject(s.Cwd);
+            if (s.HostHwnd != 0 && IsWindow(new IntPtr(s.HostHwnd)))
+            {
+                Log.Write("[" + s.ShortId + "] show window: the host window (" + s.HostName + ")");
+                Bring(new IntPtr(s.HostHwnd));
+                return true;
+            }
+            Log.Write("[" + s.ShortId + "] show window: none found");
+            return false;
         }
 
-        // Best effort: bring forward the window whose title contains the project folder name
-        // (VS Code shows it in the title).
-        public static bool FocusProject(string cwd)
+        static void Bring(IntPtr h)
         {
-            if (string.IsNullOrEmpty(cwd)) return false;
-            string name = Path.GetFileName(cwd.TrimEnd('\\', '/'));
-            if (string.IsNullOrEmpty(name)) return false;
+            if (IsIconic(h)) ShowWindow(h, 9);
+            Activate(h);
+        }
 
-            foreach (Process p in Process.GetProcesses())
+        // The window showing the folder of the session or the nearest folder above it: the session may have moved into
+        // a subfolder of what the editor has open.
+        internal static IntPtr WindowOfFolder(IList<KeyValuePair<IntPtr, string>> windows, string cwd)
+        {
+            try
             {
-                try
+                for (string dir = cwd == null ? null : cwd.TrimEnd('\\', '/'); !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
                 {
-                    IntPtr h = p.MainWindowHandle;
-                    if (h == IntPtr.Zero) continue;
-                    if (p.MainWindowTitle.IndexOf(name, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                    if (IsIconic(h)) ShowWindow(h, 9);
-                    SetForegroundWindow(h);
-                    return true;
+                    string name = Path.GetFileName(dir);
+                    if (string.IsNullOrEmpty(name)) break;
+                    foreach (KeyValuePair<IntPtr, string> w in windows)
+                        if (TitleHasFolder(w.Value, name)) return w.Key;
                 }
-                catch { }
-                finally { p.Dispose(); }
+            }
+            catch (ArgumentException) { }
+            return IntPtr.Zero;
+        }
+
+        // The name as a whole, so that "Code" is not found in "ClaudeCode" nor "Notes" in the open file "Notes.md"; the
+        // last part of the title is the name of the program ("file - folder - Visual Studio Code").
+        internal static bool TitleHasFolder(string title, string folder)
+        {
+            if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(folder)) return false;
+            int cut = Math.Max(title.LastIndexOf(" - ", StringComparison.Ordinal), title.LastIndexOf(" — ", StringComparison.Ordinal));
+            if (cut >= 0) title = title.Substring(0, cut);
+            for (int i = title.IndexOf(folder, StringComparison.OrdinalIgnoreCase); i >= 0;
+                i = title.IndexOf(folder, i + 1, StringComparison.OrdinalIgnoreCase))
+            {
+                int end = i + folder.Length;
+                if ((i == 0 || !PartOfName(title[i - 1])) && (end == title.Length || !PartOfName(title[end]))) return true;
             }
             return false;
+        }
+
+        static bool PartOfName(char c) { return char.IsLetterOrDigit(c) || c == '.' || c == '_' || c == '-'; }
+
+        delegate bool EnumWindowsProc(IntPtr h, IntPtr param);
+        [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc proc, IntPtr param);
+        [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+        [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint cmd);
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder text, int size);
+
+        // The visible main windows of the programs with these process names, the one on top first. Process.MainWindowHandle
+        // would give only one window of each process.
+        static List<KeyValuePair<IntPtr, string>> TopWindows(string[] processNames)
+        {
+            var pids = new HashSet<uint>();
+            foreach (string name in processNames)
+                foreach (Process p in Process.GetProcessesByName(name))
+                {
+                    pids.Add((uint)p.Id);
+                    p.Dispose();
+                }
+            var windows = new List<KeyValuePair<IntPtr, string>>();
+            EnumWindows((h, param) =>
+            {
+                uint pid;
+                GetWindowThreadProcessId(h, out pid);
+                if (!pids.Contains(pid) || !IsWindowVisible(h) || GetWindow(h, 4) != IntPtr.Zero) return true; // GW_OWNER
+                var text = new StringBuilder(512);
+                if (GetWindowText(h, text, text.Capacity) > 0) windows.Add(new KeyValuePair<IntPtr, string>(h, text.ToString()));
+                return true;
+            }, IntPtr.Zero);
+            return windows;
         }
 
         [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)] static extern int SetWindowTheme(IntPtr h, string app, string idList);

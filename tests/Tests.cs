@@ -27,6 +27,7 @@ namespace Semaphore.Tests
             Environment.SetEnvironmentVariable("TRAFFICLIGHT_CLAUDE_DIR", Path.Combine(box, "claude"));
 
             Group("hook events", HookEvents);
+            Group("the window of a session", WindowOfSession);
             Group("session states", SessionStates);
             Group("background wait", BackgroundWait);
             Group("stop on an error", StopFailure);
@@ -73,6 +74,27 @@ namespace Semaphore.Tests
         static string Esc(string path) { return path.Replace("\\", "\\\\"); }
 
         // ---- hook events ----
+
+        static void WindowOfSession()
+        {
+            Check("the folder is found in an editor title", Native.TitleHasFolder("a.cs - demo-app - Visual Studio Code", "demo-app"));
+            Check("with the administrator mark too", Native.TitleHasFolder("a.cs - demo-app [Administrator] - Visual Studio Code", "demo-app"));
+            Check("a part of a longer name is not the folder", !Native.TitleHasFolder("a.cs - demo-app - Cursor", "app"));
+            Check("an open file of that name is not the folder", !Native.TitleHasFolder("Notes.md - Work - Visual Studio Code", "Notes"));
+            Check("the name of the program is not the folder", !Native.TitleHasFolder("a.cs - Work - Visual Studio Code", "Code"));
+
+            var first = new IntPtr(1);
+            var second = new IntPtr(2);
+            var windows = new List<KeyValuePair<IntPtr, string>>
+            {
+                new KeyValuePair<IntPtr, string>(first, "a.cs - Other - Visual Studio Code"),
+                new KeyValuePair<IntPtr, string>(second, "b.cs - demo-app - Visual Studio Code"),
+            };
+            Check("the second window of an editor is found", Native.WindowOfFolder(windows, @"C:\Projects\demo-app") == second);
+            Check("a session moved into a subfolder finds the window above it", Native.WindowOfFolder(windows, @"C:\Projects\demo-app\Site\") == second);
+            Check("no window for a folder that is not open", Native.WindowOfFolder(windows, @"D:\Elsewhere") == IntPtr.Zero);
+            Check("no folder, no window", Native.WindowOfFolder(windows, null) == IntPtr.Zero);
+        }
 
         static void HookEvents()
         {

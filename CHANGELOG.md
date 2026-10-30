@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+**Fixed**
+- **Show window**, and a click on a notification, could bring up the wrong window: any program with the name of the session's folder in its title would do, such as Explorer open on that folder or a browser tab. Now only the editor the session runs in is searched, all its windows rather than the first (a second VS Code window could not be found before), and the folder above counts when the session moved into a subfolder.
+
 ## 0.9.9 (beta)
 
 **New**
