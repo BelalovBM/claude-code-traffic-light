@@ -47,7 +47,7 @@ Windows SmartScreen may warn about an unsigned file: choose **More info → Run 
 
 ## What the notices look like
 
-A request shows up in a panel near the tray; the state changes come as ordinary Windows notifications. Each kind can be switched off on the **Notifications** page.
+A request shows up in a panel near the tray; the state changes come as ordinary Windows notifications. A click on a notification only closes it; the button on it goes back to the session window or does what the notice is about. Each kind can be switched off on the **Notifications** page.
 
 ![The panel near the tray: a Bash command with Allow, Deny and Allow and don't ask again, the rule that would be added, and links to open the session window or answer later](docs/panel-permission.png)
 

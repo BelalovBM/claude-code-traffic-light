@@ -430,7 +430,8 @@ namespace Semaphore.Tests
             var tracker = new UsageTracker();
             tracker.Start();
             UsageReport demoReport = null;
-            for (int i = 0; i < 40 && (demoReport == null || demoReport.Total.Count == 0); i++)
+            // The tracker reads the files one by one: the first figures are not yet all of them.
+            for (int i = 0; i < 40 && (demoReport == null || demoReport.Sessions.Count(x => x.Session != "ctx-limit") < SelfCheckDemo.Ids.Length); i++)
             {
                 System.Threading.Thread.Sleep(250);
                 demoReport = tracker.Report(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);

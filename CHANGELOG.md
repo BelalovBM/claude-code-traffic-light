@@ -2,7 +2,14 @@
 
 ## Unreleased
 
+**Changed**
+- **A click on a notification now only closes it**, so a notice in the way can be taken away without being sent to another window. Going back to the session is on a button of its own, **Open the session window**; the notices with something to do have one too (**Answer**, **Open the settings**, **Open the download page**). Where Windows notifications are not available the balloon has no buttons, and a click on it does what the button would.
+
 **Fixed**
+- Closing the notice about an API error with its cross now counts as a reaction, as the setting says, and the phone is not told. The same for "Claude Code needs you" when there is nothing to answer from the program.
+- A notice no longer takes the place of another on the screen or makes it go too soon.
+- When the session has no window to bring forward, a notice says so instead of nothing happening.
+- **Answer** on a notification no longer opens the panel of a request answered in the meantime.
 - **Show window**, and a click on a notification, could bring up the wrong window: any program with the name of the session's folder in its title would do, such as Explorer open on that folder or a browser tab. Now only the editor the session runs in is searched, all its windows rather than the first (a second VS Code window could not be found before), and the folder above counts when the session moved into a subfolder.
 
 ## 0.9.9 (beta)

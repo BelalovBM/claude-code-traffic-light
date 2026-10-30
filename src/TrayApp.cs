@@ -173,6 +173,25 @@ namespace Semaphore
 
         Session toastSession;
 
+        // Each notice has a tag of its own: under a shared one a new notice would take the place of the one on the screen.
+        int infoCount;
+
+        // Brings the window of a session forward, and says so when there is none to bring.
+        void ShowSessionWindow(Session s)
+        {
+            if (!Native.FocusSession(s))
+                Balloon(Loc.T("app.name"), WithLabel(SessionLabel(s), Loc.T("toast.nowindow")), Level.Idle, 5000);
+        }
+
+        // The answer may have come from elsewhere while the notification was on the screen.
+        void AnswerFromNotice(Approvals.Request r)
+        {
+            bool asked = approvals.Waiting().Any(x => x.Token == r.Token)
+                || store.All.Any(s => s.State == State.Waiting && s.Orphan != null && s.Orphan.Token == r.Token);
+            if (asked) ShowAsk(r);
+            else Log.Write("The request of the notification is settled, no panel");
+        }
+
         void Toast(string title, string text, Level level, ToolTipIcon fallback, Action onClick = null, Session session = null)
         {
             toastClick = onClick;
@@ -187,12 +206,19 @@ namespace Semaphore
         // A pop-up that closes itself: a Windows notification, which takes the time it is given. Only where those
         // cannot be shown, the balloon: Windows ignores the time given to it, and taking the icon off and putting
         // it back (a short blink in the tray) is the only way to close it.
-        void Balloon(string title, string text, Level level, int milliseconds, Action onClick = null)
+        // A click only closes it; what it leads to is on the button, or on the whole balloon, which has no buttons.
+        // With a session, closing it in any way counts as having reacted to that session.
+        void Balloon(string title, string text, Level level, int milliseconds, string button = null, Action onButton = null, Session session = null)
         {
-            if (Toasts.Show("info", title, text, LampFile(level), null, milliseconds,
-                    args => { if (onClick != null) ui.Post(_ => onClick(), null); }, null))
+            if (Toasts.Show("info-" + ++infoCount, title, text, LampFile(level), button, milliseconds,
+                    args => ui.Post(_ =>
+                    {
+                        MarkReacted(session);
+                        if (args == Toasts.Button && onButton != null) onButton();
+                    }, null),
+                    () => ui.Post(_ => MarkReacted(session), null)))
                 return;
-            Toast(title, text, level, ToolTipIcon.Info, onClick);
+            Toast(title, text, level, ToolTipIcon.Info, onButton, session);
             var close = new System.Windows.Forms.Timer { Interval = milliseconds };
             close.Tick += (s, e) =>
             {
@@ -371,7 +397,7 @@ namespace Semaphore
                     try
                     {
                         HookInstaller.Install();
-                        Toast(Loc.T("app.name"), Loc.T("msg.hooks.installed"), Level.Idle, ToolTipIcon.Info);
+                        Balloon(Loc.T("app.name"), Loc.T("msg.hooks.installed"), Level.Idle, 7000);
                     }
                     catch (Exception ex)
                     {
@@ -510,7 +536,7 @@ namespace Semaphore
                 StartGrace(failed, shown);
                 if (Config.SoundWaiting && !quiet) SystemSounds.Exclamation.Play();
                 if (shown)
-                    Balloon(Loc.T("fail.title"), WithLabel(label, text), Level.Waiting, 7000, () => { MarkReacted(failed); Native.FocusSession(failed); });
+                    Balloon(Loc.T("fail.title"), WithLabel(label, text), Level.Waiting, 7000, Loc.T("ask.open.window"), () => ShowSessionWindow(failed), failed);
                 failed.WaitingNotified = true;
                 if (Config.RemoteWaiting)
                     AfterGrace(failed, () => failed.State == State.Waiting && failed.Failure != null,
@@ -532,16 +558,16 @@ namespace Semaphore
                     if (ask != null) msg = ask.Options != null ? ask.Question : ask.Tool + (string.IsNullOrEmpty(ask.Summary) ? "" : ": " + Shorten(ask.Summary, 120));
                     Session asking = c.Session;
                     Approvals.Request toShow = ask ?? asking.Orphan;
-                    // A toast with an "Answer" button when there is something to answer; the click on the rest of it just
-                    // closes it, like any toast. Without that (or if it cannot be shown) the balloon is used.
-                    bool shown = toShow != null && Config.LocalApprove
-                        && Toasts.Show("waiting-" + asking.Id, Loc.T("toast.waiting.title"), WithLabel(label, msg), LampFile(Level.Waiting),
-                            Loc.T("toast.waiting.answer"), 7000,
-                            args => ui.Post(_ => { MarkReacted(asking); if (args == "answer") ShowAsk(toShow); }, null),
-                            () => ui.Post(_ => MarkReacted(asking), null));
+                    // The button answers when there is something to answer here, otherwise it leads to the session; the
+                    // click on the rest of it just closes it. If it cannot be shown the balloon does what the button does.
+                    bool answerable = toShow != null && Config.LocalApprove;
+                    Action act = () => { if (answerable) AnswerFromNotice(toShow); else ShowSessionWindow(asking); };
+                    bool shown = Toasts.Show("waiting-" + asking.Id, Loc.T("toast.waiting.title"), WithLabel(label, msg), LampFile(Level.Waiting),
+                        Loc.T(answerable ? "toast.waiting.answer" : "ask.open.window"), 7000,
+                        args => ui.Post(_ => { MarkReacted(asking); if (args == Toasts.Button) act(); }, null),
+                        () => ui.Post(_ => MarkReacted(asking), null));
                     if (!shown)
-                        Toast(Loc.T("toast.waiting.title"), WithLabel(label, msg), Level.Waiting, ToolTipIcon.Warning,
-                            () => { if (toShow != null && Config.LocalApprove) ShowAsk(toShow); else Native.FocusSession(asking); }, asking);
+                        Toast(Loc.T("toast.waiting.title"), WithLabel(label, msg), Level.Waiting, ToolTipIcon.Warning, act, asking);
                 }
 
                 // Threshold 0 means "push right away"; otherwise CheckLongWaiting sends it later.
@@ -563,11 +589,11 @@ namespace Semaphore
                     string doneText = label.Length > 0 ? Loc.T("toast.done.body", label) : Loc.T("toast.done.plain");
                     string summary = SummaryLine(finished.Summary);
                     if (summary.Length > 0) doneText += "\n" + summary;
-                    bool shownDone = Toasts.Show("done-" + finished.Id, doneTitle, doneText, LampFile(Level.Idle), null, 7000,
-                        args => ui.Post(_ => { MarkReacted(finished); Native.FocusSession(finished); }, null),
+                    bool shownDone = Toasts.Show("done-" + finished.Id, doneTitle, doneText, LampFile(Level.Idle), Loc.T("ask.open.window"), 7000,
+                        args => ui.Post(_ => { MarkReacted(finished); if (args == Toasts.Button) ShowSessionWindow(finished); }, null),
                         () => ui.Post(_ => MarkReacted(finished), null));
                     if (!shownDone)
-                        Toast(doneTitle, doneText, Level.Idle, ToolTipIcon.Info, () => Native.FocusSession(finished), finished);
+                        Toast(doneTitle, doneText, Level.Idle, ToolTipIcon.Info, () => ShowSessionWindow(finished), finished);
                 }
             }
 
@@ -751,7 +777,7 @@ namespace Semaphore
                 string title = Loc.T("toast.background.title");
                 string text = Loc.T("toast.background.text", Duration(now - s.BackgroundSince));
                 Session waiting = s;
-                if (!Paused) Balloon(title, WithLabel(SessionLabel(s), text), Level.Background, 7000, () => Native.FocusSession(waiting));
+                if (!Paused) Balloon(title, WithLabel(SessionLabel(s), text), Level.Background, 7000, Loc.T("ask.open.window"), () => ShowSessionWindow(waiting));
                 Notifier.Dispatch(Config, title, WithLabel(RemoteLabel(s), text), false);
             }
         }
@@ -995,7 +1021,7 @@ namespace Semaphore
 
                 var show = new GuardedItem(Loc.T("menu.session.show"));
                 show.ForeColor = Theme.Fore;
-                show.Click += (o, e) => Native.FocusSession(captured);
+                show.Click += (o, e) => ShowSessionWindow(captured);
 
                 var notify = new GuardedItem(Loc.T("menu.session.notify"));
                 notify.ForeColor = Theme.Fore;
@@ -1228,7 +1254,7 @@ namespace Semaphore
             askPanel = new AskPanel(r, who,
                 index => { MarkReacted(s); approvals.AnswerOption(token, index); },
                 verb => { MarkReacted(s); approvals.Answer(token, verb); },
-                () => { MarkReacted(s); askDismissed.Add(token); if (s != null) Native.FocusSession(s); },
+                () => { MarkReacted(s); askDismissed.Add(token); if (s != null) ShowSessionWindow(s); },
                 () => { MarkReacted(s); askDismissed.Add(token); },
                 token.StartsWith("orphan:"));
             askPanel.Hovered += () => ExtendGrace(s);
@@ -1357,7 +1383,7 @@ namespace Semaphore
         {
             if (AppPaths.IsSandbox || HookInstaller.GetStatus() != HooksStatus.Outdated) return;
             Log.Write("The connection to Claude Code is from an older version: asking to update it");
-            Balloon(Loc.T("hooks.update.title"), Loc.T("hooks.update.text"), Level.Idle, 12000, () => ShowSettings(4));
+            Balloon(Loc.T("hooks.update.title"), Loc.T("hooks.update.text"), Level.Idle, 12000, Loc.T("toast.btn.settings"), () => ShowSettings(4));
         }
 
         static string Shorten(string text, int max)

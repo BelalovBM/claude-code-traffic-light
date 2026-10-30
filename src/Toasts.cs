@@ -9,8 +9,9 @@ using Windows.UI.Notifications;
 
 namespace Semaphore
 {
-    // Windows notifications with a button ("Answer"). The old balloon of the tray icon can only be clicked as a
-    // whole; a real toast can carry a button, and a click on the rest of it closes it like any other toast.
+    // Windows notifications with a button. The old balloon of the tray icon can only be clicked as a whole; a real
+    // toast can carry a button, and a click on the rest of it closes it, so a notice in the way can be taken away
+    // without being sent anywhere.
     //
     // A program without an installer is known to Windows by an application id: the program sets it for its own
     // process and registers a display name under HKCU (removed again by "Remove everything"). Nothing else is
@@ -68,9 +69,15 @@ namespace Semaphore
             catch { }
         }
 
-        // Shows the toast (the button only when buttonLabel is given). onActivated gets "answer" for the button and
-        // "" for the rest of the toast; onClosedByUser runs when the user closed it with the cross. Both run on a
-        // pool thread. False means "use the balloon".
+        // What onActivated gets for the button; for the rest of the toast it gets "".
+        public const string Button = "button";
+
+        // The toast shown last under each tag: a newer one of the same tag took its place, and its time is its own.
+        static readonly System.Collections.Generic.Dictionary<string, int> latest = new System.Collections.Generic.Dictionary<string, int>();
+        static int shownCount;
+
+        // Shows the toast (the button only when buttonLabel is given). onClosedByUser runs when the user closed it with
+        // the cross. Both callbacks run on a pool thread. False means "use the balloon".
         public static bool Show(string tag, string title, string body, string picturePath, string buttonLabel, int closeAfterMs,
             Action<string> onActivated, Action onClosedByUser)
         {
@@ -93,7 +100,7 @@ namespace Semaphore
                 + "<text>" + SecurityElement.Escape(body) + "</text>"
                 + "</binding></visual>"
                 + (buttonLabel == null ? ""
-                    : "<actions><action content=\"" + SecurityElement.Escape(buttonLabel) + "\" arguments=\"answer\" activationType=\"foreground\"/></actions>")
+                    : "<actions><action content=\"" + SecurityElement.Escape(buttonLabel) + "\" arguments=\"" + Button + "\" activationType=\"foreground\"/></actions>")
                 + "<audio silent=\"true\"/></toast>";
 
             var doc = new XmlDocument();
@@ -109,6 +116,8 @@ namespace Semaphore
                 if (e.Reason == ToastDismissalReason.UserCanceled && onClosedByUser != null) onClosedByUser();
             };
             ToastNotificationManager.CreateToastNotifier(Aumid).Show(toast);
+            int mine = ++shownCount;
+            latest[tag] = mine;
 
             // After the banner has gone the toast would sit in the notification centre, where a click could not
             // reach this program any more; take it away.
@@ -117,6 +126,8 @@ namespace Semaphore
             {
                 close.Stop();
                 close.Dispose();
+                if (latest[tag] != mine) return;
+                latest.Remove(tag);
                 try { ToastNotificationManager.History.Remove(tag, Group, Aumid); }
                 catch { }
             };

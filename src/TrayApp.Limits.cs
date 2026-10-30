@@ -247,7 +247,7 @@ namespace Semaphore
                 {
                     Session full = s;
                     Balloon(Loc.T("toast.context.title"), WithLabel(SessionLabel(s), Loc.T("toast.context.text", percent)), Level.Compacting, 9000,
-                        () => Native.FocusSession(full));
+                        Loc.T("ask.open.window"), () => ShowSessionWindow(full));
                 }
             }
         }
@@ -303,7 +303,7 @@ namespace Semaphore
         internal void FocusSessionById(string id)
         {
             Session s = store.Find(id);
-            if (s != null) Native.FocusSession(s);
+            if (s != null) ShowSessionWindow(s);
         }
 
         // A session as the menu names it while it runs; an ended one by the title of its chat, or its short id.

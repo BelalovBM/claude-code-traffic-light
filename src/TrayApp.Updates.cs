@@ -79,7 +79,7 @@ namespace Semaphore
                         {
                             Config.UpdateNotifiedVersion = r.Latest;
                             if (!Paused)
-                                Balloon(Loc.T("update.title", r.Latest), Loc.T("update.text", AppInfo.Version), Level.Idle, 10000, OpenNewVersion);
+                                Balloon(Loc.T("update.title", r.Latest), Loc.T("update.text", AppInfo.Version), Level.Idle, 10000, Loc.T("toast.btn.download"), OpenNewVersion);
                         }
                     }
                     else newVersion = null;
