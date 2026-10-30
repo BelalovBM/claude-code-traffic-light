@@ -51,9 +51,9 @@ A request shows up in a panel near the tray; the state changes come as ordinary 
 
 ![The panel near the tray: a Bash command with Allow, Deny and Allow and don't ask again, the rule that would be added, and links to open the session window or answer later](docs/panel-permission.png)
 
-![Windows notification: Claude Code finished, with the first line of what Claude did](docs/toast-done.png)
+![Windows notification: Claude Code finished, with the first line of what Claude did and an Open the session window button](docs/toast-done.png)
 ![Windows notification: Claude Code needs you, with an Answer button](docs/toast-waiting.png)
-![Windows notification: Claude stopped because of an error, in Claude's own words](docs/toast-error.png)
+![Windows notification: Claude stopped because of an error, in Claude's own words, with an Open the session window button](docs/toast-error.png)
 
 ## Phone notifications (ntfy)
 
