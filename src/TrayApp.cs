@@ -180,7 +180,7 @@ namespace Semaphore
         void ShowSessionWindow(Session s)
         {
             if (!Native.FocusSession(s))
-                Balloon(Loc.T("app.name"), WithLabel(SessionLabel(s), Loc.T("toast.nowindow")), Level.Idle, 5000);
+                Balloon(Loc.T("app.name"), WithLabel(SessionLabel(s), Loc.T("toast.nowindow")), Level.Waiting, 5000);
         }
 
         // The answer may have come from elsewhere while the notification was on the screen.
@@ -1259,6 +1259,7 @@ namespace Semaphore
                 token.StartsWith("orphan:"));
             askPanel.Hovered += () => ExtendGrace(s);
             askPanel.Show();
+            Log.Write("[" + (s == null ? "?" : s.ShortId) + "] request panel shown");
         }
         // The submenu of a session that asks is opened at once, so the question is in front of the user.
         void OpenAskingSession()
