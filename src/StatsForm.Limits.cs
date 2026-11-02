@@ -27,7 +27,7 @@ namespace Semaphore
         // The week whose curve is shown, by its start; null for the current one (or the last).
         DateTime? chosenWeek;
         readonly List<KeyValuePair<Rectangle, DateTime>> weekBars = new List<KeyValuePair<Rectangle, DateTime>>();
-        const int VisibleDays = 10;
+        const int VisibleDays = 20;
 
         int DrawLimits(Painter c, int width)
         {
@@ -247,7 +247,7 @@ namespace Semaphore
 
         // ---- the 5-hour windows ----
 
-        // Ten days at a time on a line of time, the chart scrolling back to the first window kept: a bar where each
+        // Twenty days at a time on a line of time, the chart scrolling back to the first window kept: a bar where each
         // window was, as high as its peak, red where it ran out; then the counts of the last 30 days.
         int Fives(Painter c, int left, int y, int inner, DateTime now)
         {
