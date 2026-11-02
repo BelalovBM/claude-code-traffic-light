@@ -83,7 +83,14 @@ namespace Semaphore
             foreach (var c in fives)
             {
                 DateTime end = bounds.First(b => b.Key == c.Key).Value;
-                r.Fives.Add(Window(c.Key, end, c.Value, a => a.Five.Value, ordered, fiveWeights, now, keptFrom));
+                // The figures named a reset after the next window began: Anthropic reset this one early, and it ended
+                // where the next one began (a limit run out in it came back then, not at the reset time).
+                DateTime next = bounds.Where(b => b.Key > c.Key).Select(b => b.Key).DefaultIfEmpty(DateTime.MaxValue).Min();
+                bool early = c.Value.Count > 0 && next < end;
+                if (early) end = next;
+                LimitWindow w = Window(c.Key, end, c.Value, a => a.Five.Value, ordered, fiveWeights, now, keptFrom);
+                if (early && w.EarlyReset == null) w.EarlyReset = end;
+                r.Fives.Add(w);
             }
             r.Fives = r.Fives.OrderBy(w => w.Start).ToList();
 

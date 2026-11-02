@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -368,6 +368,17 @@ namespace Semaphore.Tests
             Check("an early reset is noted, and the use before it is kept",
                 reset != null && reset.EarlyReset == e0.AddHours(2) && Math.Abs(reset.Peak - 90) < 1e-9 && reset.Last == 2,
                 reset == null ? "none" : reset.Peak + " " + reset.EarlyReset);
+
+            // A 5-hour window reset early: run out at 100%, then figures of a new window that began before its reset.
+            DateTime f0 = now.AddHours(-20);
+            LimitHistoryReport cut = LimitHistory.Build(
+                new List<UsageAnchor> { Figure(f0, 100, f0.AddHours(3), 30, weekEnd), Figure(f0.AddHours(1), 3, f0.AddHours(5.5), 30, weekEnd) },
+                new List<UsageStep> { Tenth(f0.AddMinutes(40)) }, w, w, now, now.AddDays(-31));
+            LimitWindow first = cut.Fives.FirstOrDefault(), second = cut.Fives.Skip(1).FirstOrDefault();
+            Check("a 5-hour window reset early ends where the next began, its use not counted in it",
+                first != null && second != null && first.End == second.Start && first.EarlyReset == second.Start
+                && first.OutAt == f0 && first.End - first.OutAt.Value == TimeSpan.FromMinutes(30) && first.Peak == 100 && second.Peak == 3,
+                first == null ? "none" : first.End + " " + first.OutAt + " " + (second == null ? "" : second.Peak.ToString()));
 
             // What is kept of finished windows: a window the transcripts cover replaces its kept copy, one that began
             // before them is shown as kept, a kept one nothing tells of any more stays, the current one is not kept.
