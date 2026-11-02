@@ -70,7 +70,11 @@ namespace Semaphore
                     LimitWindow chosen = Chosen();
                     yy = c.Text(Loc.T("stats.lim.curve", Range(chosen)), left, yy + Ui.S(10), inner, Theme.Fore, c.Bold);
                     yy = c.Text(Note(chosen), left, yy, inner, chosen.OutAt.HasValue ? Palette.StatusError : Theme.Muted);
-                    if (chosen.Current) yy = c.Text(Loc.T("stats.lim.curve.hint"), left, yy, inner, Theme.Muted);
+                    // The line about the dashed pace belongs to the current week only, its room to every week, so that
+                    // the chart does not move when another week is chosen.
+                    int hint = c.Measure(Loc.T("stats.lim.curve.hint"), inner);
+                    if (chosen.Current) c.Text(Loc.T("stats.lim.curve.hint"), left, yy, inner, Theme.Muted);
+                    yy += hint;
                     return Curve(c, left, yy + Ui.S(8), inner, chosen, now);
                 });
 
