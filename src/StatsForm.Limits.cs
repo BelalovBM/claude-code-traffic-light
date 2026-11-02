@@ -248,7 +248,7 @@ namespace Semaphore
         // ---- the 5-hour windows ----
 
         // Twenty days at a time on a line of time, the chart scrolling back to the first window kept: a bar where each
-        // window was, as high as its peak, red where it ran out; then the counts of the last 30 days.
+        // window was, as high as its peak, red where it ran out; then the counts of the days in sight.
         int Fives(Painter c, int left, int y, int inner, DateTime now)
         {
             DateTime today = DateTime.Today;
@@ -285,22 +285,26 @@ namespace Semaphore
                 c.Center(viewFirst.AddDays(d).ToString("dd.MM", Culture), plotLeft + dayWidth * d + dayWidth / 2, y, Theme.Muted);
             y = Scroll(c, fiveStrip, plotLeft, y + Font.Height + Ui.S(6), plotWidth) + Ui.S(6);
 
-            var month = history.Fives.Where(w => w.End > now.AddDays(-30) && w.Peak > 0).ToList();
-            if (month.Count == 0) return c.Text(Loc.T("stats.empty"), left, y, inner, Theme.Muted);
-            var outs = month.Where(w => w.OutAt.HasValue).ToList();
+            // The figures of the days in sight, as the chart shows them: each window counted on the day it began.
+            var shown = history.Fives.Where(w => w.Start >= from && w.Start < to && w.Peak > 0).ToList();
+            string shownDays = viewFirst.ToString("dd.MM", Culture) + "–" + viewFirst.AddDays(VisibleDays - 1).ToString("dd.MM", Culture);
+            if (shown.Count == 0) return c.Text(shownDays + ": " + Loc.T("stats.empty"), left, y, inner, Theme.Muted);
+            var outs = shown.Where(w => w.OutAt.HasValue).ToList();
             TimeSpan lost = TimeSpan.Zero;
             foreach (LimitWindow w in outs) lost += (w.End < now ? w.End : now) - w.OutAt.Value;
-            string count = Loc.T("stats.lim.count", month.Count.ToString("N0", Culture), outs.Count.ToString("N0", Culture));
+            string count = Loc.T("stats.lim.count", shownDays, shown.Count.ToString("N0", Culture), outs.Count.ToString("N0", Culture));
             if (outs.Count > 0) count += " · " + Loc.T("stats.lim.lost", Duration(lost));
             y = c.Text(count, left, y, inner, outs.Count > 0 ? Palette.StatusError : Theme.Fore);
-            y = c.Text(Loc.T("stats.lim.avg", Math.Round(month.Average(w => w.Peak)).ToString("0", Culture)), left, y + Ui.S(2), inner, Theme.Fore);
-            // The five hours in a row (across midnight too) with the most of the use.
+            y = c.Text(Loc.T("stats.lim.avg", Math.Round(shown.Average(w => w.Peak)).ToString("0", Culture)), left, y + Ui.S(2), inner, Theme.Fore);
+            // The five hours in a row (across midnight too) with the most of the use; only while the transcripts of
+            // those days are still there.
+            double[] shares = LimitHistory.HourShares(history, viewFirst, viewFirst.AddDays(VisibleDays - 1));
             int best = 0;
             double most = 0;
-            for (int h = 0; h < 24; h++)
+            for (int h = 0; shares != null && h < 24; h++)
             {
                 double sum = 0;
-                for (int k = 0; k < 5; k++) sum += history.Hours[(h + k) % 24];
+                for (int k = 0; k < 5; k++) sum += shares[(h + k) % 24];
                 if (sum > most) { most = sum; best = h; }
             }
             if (most > 0)

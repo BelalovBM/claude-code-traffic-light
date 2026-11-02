@@ -46,8 +46,8 @@ namespace Semaphore
     sealed class LimitHistoryReport
     {
         public List<LimitWindow> Fives = new List<LimitWindow>(), Weeks = new List<LimitWindow>();
-        // The share of the 5-hour use of the last 30 days in each local hour of the day.
-        public double[] Hours = new double[24];
+        // The use of each local day of the transcripts in each hour, weighed as the 5-hour limit counts it.
+        public Dictionary<DateTime, double[]> Hours = new Dictionary<DateTime, double[]>();
     }
 
     // The history of both limits, from the exact figures kept (usage-limits.json) and the steps of the transcripts.
@@ -116,17 +116,28 @@ namespace Semaphore
             }
             r.Weeks = r.Weeks.OrderBy(w => w.Start).ToList();
 
-            DateTime from = now.AddDays(-30);
-            double total = 0;
             foreach (UsageStep s in ordered)
             {
-                if (s.At < from) continue;
-                double v = fiveWeights != null ? fiveWeights.For(s.Model) * s.Cost : s.Cost;
-                r.Hours[s.At.ToLocalTime().Hour] += v;
-                total += v;
+                DateTime local = s.At.ToLocalTime();
+                double[] day;
+                if (!r.Hours.TryGetValue(local.Date, out day)) r.Hours[local.Date] = day = new double[24];
+                day[local.Hour] += fiveWeights != null ? fiveWeights.For(s.Model) * s.Cost : s.Cost;
             }
-            if (total > 0) for (int h = 0; h < 24; h++) r.Hours[h] /= total;
             return r;
+        }
+
+        // The share of the use of the days from "first" to "last" (local) in each hour of the day; null when the
+        // transcripts tell of no use in them.
+        internal static double[] HourShares(LimitHistoryReport r, DateTime first, DateTime last)
+        {
+            var sum = new double[24];
+            foreach (var d in r.Hours)
+                if (d.Key >= first && d.Key <= last)
+                    for (int h = 0; h < 24; h++) sum[h] += d.Value[h];
+            double total = sum.Sum();
+            if (total <= 0) return null;
+            for (int h = 0; h < 24; h++) sum[h] /= total;
+            return sum;
         }
 
         // The figures grouped by the reset they name, each group under the reset of its last figure.

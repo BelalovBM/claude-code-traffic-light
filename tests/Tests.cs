@@ -356,7 +356,9 @@ namespace Semaphore.Tests
             LimitWindow week = h.Weeks.Last();
             Check("an estimate above the figure that followed it is cut to that figure",
                 week.Peak == 50 && week.Last == 50 && week.OutAt == null && !week.Estimated, week.Peak + " " + week.Last);
-            Check("the hours of the use add up to the whole", Math.Abs(h.Hours.Sum() - 1) < 1e-9);
+            double[] shares = LimitHistory.HourShares(h, DateTime.MinValue, DateTime.MaxValue);
+            Check("the hours of the use add up to the whole, and days without use have none", shares != null && Math.Abs(shares.Sum() - 1) < 1e-9
+                && LimitHistory.HourShares(h, now.AddDays(-3).ToLocalTime().Date, now.AddDays(-2).ToLocalTime().Date) == null);
 
             // Reset early by Anthropic: 80%, use, then 2% with the same reset time. The use before the fall is not cut
             // to the figure after it, and the week says when it was reset.
