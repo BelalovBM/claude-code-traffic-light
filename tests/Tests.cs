@@ -34,6 +34,7 @@ namespace Semaphore.Tests
             Group("transcripts", Transcripts);
             Group("questions", Questions);
             Group("usage limits", UsageLimits);
+            Group("history of the limits", LimitHistoryChecks);
             Group("new versions", NewVersions);
             Group("settings", Settings);
             Group("log", LogFile);
@@ -306,6 +307,71 @@ namespace Semaphore.Tests
             Check("an unknown kind among known ones is not offered",
                 Rules("[{\"type\":\"setMode\",\"mode\":\"acceptEdits\",\"destination\":\"session\"},{\"type\":\"replaceRules\",\"destination\":\"session\"}]") == null);
             Check("no suggestions, nothing offered", Rules("[]") == null && Approvals.DescribeRules(null) == null);
+        }
+
+        // ---- the history of the limits ----
+
+        static UsageAnchor Figure(DateTime at, double five, DateTime fiveReset, double week, DateTime weekReset)
+        {
+            return new UsageAnchor { AtMs = UsageAnchor.ToMs(at), Five = five, FiveResetMs = UsageAnchor.ToMs(fiveReset), Week = week, WeekResetMs = UsageAnchor.ToMs(weekReset) };
+        }
+
+        // A reply that makes 10% of either limit at the weight used below (2000 output tokens, 10000 units).
+        static UsageStep Tenth(DateTime at) { return new UsageStep { At = at, Model = "claude-opus-5-5", Session = "a", Path = "a.jsonl", Output = 2000 }; }
+
+        static void LimitHistoryChecks()
+        {
+            DateTime now = new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc);
+            var w = new UsageMath.Weights { Common = 0.001 };
+            DateTime weekEnd = now.AddDays(3), r1 = now.AddHours(-20);
+            var figures = new List<UsageAnchor>
+            {
+                // A week two weeks back with one figure; the week between has no figure, only use.
+                Figure(now.AddDays(-15), 5, now.AddDays(-15).AddHours(3), 30, weekEnd.AddDays(-14)),
+                // A window with two figures, then the use runs it out.
+                Figure(r1.AddHours(-4), 30, r1, 20, weekEnd),
+                Figure(r1.AddHours(-2), 60, r1.AddMinutes(1), 25, weekEnd),
+                // The current window: one figure, nothing used since. The week's figure is below what the estimate
+                // reached before it.
+                Figure(now.AddHours(-1), 40, now.AddHours(2), 50, weekEnd),
+            };
+            var steps = new List<UsageStep> { Tenth(now.AddDays(-6)), Tenth(now.AddHours(-10)) };
+            for (int i = 0; i < 5; i++) steps.Add(Tenth(r1.AddMinutes(-90 + 20 * i)));
+            LimitHistoryReport h = LimitHistory.Build(figures, steps, w, w, now, now.AddDays(-31));
+
+            LimitWindow out1 = h.Fives.FirstOrDefault(x => Math.Abs((x.End - r1).TotalMinutes) < 2);
+            Check("figures of one window with resets a minute apart are one window", h.Fives.Count(x => Math.Abs((x.End - r1).TotalMinutes) < 30) == 1);
+            Check("a window run out by the use after its last figure: 100%, from the step that reached it",
+                out1 != null && out1.Peak == 100 && out1.OutAt == r1.AddMinutes(-90 + 20 * 3) && out1.Estimated,
+                out1 == null ? "none" : out1.Peak + " " + out1.OutAt);
+            LimitWindow alone = h.Fives.FirstOrDefault(x => x.Start == now.AddHours(-10));
+            Check("a message outside every known window opens one of five hours, estimated",
+                alone != null && alone.End == now.AddHours(-5) && Math.Abs(alone.Peak - 10) < 1e-9 && alone.Estimated && alone.OutAt == null);
+            LimitWindow current = h.Fives.LastOrDefault();
+            Check("the current window with its figure and nothing since is exact",
+                current != null && current.Current && current.Peak == 40 && current.Last == 40 && !current.Estimated);
+
+            Check("the weeks: the one with a figure, the one between with only use, and the current one",
+                h.Weeks.Count == 3 && h.Weeks[1].Estimated && Math.Abs(h.Weeks[1].Peak - 10) < 1e-9 && h.Weeks[2].Current, h.Weeks.Count.ToString());
+            LimitWindow week = h.Weeks.Last();
+            Check("an estimate above the figure that followed it is cut to that figure",
+                week.Peak == 50 && week.Last == 50 && week.OutAt == null && !week.Estimated, week.Peak + " " + week.Last);
+            Check("the hours of the use add up to the whole", Math.Abs(h.Hours.Sum() - 1) < 1e-9);
+
+            // Reset early by Anthropic: 80%, use, then 2% with the same reset time. The use before the fall is not cut
+            // to the figure after it, and the week says when it was reset.
+            DateTime e0 = now.AddHours(-30);
+            LimitHistoryReport early = LimitHistory.Build(
+                new List<UsageAnchor> { Figure(e0, 10, e0.AddHours(1), 80, weekEnd), Figure(e0.AddHours(2), 10, e0.AddHours(3), 2, weekEnd) },
+                new List<UsageStep> { Tenth(e0.AddHours(1)) }, w, w, now, now.AddDays(-31));
+            LimitWindow reset = early.Weeks.LastOrDefault();
+            Check("an early reset is noted, and the use before it is kept",
+                reset != null && reset.EarlyReset == e0.AddHours(2) && Math.Abs(reset.Peak - 90) < 1e-9 && reset.Last == 2,
+                reset == null ? "none" : reset.Peak + " " + reset.EarlyReset);
+
+            // Without weights (no figures to learn them from) nothing is estimated: no windows from messages alone.
+            LimitHistoryReport bare = LimitHistory.Build(new List<UsageAnchor>(), steps, null, null, now, now.AddDays(-31));
+            Check("without figures there is no history", bare.Fives.Count == 0 && bare.Weeks.Count == 0);
         }
 
         // ---- usage limits ----

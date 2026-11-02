@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+**New**
+- **The history of the limits**, on a tab of its own in the statistics window, **Limits**: where the current week stands and where its pace leads by the reset; each week with its figure, when it ran out and when Anthropic reset it early; a chart of how each week filled up; the 5-hour windows of 30 days, each as high as its peak, red where it ran out, with how long that left you without Claude, the average peak and the hours of the day with the most use. The points are the exact figures of `/usage` the program keeps, the rest is estimated from the transcripts (≈).
+
+**Fixed**
+- A question Claude Code asks that the program does not answer itself (several questions at once, or several answers to tick) brought up a panel with the question again and the wrong reason, "the program was not running". Such a question now turns the session red at once with the usual notice, and is answered in the session's window.
+
 ## 0.9.10 (beta)
 
 **Changed**

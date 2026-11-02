@@ -138,7 +138,7 @@ Below the limits the menu also shows, under its own title with the date of the p
 
 ### Statistics
 
-**Statistics…** in the tray menu (and a link on both cards of the limits and of the prices) opens a window with the use of today (as it opens), of 7 or of 30 days:
+**Statistics…** in the tray menu (and a link on both cards of the limits and of the prices) opens a window with the use of today (as it opens), of 7 or of 30 days, and the history of the limits:
 
 <img src="docs/stats.png" width="600" alt="The statistics window for 7 days: about 40% of the weekly limit, $35 at API prices; what it went on; breaks longer than the cache lasts; a bar per day; three sessions">
 
@@ -149,6 +149,13 @@ Below the limits the menu also shows, under its own title with the date of the p
 - **Sessions**: name, model, steps, the largest context, the share of the week and the dollars; six at a time, the list scrolls under its headings; a double click brings a running session's window to the front.
 
 Tokens are exact: they are the counters of Anthropic's servers that Claude Code writes into its transcripts. Dollars are tokens × prices. The share of the limit is an estimate (≈), by the same weights as the limits. Not in the transcripts, so not in the statistics: other computers and claude.ai, the summaries Claude Code makes when it compacts, and its small service requests.
+
+The **Limits** tab shows how the limits themselves were used, on a subscription:
+
+- **Weekly limit**: where the current week stands, its reset, and where the pace so far leads by the reset (or when it would run out); each week with its figure, when it ran out and when Anthropic reset it early; a chart of how each week filled up, the current one in colour with its pace dashed, the weeks before in grey.
+- **5-hour windows** of 30 days on a line of time, each as high as its peak, red where it ran out; pointing at one shows its hours, peak and how long it left you without Claude. Under them the number of windows, how many ran out and the time without Claude in all, the average peak, and the five hours of the day with the most use.
+
+The points are the exact figures of `/usage` that the program keeps; between them, and in windows without any, the use is estimated from the transcripts (≈). An estimate never stands above the exact figure that followed it.
 
 ## How it works
 

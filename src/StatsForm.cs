@@ -144,9 +144,18 @@ namespace Semaphore
         {
             // A period chosen before the window is made: the figures come when it loads.
             if (!IsHandleCreated) return;
-            view.Show(Report(tabs.Selected), tabs.Selected);
+            Fill(tabs.Selected);
             FitView();
         }
+
+        // A period of the statistics, or the history of the limits (the last tab).
+        void Fill(int tab)
+        {
+            if (tab == LimitsTab) view.ShowLimits(app.Usage.History(), app.Usage.Snapshot);
+            else view.Show(Report(tab), tab);
+        }
+
+        internal const int LimitsTab = 3;
 
         UsageReport Report(int period)
         {
@@ -157,7 +166,7 @@ namespace Semaphore
 
         public void ShowPeriod(int period)
         {
-            tabs.Choose(Math.Max(0, Math.Min(2, period)));
+            tabs.Choose(Math.Max(0, Math.Min(LimitsTab, period)));
         }
 
         // One size for all the periods, taken when the window opens: as tall as the tallest of them needs, as far as
@@ -165,9 +174,9 @@ namespace Semaphore
         void FitSize()
         {
             int tallest = 0;
-            for (int period = 0; period < 3; period++)
+            for (int period = 0; period <= LimitsTab; period++)
             {
-                view.Show(Report(period), period);
+                Fill(period);
                 tallest = Math.Max(tallest, view.Measure(ClientSize.Width));
             }
             Rectangle screen = Screen.FromControl(this).WorkingArea;
@@ -183,12 +192,12 @@ namespace Semaphore
             view.Height = view.Measure(width);
         }
 
-        // "Today / 7 days / 30 days": tabs drawn in the colours of the theme, the chosen one bold and underlined.
+        // "Today / 7 days / 30 days / Limits": tabs drawn in the colours of the theme, the chosen one bold and underlined.
         sealed class PeriodTabs : Control
         {
             public int Selected;
             public event Action Changed;
-            readonly string[] names = { Loc.T("stats.period.today"), Loc.T("stats.period.week"), Loc.T("stats.period.month") };
+            readonly string[] names = { Loc.T("stats.period.today"), Loc.T("stats.period.week"), Loc.T("stats.period.month"), Loc.T("stats.period.limits") };
             Rectangle[] boxes = new Rectangle[0];
 
             public PeriodTabs()
@@ -259,10 +268,12 @@ namespace Semaphore
     }
 
     // The content of the window, drawn in one piece: cards, bars, the table of sessions and the days.
-    sealed class StatsView : Control
+    sealed partial class StatsView : Control
     {
         readonly TrayApp app;
         UsageReport report;
+        LimitHistoryReport history;
+        LimitsSnapshot limits;
         int period;
         string selected;
         // Where things were drawn, for the mouse: the rows of sessions and the link to the prices.
@@ -281,6 +292,14 @@ namespace Semaphore
             ResizeRedraw = true;
             SetStyle(ControlStyles.Selectable, true);
             TabStop = true;
+        }
+
+        public void ShowLimits(LimitHistoryReport h, LimitsSnapshot s)
+        {
+            history = h;
+            limits = s;
+            period = StatsForm.LimitsTab;
+            Invalidate();
         }
 
         public void Show(UsageReport r, int period)
@@ -353,6 +372,7 @@ namespace Semaphore
             if (paint) { rows.Clear(); days.Clear(); pricesLink = sessionList = sessionTrack = sessionThumb = Rectangle.Empty; }
             int margin = Ui.S(16), pad = Ui.S(14);
             int y = Ui.S(12);
+            if (period == StatsForm.LimitsTab) return DrawLimits(new Painter(g, Font, paint), width);
             if (report == null) return y;
             var c = new Painter(g, Font, paint);
             int inner = width - 2 * margin - 2 * pad;
@@ -811,6 +831,20 @@ namespace Semaphore
             {
                 if (!paint || w <= 0 || h <= 0) return;
                 using (var b = new SolidBrush(color)) g.FillRectangle(b, x, y, w, h);
+            }
+
+            // A line through the points, smoothed; dashed for what is only expected.
+            public void Lines(PointF[] points, Color color, float width, bool dashed = false)
+            {
+                if (!paint || points.Length < 2) return;
+                var mode = g.SmoothingMode;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var pen = new Pen(color, width))
+                {
+                    if (dashed) pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
+                    g.DrawLines(pen, points);
+                }
+                g.SmoothingMode = mode;
             }
 
             // A card as in the settings: a frame around content laid out by "body" (which returns where it ended).

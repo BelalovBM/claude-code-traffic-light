@@ -367,6 +367,9 @@ namespace Semaphore
                 if (!ReadQuestion(e.ToolInput, out p.Question, out p.Options, out p.Descriptions))
                 {
                     Log.Write("[" + Short(e.SessionId) + "] question: not a single choice, asking on the computer");
+                    // The program saw the question and left it to the session's window: it is not to be looked up in
+                    // the transcript afterwards and offered as one the program missed.
+                    app.RequestArrived(e.SessionId, e.Cwd);
                     return "";
                 }
                 p.Input = e.ToolInput;

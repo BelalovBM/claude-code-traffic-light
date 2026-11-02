@@ -1,9 +1,9 @@
-﻿# Pictures of the statistics window and of the settings page with the prices, from the built program in a sandbox
+# Pictures of the statistics window and of the settings page with the prices, from the built program in a sandbox
 # (its own settings: no hooks, no phone, no background /usage). With -Real it reads the real transcripts and limits
 # of this computer, read only; the pictures then show real session titles and stay on this computer.
 # With -Load it also presses "Update prices from LiteLLM" (one request to GitHub), pictures the dialog and applies it.
-#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-ApiKey] [-Lang ru] [-Theme dark]
-param([switch]$Real, [switch]$Load, [switch]$Many, [switch]$ApiKey, [string]$Lang = 'ru', [string]$Theme = 'dark')
+#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-ApiKey] [-Lang ru] [-Theme dark] [-Tabs 0,1,2,3] [-NoSettings]
+param([switch]$Real, [switch]$Load, [switch]$Many, [switch]$ApiKey, [string]$Lang = 'ru', [string]$Theme = 'dark', [int[]]$Tabs = @(0, 1, 2, 3), [switch]$NoSettings)
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 using System; using System.Runtime.InteropServices;
@@ -119,7 +119,8 @@ try {
         $i = $line.IndexOf('='); if ($i -gt 0) { $texts[$line.Substring(0, $i)] = $line.Substring($i + 1) }
     }
     $kind = if ($Real) { 'real' } else { 'demo' }
-    foreach ($period in 0, 1, 2) {
+    # The tabs: today, 7 days, 30 days, the limits.
+    foreach ($period in $Tabs) {
         & $exe --stats $period | Out-Null
         $h = Window $texts['stats.title']
         if ($h -eq [IntPtr]::Zero) { 'NO STATS WINDOW'; return }
@@ -128,6 +129,7 @@ try {
         [Shot]::Save($h, "$out\stats-$kind-$period-$Lang-$Theme.png")
         "stats: $out\stats-$kind-$period-$Lang-$Theme.png"
     }
+    if ($NoSettings) { return }
     & $exe --page 4 | Out-Null
     Start-Sleep 12
     $s = Window $texts['settings.title']

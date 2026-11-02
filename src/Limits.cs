@@ -71,7 +71,7 @@ namespace Semaphore
         // The use of today (the local day) and of the last 30 days, in tokens and at API prices.
         public Spend Today = new Spend(), Month = new Spend();
         // Percent of the weekly limit per unit of cost, per model, as the exact figures taught them; null without them.
-        public UsageMath.Weights WeekWeights;
+        public UsageMath.Weights WeekWeights, FiveWeights;
     }
 
     sealed class Spend
@@ -737,9 +737,10 @@ namespace Semaphore
             List<UsageAnchor> list;
             lock (gate) list = anchors.ToList();
             var s = new LimitsSnapshot { AnyAnchor = list.Count > 0, NoSubscription = noSubscription, FiveMiss = fiveMiss, WeekMiss = weekMiss };
-            UsageMath.Weights unused, week;
-            s.Five = View(list, now, true, out unused);
+            UsageMath.Weights five, week;
+            s.Five = View(list, now, true, out five);
             s.Week = View(list, now, false, out week);
+            s.FiveWeights = five;
             s.WeekWeights = week;
             s.Today = SpendSince(DateTime.Today.ToUniversalTime());
             s.Month = SpendSince(now.AddDays(-30));
@@ -760,6 +761,21 @@ namespace Semaphore
             UsageReport r = UsageStats.Build(steps, comps, fromUtc, toUtc, s.NoSubscription ? null : s.WeekWeights);
             r.ApiKey = s.NoSubscription;
             return r;
+        }
+
+        // The history of the 5-hour windows and the weeks (see LimitHistory).
+        public LimitHistoryReport History()
+        {
+            LimitsSnapshot s = snapshot;
+            List<UsageAnchor> list;
+            List<UsageStep> steps;
+            lock (gate)
+            {
+                list = anchors.ToList();
+                steps = entries.Values.ToList();
+            }
+            DateTime now = DateTime.UtcNow;
+            return LimitHistory.Build(list, steps, s.FiveWeights, s.WeekWeights, now, now.AddDays(-KeepDays));
         }
 
         // The models used in the last 30 days, for the table of prices.
