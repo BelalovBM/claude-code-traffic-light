@@ -2,8 +2,10 @@
 # (its own settings: no hooks, no phone, no background /usage). With -Real it reads the real transcripts and limits
 # of this computer, read only; the pictures then show real session titles and stay on this computer.
 # With -Load it also presses "Update prices from LiteLLM" (one request to GitHub), pictures the dialog and applies it.
-#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-ApiKey] [-Lang ru] [-Theme dark] [-Tabs 0,1,2,3] [-NoSettings]
-param([switch]$Real, [switch]$Load, [switch]$Many, [switch]$ApiKey, [string]$Lang = 'ru', [string]$Theme = 'dark', [int[]]$Tabs = @(0, 1, 2, 3), [switch]$NoSettings)
+#   powershell -File stats-shot.ps1 [-Real] [-Load] [-Many] [-ApiKey] [-Lang ru] [-Theme dark] [-Tabs 0,1,2,3] [-NoSettings] [-Send click:110:300,wheel:400:740:3]
+# -Send: after the last tab is pictured, clicks and wheel turns sent as messages to the window under a point of the
+# statistics window (x and y from its top left corner; no real mouse), then one more picture.
+param([switch]$Real, [switch]$Load, [switch]$Many, [switch]$ApiKey, [string]$Lang = 'ru', [string]$Theme = 'dark', [int[]]$Tabs = @(0, 1, 2, 3), [switch]$NoSettings, [string[]]$Send = @())
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 using System; using System.Runtime.InteropServices;
@@ -46,6 +48,32 @@ public static class Shot {
       return true; }, IntPtr.Zero);
     return found;
   }
+  [DllImport("user32.dll")] static extern IntPtr ChildWindowFromPointEx(IntPtr p, POINT pt, uint flags);
+  [DllImport("user32.dll")] static extern bool ScreenToClient(IntPtr h, ref POINT pt);
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+  // The innermost child window under a point of the window, and the point in its own coordinates.
+  static IntPtr Under(IntPtr top, int wx, int wy, out POINT screen, out POINT client) {
+    RECT r; GetWindowRect(top, out r);
+    screen = new POINT { X = r.L + wx, Y = r.T + wy };
+    IntPtr h = top;
+    while (true) {
+      POINT c = screen; ScreenToClient(h, ref c);
+      IntPtr child = ChildWindowFromPointEx(h, c, 1);
+      if (child == IntPtr.Zero || child == h) break;
+      h = child;
+    }
+    client = screen; ScreenToClient(h, ref client);
+    return h;
+  }
+  public static void Click(IntPtr top, int wx, int wy) {
+    POINT s, c; IntPtr h = Under(top, wx, wy, out s, out c);
+    IntPtr l = (IntPtr)((c.Y << 16) | (c.X & 0xFFFF));
+    PostMessage(h, 0x0201, (IntPtr)1, l); PostMessage(h, 0x0202, IntPtr.Zero, l);
+  }
+  public static void Wheel(IntPtr top, int wx, int wy, int notches) {
+    POINT s, c; IntPtr h = Under(top, wx, wy, out s, out c);
+    PostMessage(h, 0x020A, (IntPtr)((120 * notches) << 16), (IntPtr)((s.Y << 16) | (s.X & 0xFFFF)));
+  }
   public static void Size(IntPtr h, int w, int hh) { RECT r; GetWindowRect(h, out r); MoveWindow(h, r.L, 0, w, hh, true); }
 }
 '@
@@ -63,6 +91,8 @@ if ($Real) {
     $running = Get-Process ClaudeCodeTrafficLight -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path -ne $exe } | Select-Object -First 1
     $installed = if ($running) { Join-Path (Split-Path $running.Path -Parent) 'usage-limits.json' } else { '' }
     if ($installed -and (Test-Path $installed)) { Copy-Item $installed "$box\data\" }
+    $kept = if ($running) { Join-Path (Split-Path $running.Path -Parent) 'limit-history.json' } else { '' }
+    if ($kept -and (Test-Path $kept)) { Copy-Item $kept "$box\data\" }
 } else {
     # The made-up sessions of the self-check, written by the program's own code (loaded as a library).
     New-Item -ItemType Directory -Force "$box\home\.claude\projects\demo" | Out-Null
@@ -128,6 +158,18 @@ try {
         if ($ApiKey) { $kind = 'apikey' }
         [Shot]::Save($h, "$out\stats-$kind-$period-$Lang-$Theme.png")
         "stats: $out\stats-$kind-$period-$Lang-$Theme.png"
+    }
+    if ($Send.Count -gt 0) {
+        # With -File the list comes as one string.
+        foreach ($step in ($Send -join ',').Split(',')) {
+            $f = $step.Split(':')
+            if ($f[0] -eq 'click') { [Shot]::Click($h, [int]$f[1], [int]$f[2]) }
+            else { [Shot]::Wheel($h, [int]$f[1], [int]$f[2], [int]$f[3]) }
+            Start-Sleep -Milliseconds 500
+        }
+        Start-Sleep 1
+        [Shot]::Save($h, "$out\stats-$kind-input-$Lang-$Theme.png")
+        "after input: $out\stats-$kind-input-$Lang-$Theme.png"
     }
     if ($NoSettings) { return }
     & $exe --page 4 | Out-Null

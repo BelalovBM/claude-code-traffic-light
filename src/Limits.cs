@@ -247,6 +247,8 @@ namespace Semaphore
                 ReadClaudeJson();
                 LimitsSnapshot s = Compute(DateTime.UtcNow);
                 snapshot = s;
+                // The finished windows are kept now and then, whether or not the statistics are ever opened.
+                if (DateTime.UtcNow - historyAt > TimeSpan.FromMinutes(10) && s.AnyAnchor && !s.NoSubscription) History();
                 if (!spendLogged)
                 {
                     spendLogged = true;
@@ -763,7 +765,8 @@ namespace Semaphore
             return r;
         }
 
-        // The history of the 5-hour windows and the weeks (see LimitHistory).
+        // The history of the 5-hour windows and the weeks (see LimitHistory), with the finished ones kept in
+        // limit-history.json for good: the transcripts and figures they come from do not stay.
         public LimitHistoryReport History()
         {
             LimitsSnapshot s = snapshot;
@@ -775,7 +778,64 @@ namespace Semaphore
                 steps = entries.Values.ToList();
             }
             DateTime now = DateTime.UtcNow;
-            return LimitHistory.Build(list, steps, s.FiveWeights, s.WeekWeights, now, now.AddDays(-KeepDays));
+            DateTime keptFrom = now.AddDays(-KeepDays);
+            LimitHistoryReport r = LimitHistory.Build(list, steps, s.FiveWeights, s.WeekWeights, now, keptFrom);
+            // Before the first reading of the transcripts the windows would look unused: nothing is kept from them.
+            if (!scanned) return r;
+            lock (historyGate)
+            {
+                LoadHistory();
+                List<LimitWindow> fives, weeks;
+                bool changed = LimitHistory.Merge(r.Fives, keptFives, now, keptFrom, out fives);
+                changed |= LimitHistory.Merge(r.Weeks, keptWeeks, now, keptFrom, out weeks);
+                r.Fives = fives;
+                r.Weeks = weeks;
+                if (changed) SaveHistory();
+                historyAt = now;
+            }
+            return r;
+        }
+
+        readonly object historyGate = new object();
+        List<LimitWindow> keptFives, keptWeeks;
+        DateTime historyAt;
+
+        static string HistoryPath { get { return Path.Combine(AppPaths.DataDir, "limit-history.json"); } }
+
+        void LoadHistory()
+        {
+            if (keptFives != null) return;
+            keptFives = new List<LimitWindow>();
+            keptWeeks = new List<LimitWindow>();
+            try
+            {
+                if (!File.Exists(HistoryPath)) return;
+                var h = new JavaScriptSerializer { MaxJsonLength = int.MaxValue }.Deserialize<SavedLimitHistory>(File.ReadAllText(HistoryPath, Encoding.UTF8));
+                if (h == null) return;
+                if (h.Fives != null) keptFives = h.Fives.Select(LimitHistory.FromSaved).ToList();
+                if (h.Weeks != null) keptWeeks = h.Weeks.Select(LimitHistory.FromSaved).ToList();
+            }
+            catch (Exception ex) { Log.Write("limit-history.json could not be read: " + ex.Message); }
+        }
+
+        void SaveHistory()
+        {
+            if (AppPaths.Disabled) return;
+            try
+            {
+                var h = new SavedLimitHistory
+                {
+                    Fives = keptFives.OrderBy(w => w.Start).Select(w => LimitHistory.ToSaved(w, false)).ToList(),
+                    Weeks = keptWeeks.OrderBy(w => w.Start).Select(w => LimitHistory.ToSaved(w, true)).ToList(),
+                };
+                string json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue }.Serialize(h);
+                // Written next to the file and moved over it, so that a crash halfway leaves the old history.
+                string temp = HistoryPath + ".tmp";
+                File.WriteAllText(temp, json, new UTF8Encoding(false));
+                if (File.Exists(HistoryPath)) File.Replace(temp, HistoryPath, null);
+                else File.Move(temp, HistoryPath);
+            }
+            catch (Exception ex) { Log.Write("limit-history.json could not be written: " + ex.Message); }
         }
 
         // The models used in the last 30 days, for the table of prices.

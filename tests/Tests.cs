@@ -369,6 +369,26 @@ namespace Semaphore.Tests
                 reset != null && reset.EarlyReset == e0.AddHours(2) && Math.Abs(reset.Peak - 90) < 1e-9 && reset.Last == 2,
                 reset == null ? "none" : reset.Peak + " " + reset.EarlyReset);
 
+            // What is kept of finished windows: a window the transcripts cover replaces its kept copy, one that began
+            // before them is shown as kept, a kept one nothing tells of any more stays, the current one is not kept.
+            DateTime kf = now.AddDays(-31);
+            Func<DateTime, double, LimitWindow> win = (start, peak) => new LimitWindow { Start = start, End = start.AddHours(5), Peak = peak, Last = peak };
+            var kept = new List<LimitWindow> { win(now.AddDays(-60), 70), win(now.AddDays(-32), 90), win(now.AddDays(-3), 10) };
+            var computed = new List<LimitWindow> { win(now.AddDays(-32), 20), win(now.AddDays(-3), 15), win(now.AddDays(-1), 30), win(now.AddHours(-1), 5) };
+            computed[3].Current = true;
+            List<LimitWindow> merged;
+            bool changed = LimitHistory.Merge(computed, kept, now, kf, out merged);
+            Check("kept windows: the old one stays, the one the transcripts no longer cover is shown as kept",
+                merged.Count == 5 && merged[0].Peak == 70 && merged[1].Peak == 90, string.Join(" ", merged.Select(x => x.Peak)));
+            Check("kept windows: a covered one replaces its copy, a new one is added, the current one is not kept",
+                changed && merged[2].Peak == 15 && kept.Count == 4 && kept.Any(x => x.Peak == 15) && kept.Any(x => x.Peak == 30) && !kept.Any(x => x.Current));
+            Check("nothing new, nothing to write", !LimitHistory.Merge(computed, kept, now, kf, out merged));
+            LimitWindow wk = h.Weeks[0];
+            LimitWindow back = LimitHistory.FromSaved(LimitHistory.ToSaved(wk, true));
+            Check("a kept week comes back with its figures and its curve",
+                back.Start == wk.Start && back.End == wk.End && back.Peak == wk.Peak && back.OutAt == wk.OutAt && back.Curve.Count > 0
+                && back.Curve.Last().Value == wk.Curve.Last().Value);
+
             // Without weights (no figures to learn them from) nothing is estimated: no windows from messages alone.
             LimitHistoryReport bare = LimitHistory.Build(new List<UsageAnchor>(), steps, null, null, now, now.AddDays(-31));
             Check("without figures there is no history", bare.Fives.Count == 0 && bare.Weeks.Count == 0);

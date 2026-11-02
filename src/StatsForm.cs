@@ -577,6 +577,12 @@ namespace Semaphore
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            if (LimitsWheel(e))
+            {
+                var handled = e as HandledMouseEventArgs;
+                if (handled != null) handled.Handled = true;
+                return;
+            }
             if (sessionList.Contains(e.Location))
             {
                 ScrollSessions(firstSession - Math.Sign(e.Delta) * Math.Max(1, SystemInformation.MouseWheelScrollLines));
@@ -680,6 +686,7 @@ namespace Semaphore
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
+            if (LimitsMove(e)) return;
             if (thumbDrag >= 0)
             {
                 // The thumb follows the pointer: its free run is the whole list.
@@ -687,7 +694,7 @@ namespace Semaphore
                 ScrollSessions(dragFirst + (int)Math.Round((e.Y - thumbDrag) * (double)(sessionCount - VisibleSessions) / run));
                 return;
             }
-            Cursor = pricesLink.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
+            Cursor = pricesLink.Contains(e.Location) || OverWeekBar(e.Location) ? Cursors.Hand : Cursors.Default;
             string text = days.Where(d => d.Key.Contains(e.Location)).Select(d => d.Value).FirstOrDefault();
             if (text == tipShown) return;
             tipShown = text;
@@ -711,6 +718,7 @@ namespace Semaphore
         protected override void OnMouseDown(MouseEventArgs e)
         {
             Focus();
+            if (LimitsDown(e)) return;
             if (pricesLink.Contains(e.Location)) { app.ShowPriceSettings(); return; }
             if (sessionThumb.Contains(e.Location))
             {
@@ -732,6 +740,7 @@ namespace Semaphore
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
+            if (LimitsUp()) return;
             if (thumbDrag < 0) return;
             thumbDrag = -1;
             Capture = false;
@@ -744,11 +753,15 @@ namespace Semaphore
                 if (r.Key.Contains(e.Location)) app.FocusSessionById(r.Value);
         }
 
-        protected override bool IsInputKey(Keys keyData) { return keyData == Keys.Up || keyData == Keys.Down || base.IsInputKey(keyData); }
+        protected override bool IsInputKey(Keys keyData)
+        {
+            return keyData == Keys.Up || keyData == Keys.Down || keyData == Keys.Left || keyData == Keys.Right || base.IsInputKey(keyData);
+        }
 
         // Up and down move the selection over all the sessions, the list scrolling to keep it in sight.
         protected override void OnKeyDown(KeyEventArgs e)
         {
+            if (LimitsKey(e)) return;
             var all = report == null ? new List<UsageSessionRow>() : report.Sessions;
             if (all.Count == 0) return;
             int i = all.FindIndex(r => r.Session == selected);

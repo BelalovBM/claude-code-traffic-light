@@ -152,10 +152,10 @@ Tokens are exact: they are the counters of Anthropic's servers that Claude Code 
 
 The **Limits** tab shows how the limits themselves were used, on a subscription:
 
-- **Weekly limit**: where the current week stands, its reset, and where the pace so far leads by the reset (or when it would run out); each week with its figure, when it ran out and when Anthropic reset it early; a chart of how each week filled up, the current one in colour with its pace dashed, the weeks before in grey.
-- **5-hour windows** of 30 days on a line of time, each as high as its peak, red where it ran out; pointing at one shows its hours, peak and how long it left you without Claude. Under them the number of windows, how many ran out and the time without Claude in all, the average peak, and the five hours of the day with the most use.
+- **Weekly limit**: where the current week stands, its reset, and where the pace so far leads by the reset (or when it would run out); a bar per week with its peak, red where it ran out; a click on a bar (or the arrow keys) shows how that week filled up, with when it ran out and when Anthropic reset it early, and for the current week its pace to the reset, dashed.
+- **5-hour windows** on a line of time, ten days at a time, each as high as its peak, red where it ran out; pointing at one shows its hours, peak and how long it left you without Claude. Under them, for the last 30 days, the number of windows, how many ran out and the time without Claude in all, the average peak, and the five hours of the day with the most use.
 
-The points are the exact figures of `/usage` that the program keeps; between them, and in windows without any, the use is estimated from the transcripts (≈). An estimate never stands above the exact figure that followed it.
+Both charts scroll sideways (the wheel, or the bar under them) when there is more than fits. The points are the exact figures of `/usage` that the program keeps; between them, and in windows without any, the use is estimated from the transcripts (≈). An estimate never stands above the exact figure that followed it. Claude Code deletes its transcripts after a month and the program keeps the exact figures for 90 days, so each finished window and week is also kept in `limit-history.json` next to the program, for good: the history stays when what it was made from is gone.
 
 ## How it works
 

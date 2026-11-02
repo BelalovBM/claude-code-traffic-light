@@ -21,6 +21,28 @@ namespace Semaphore
         public List<KeyValuePair<DateTime, double>> Curve = new List<KeyValuePair<DateTime, double>>();
     }
 
+    // A finished window as limit-history.json keeps it: the transcripts it was estimated from are deleted by Claude
+    // Code after a month and the exact figures are kept 90 days, the summary stays. Times in ms since 1970 (UTC).
+    sealed class SavedLimitWindow
+    {
+        public long StartMs { get; set; }
+        public long EndMs { get; set; }
+        public double Peak { get; set; }
+        public double Last { get; set; }
+        public bool Estimated { get; set; }
+        public long OutAtMs { get; set; }       // 0: it did not run out
+        public long EarlyResetMs { get; set; }  // 0: it was not reset early
+        // The curve of a week, a point an hour; none for a 5-hour window.
+        public List<long> CurveMs { get; set; }
+        public List<double> CurveValues { get; set; }
+    }
+
+    sealed class SavedLimitHistory
+    {
+        public List<SavedLimitWindow> Fives { get; set; }
+        public List<SavedLimitWindow> Weeks { get; set; }
+    }
+
     sealed class LimitHistoryReport
     {
         public List<LimitWindow> Fives = new List<LimitWindow>(), Weeks = new List<LimitWindow>();
@@ -179,14 +201,91 @@ namespace Semaphore
             return w;
         }
 
-        // One point per quarter of an hour (the last of it), the first and the last kept.
+        // ---- what is kept of finished windows ----
+
+        // The windows computed now joined with those kept: a finished window is kept (and its kept copy replaced) when
+        // the transcripts still cover all of it; one that began before them is shown as it was kept, if it was. Kept
+        // windows the figures and transcripts no longer tell of stay as they are. The current window is not kept until
+        // it ends. Returns whether the kept ones changed.
+        internal static bool Merge(List<LimitWindow> computed, List<LimitWindow> kept, DateTime now, DateTime keptFrom, out List<LimitWindow> merged)
+        {
+            bool changed = false;
+            merged = new List<LimitWindow>();
+            var matched = new HashSet<int>();
+            foreach (LimitWindow c in computed)
+            {
+                int i = kept.FindIndex(k => (k.Start - c.Start).Duration() < Same || (k.End - c.End).Duration() < Same);
+                if (i >= 0) matched.Add(i);
+                if (c.Current || c.End > now) { merged.Add(c); continue; }
+                if (i < 0)
+                {
+                    matched.Add(kept.Count);
+                    kept.Add(c);
+                    changed = true;
+                    merged.Add(c);
+                }
+                else if (c.Start >= keptFrom)
+                {
+                    if (!SameWindow(kept[i], c)) { kept[i] = c; changed = true; }
+                    merged.Add(c);
+                }
+                else merged.Add(kept[i]);
+            }
+            for (int i = 0; i < kept.Count; i++) if (!matched.Contains(i)) merged.Add(kept[i]);
+            merged = merged.OrderBy(w => w.Start).ToList();
+            return changed;
+        }
+
+        static bool SameWindow(LimitWindow a, LimitWindow b)
+        {
+            return a.Start == b.Start && a.End == b.End && Math.Abs(a.Peak - b.Peak) < 0.05 && Math.Abs(a.Last - b.Last) < 0.05
+                && a.Estimated == b.Estimated && a.OutAt == b.OutAt && a.EarlyReset == b.EarlyReset;
+        }
+
+        internal static SavedLimitWindow ToSaved(LimitWindow w, bool curve)
+        {
+            var s = new SavedLimitWindow
+            {
+                StartMs = UsageAnchor.ToMs(w.Start), EndMs = UsageAnchor.ToMs(w.End), Peak = Math.Round(w.Peak, 2), Last = Math.Round(w.Last, 2),
+                Estimated = w.Estimated, OutAtMs = w.OutAt.HasValue ? UsageAnchor.ToMs(w.OutAt.Value) : 0,
+                EarlyResetMs = w.EarlyReset.HasValue ? UsageAnchor.ToMs(w.EarlyReset.Value) : 0,
+            };
+            if (curve)
+            {
+                var points = Thin(w.Curve, TimeSpan.FromHours(1));
+                s.CurveMs = points.Select(p => UsageAnchor.ToMs(p.Key)).ToList();
+                s.CurveValues = points.Select(p => Math.Round(p.Value, 2)).ToList();
+            }
+            return s;
+        }
+
+        internal static LimitWindow FromSaved(SavedLimitWindow s)
+        {
+            var w = new LimitWindow
+            {
+                Start = UsageAnchor.Ms(s.StartMs), End = UsageAnchor.Ms(s.EndMs), Peak = s.Peak, Last = s.Last, Estimated = s.Estimated,
+                OutAt = s.OutAtMs != 0 ? UsageAnchor.Ms(s.OutAtMs) : (DateTime?)null,
+                EarlyReset = s.EarlyResetMs != 0 ? UsageAnchor.Ms(s.EarlyResetMs) : (DateTime?)null,
+            };
+            if (s.CurveMs != null && s.CurveValues != null)
+                for (int i = 0; i < Math.Min(s.CurveMs.Count, s.CurveValues.Count); i++)
+                    w.Curve.Add(new KeyValuePair<DateTime, double>(UsageAnchor.Ms(s.CurveMs[i]), s.CurveValues[i]));
+            return w;
+        }
+
         static List<KeyValuePair<DateTime, double>> Thin(List<KeyValuePair<DateTime, double>> points)
+        {
+            return Thin(points, TimeSpan.FromMinutes(15));
+        }
+
+        // One point per slot (the last of it), the first and the last kept.
+        static List<KeyValuePair<DateTime, double>> Thin(List<KeyValuePair<DateTime, double>> points, TimeSpan every)
         {
             var thin = new List<KeyValuePair<DateTime, double>>();
             long slot = long.MinValue;
             foreach (var p in points)
             {
-                long s = p.Key.Ticks / TimeSpan.FromMinutes(15).Ticks;
+                long s = p.Key.Ticks / every.Ticks;
                 if (s == slot && thin.Count > 1) thin[thin.Count - 1] = p;
                 else thin.Add(p);
                 slot = s;
