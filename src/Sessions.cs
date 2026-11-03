@@ -167,6 +167,8 @@ namespace Semaphore
         // The wait (identified by when it began) for which the program has had the request itself; its question
         // is not looked up in the transcript again once the request has expired or was dismissed.
         public DateTime AskedSince;
+        // When Claude Code last prepared a compaction in the background while the session was idle or waiting.
+        public DateTime PreparedAt;
         public DateTime OrphanChecked;
         public string TranscriptPath;
         // Claude ended its turn only to wait for a background task it started (a build, tests): the work goes on,
@@ -378,6 +380,16 @@ namespace Semaphore
             if (e.Name == "PreCompact" && e.Trigger != "manual" && (old == State.Idle || old == State.Waiting))
             {
                 Log.Write("[" + s.ShortId + "] compaction prepared in the background, the session stays " + old.Value.ToString().ToLowerInvariant());
+                s.PreparedAt = now;
+                return null;
+            }
+            // The preparation asks the API for the summary and, when that request fails (an overloaded server), Claude
+            // Code reports StopFailure, though no turn ran: the session stays as it was, nothing is told.
+            if (e.Name == "StopFailure" && (old == State.Idle || old == State.Waiting) && s.PreparedAt > s.Since
+                && now - s.PreparedAt < TimeSpan.FromMinutes(30))
+            {
+                Log.Write("[" + s.ShortId + "] API error (" + (e.Error ?? "unknown") + ") of the compaction prepared in the background, the session stays "
+                    + old.Value.ToString().ToLowerInvariant());
                 return null;
             }
             // A compaction restarts the session in the middle of what it was doing: within a turn, or when a summary

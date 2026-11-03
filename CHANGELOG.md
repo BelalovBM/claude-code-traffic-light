@@ -6,6 +6,7 @@
 - **The history of the limits**, on a tab of its own in the statistics window, **Limits**: where the current week stands and where its pace leads by the reset; a bar per week with its peak, and a click on one shows how that week filled up, when it ran out and when Anthropic reset it early; the 5-hour windows on a line of time, each as high as its peak, red where it ran out, with how long it was then until the reset, and for the days in sight the average peak and the hours of the day with the most use. Both charts scroll sideways. The points are the exact figures of `/usage` the program keeps, the rest is estimated from the transcripts (≈). Finished windows and weeks are kept in `limit-history.json` for good, after Claude Code has deleted the transcripts they came from.
 
 **Fixed**
+- A finished session could turn red with "stopped by an error", and the phone be told, an hour after its turn: Claude Code prepares a compaction in the background and, when that request to Anthropic fails (an overloaded server), reports it as an error, though nothing was running. Such an error now leaves the session as it was.
 - A question Claude Code asks that the program does not answer itself (several questions at once, or several answers to tick) brought up a panel with the question again and the wrong reason, "the program was not running". Such a question now turns the session red at once with the usual notice, and is answered in the session's window.
 
 ## 0.9.10 (beta)

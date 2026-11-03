@@ -171,6 +171,22 @@ namespace Semaphore.Tests
             Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b + ",\"prompt\":\"again\"}");
             Check("the next prompt clears the error", s.Failure == null && s.State == State.Working);
 
+            // The failed request of a compaction prepared in the background, after the turn: no error, the session
+            // stays done. Without that preparation an error after a stop is still told.
+            string b2 = "\"session_id\":\"sf2\",\"cwd\":\"C:\\\\Proj\"";
+            Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b2 + ",\"prompt\":\"go\"}");
+            Apply(store, "{\"hook_event_name\":\"Stop\"," + b2 + "}");
+            System.Threading.Thread.Sleep(20);
+            Apply(store, "{\"hook_event_name\":\"PreCompact\"," + b2 + ",\"trigger\":\"auto\"}");
+            Change bg = Apply(store, "{\"hook_event_name\":\"StopFailure\"," + b2 + ",\"error\":\"server_error\"}");
+            Check("an API error of the compaction prepared in the background is no error of the session",
+                bg == null && store.Find("sf2").State == State.Idle && store.Find("sf2").Failure == null);
+            string b3 = "\"session_id\":\"sf3\",\"cwd\":\"C:\\\\Proj\"";
+            Apply(store, "{\"hook_event_name\":\"UserPromptSubmit\"," + b3 + ",\"prompt\":\"go\"}");
+            Apply(store, "{\"hook_event_name\":\"Stop\"," + b3 + "}");
+            Change real = Apply(store, "{\"hook_event_name\":\"StopFailure\"," + b3 + ",\"error\":\"server_error\"}");
+            Check("without such a preparation the error is told", real != null && real.New == State.Waiting);
+
             // What Claude said when it finished, for the "done" notice: the first line, without Markdown marks.
             Check("the summary is the first line without a heading mark", TrayApp.SummaryLine("## Done\n\n**Added** tests") == "Done");
             Check("list and code marks are dropped", TrayApp.SummaryLine("\n- `npm test` passes, **13** of 13") == "npm test passes, 13 of 13");
