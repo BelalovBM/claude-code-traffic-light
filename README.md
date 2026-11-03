@@ -15,7 +15,7 @@ A tray traffic light for [Claude Code](https://claude.com/claude-code) on Window
 
 It works with Claude Code in the console and in the VS Code extension, and shows every running session at once. The icon shows the most urgent state. The menu also shows Claude's usage limits (5 hours and the week), the tokens used and what they would cost at API prices, and how full each session's context is.
 
-![The five lamps; two sessions at work with the usage limits and the use at API prices on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp; the statistics window with the share of the weekly limit and what it went on; the same question on a phone and on a smartwatch with its answer buttons; seven languages](docs/demo.gif)
+![The five lamps; two sessions at work with the usage limits and the use at API prices on top of the menu; one asks a question in a panel near the tray, is answered, goes on and finishes; one waits for its own build with the clock lamp; the statistics window with the share of the weekly limit and what it went on, and the limits week by week; the same question on a phone and on a smartwatch with its answer buttons; seven languages](docs/demo.gif)
 
 
 ## Quick start
@@ -151,6 +151,8 @@ Below the limits the menu also shows, under its own title with the date of the p
 Tokens are exact: they are the counters of Anthropic's servers that Claude Code writes into its transcripts. Dollars are tokens × prices. The share of the limit is an estimate (≈), by the same weights as the limits. Not in the transcripts, so not in the statistics: other computers and claude.ai, the summaries Claude Code makes when it compacts, and its small service requests.
 
 The **Limits** tab shows how the limits themselves were used, on a subscription:
+
+<img src="docs/stats-limits.png" width="600" alt="The Limits tab: the week now at 40%; a bar per week, one at 100% in red, chosen, with the curve of how that week filled up; the 5-hour windows of twenty days, six in red where they ran out">
 
 - **Weekly limit**: where the current week stands, its reset, and where the pace so far leads by the reset (or when it would run out); a bar per week with its peak, red where it ran out; a click on a bar (or the arrow keys) shows how that week filled up, with when it ran out and when Anthropic reset it early, and for the current week its pace to the reset, dashed.
 - **5-hour windows** on a line of time, twenty days at a time, each as high as its peak, red where it ran out; pointing at one shows its hours, its peak, and when it ran out with the wait until the reset. Under them, for the days in sight, the number of windows, how many ran out and the downtime because of the limit in all, the average peak, and the five hours of the day with the most use.

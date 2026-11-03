@@ -124,6 +124,8 @@ if ($Real) {
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $weekCost = ($cost.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + [string][math]::Round($_.Value) }) -join ','
     if (-not $ApiKey) { [IO.File]::WriteAllText("$box\data\usage-limits.json", '[{"AtMs":' + $now + ',"Week":40,"WeekResetMs":' + ($now + 5 * 86400000) + ',"WeekCost":{' + $weekCost + '},"CostVersion":3,"Plan":"claude_pro"}]') }
+    # A made-up history of the limits for the Limits tab: weeks and 5-hour windows before the demo replies.
+    if (-not $ApiKey) { python (Join-Path $root 'tools\screenshots\demo-history.py') "$box\data" | Out-Null }
     $env:TRAFFICLIGHT_CLAUDE_DIR = "$box\home\.claude"
 }
 # -Many: five more models with prices of their own, for the price table longer than it shows.

@@ -71,7 +71,7 @@
       <a class="button" href="https://github.com/BelalovBM/claude-code-traffic-light">Source code on GitHub</a>
     </div>
     <p class="small">Free and open source (GPL-3.0). One portable .exe, no installer, no administrator rights, no telemetry. Beta 0.9.</p>
-    <img class="demo" src="demo.gif" width="760" height="470" alt="Two Claude Code sessions in the tray menu, with the usage limits and the use at API prices on top; one asks a question in a panel near the tray, is answered, goes on and finishes; the same question on a phone and on a smartwatch with its answer buttons; the statistics window">
+    <img class="demo" src="demo.gif" width="760" height="470" alt="Two Claude Code sessions in the tray menu, with the usage limits and the use at API prices on top; one asks a question in a panel near the tray, is answered, goes on and finishes; the same question on a phone and on a smartwatch with its answer buttons; the statistics window and the limits week by week">
   </header>
 
   <h2>What the colours mean</h2>
@@ -92,7 +92,7 @@
     <div class="feature"><h3>No false "done"</h3><p>When Claude only stops to wait for its own background task, such as a build or tests, the lamp shows clock hands for as long as the task runs, and nothing is reported as finished. A wait of half an hour gets one notice, in case the task is stuck.</p></div>
     <div class="feature"><h3>Errors, not "done"</h3><p>A turn cut short by an API error, such as a usage limit, overloaded servers or a lost sign-in, shows red, with what happened in Claude's own words, here and on the phone.</p></div>
     <div class="feature"><h3>Context before it is compacted</h3><p>Each session shows how full its context is, and warns at 90% of the point where Claude compacts on its own, so you can finish the step or compact yourself.</p></div>
-    <div class="feature"><h3>Usage limits at a glance</h3><p>The 5-hour and weekly limits with their reset times, at the top of the menu, in the icon tooltip and in every push. Exact after <code>/usage</code>, estimated in between from your own sessions, or exact all along with <code>/usage</code> run in the background. Next to them the tokens and what they would cost at API prices, and a statistics window with what made the use dearer. The app itself asks nothing of Anthropic.</p></div>
+    <div class="feature"><h3>Usage limits at a glance</h3><p>The 5-hour and weekly limits with their reset times, at the top of the menu, in the icon tooltip and in every push. Exact after <code>/usage</code>, estimated in between from your own sessions, or exact all along with <code>/usage</code> run in the background. Next to them the tokens and what they would cost at API prices, and a statistics window with what made the use dearer and how the limits were used week by week. The app itself asks nothing of Anthropic.</p></div>
     <div class="feature"><h3>Out of Claude's way</h3><p>Driven by Claude Code hooks that exit within milliseconds. If the app is not running, the hooks simply do nothing.</p></div>
     <div class="feature"><h3>Fits your Windows</h3><p>7 languages, light, dark or system theme, follows Windows high contrast, display scaling and several monitors.</p></div>
   </div>
@@ -153,11 +153,13 @@
         <li>The same figures on the second line of the icon tooltip and at the end of every push; optionally a notice, here and on the phone, every N percent, when a limit runs out, when it is back and when a used window ends.</li>
         <li>Under them, the tokens used today and in 30 days and what they would cost at API prices, every kind of token at its own price: on a subscription, to see what the same work would cost by the token; with an API key, close to the bill. The prices are built in, with their date shown, and can be updated from the open price file of <a href="https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json">LiteLLM</a>, a community project on GitHub: on request, or once a day if you switch it on.</li>
         <li><strong>Statistics</strong> in a window of its own: what the use came to, what it went on (reading the cache, writing it, the replies), what made it dearer (a large context, breaks longer than the cache lasts, with what helps), by session and by day.</li>
+        <li><strong>The history of the limits</strong> on its own tab: a bar per week, with how each week filled up, when it ran out and when Anthropic reset it early; where the current week's pace leads by the reset; every 5-hour window on a line of time, red where it ran out, with the downtime that cost you and the hours of the day with the most use. Kept for good, after Claude Code has deleted the transcripts it came from.</li>
       </ul>
       <p class="small">The app itself never contacts Anthropic and never touches your Claude sign-in: in the background it only starts Claude Code's own command. Use on other devices shows up at the next <code>/usage</code>. A sign-in without a subscription (an API key) has no such limits, and the app shows none.</p>
     </div>
   </div>
   <img class="wide-shot" src="stats.png" width="776" height="800" loading="lazy" alt="The statistics window for 7 days: about 40% of the weekly limit, $35 at API prices; what it went on and what made it dearer, each bar with its share of the limit at its end; a bar per day on a scale of the weekly limit; three sessions with model, steps, largest context, share of the week and dollars">
+  <img class="wide-shot" src="stats-limits.png" width="776" height="912" loading="lazy" alt="The Limits tab of the statistics: the week now at 40% and running out by Friday at this pace; a bar per week, one at 100% in red, chosen, with the curve of how that week filled up and ran out on Saturday; the 5-hour windows of twenty days as bars, six in red where they ran out, 3 h 30 min of downtime because of the limit, the average peak and the busiest hours">
 
   <h2>Get started</h2>
   <p>1. Download <code>ClaudeCodeTrafficLight.exe</code> from the <a href="https://github.com/BelalovBM/claude-code-traffic-light/releases">releases page</a> and run it.<br>

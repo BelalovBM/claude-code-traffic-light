@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.11 (beta)
 
 **New**
 - **The history of the limits**, on a tab of its own in the statistics window, **Limits**: where the current week stands and where its pace leads by the reset; a bar per week with its peak, and a click on one shows how that week filled up, when it ran out and when Anthropic reset it early; the 5-hour windows on a line of time, each as high as its peak, red where it ran out, with how long it was then until the reset, and for the days in sight the average peak and the hours of the day with the most use. Both charts scroll sideways. The points are the exact figures of `/usage` the program keeps, the rest is estimated from the transcripts (≈). Finished windows and weeks are kept in `limit-history.json` for good, after Claude Code has deleted the transcripts they came from.

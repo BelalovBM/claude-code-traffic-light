@@ -96,6 +96,9 @@ Image.open(target.parent / "watch-question.png").save(work / "watch-question.png
 # dark edges the picture of the window has at its sides.
 stats = Image.open(target.parent / "stats.png").convert("RGB")
 stats.crop((8, 0, stats.width - 8, 380)).save(work / "stats-top.png")
+# The Limits tab: the current week and a bar per week, at the size of the frame of the statistics.
+limits = Image.open(target.parent / "stats-limits.png").convert("RGB")
+limits.crop((8, 0, limits.width - 8, 380)).save(work / "limits-top.png")
 
 watch = scene("watch-question.png", "On your wrist", "a smartwatch shows the same push; where it shows the buttons, answer from there")
 frames = [
@@ -110,6 +113,7 @@ frames = [
     (watch, 3400),
     (scene("4-background.png", "Waiting for its own build: clock hands", "not \"done\" while the build runs; a notice if it takes half an hour"), 2800),
     (scene("stats-top.png", "Statistics of the use", "the share of the weekly limit and the dollars at API prices; what it went on, what made it dearer"), 3600),
+    (scene("limits-top.png", "The limits, week by week", "where this week's pace leads; a bar per week, red where it ran out; a click shows how it filled up"), 3400),
     (languages(), 2600),
 ]
 # Screenshots need few colours; the photo of the watch gets the most a GIF frame can hold, so its red dot stays red.
