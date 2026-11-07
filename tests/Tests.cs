@@ -645,6 +645,16 @@ namespace Semaphore.Tests
                 && UsageRefresh.Figures(head + "What's contributing to your limits usage?") == null);
             Check("an answer with only the header is no breakdown, anything else without figures is",
                 UsageRefresh.OnlyHeader(head) && !UsageRefresh.OnlyHeader("Error: not logged in") && !UsageRefresh.OnlyHeader(head + "Current session: 3% used"));
+            string printed = head + "Current session: 30% used · resets 10pm";
+            string other = "Sesión actual: 30 % usado\nSemana actual: 23 % usado";
+            Check("a run of /usage counts by the figures Claude Code saved, whatever language its answer is in",
+                UsageRefresh.Outcome(printed, true, true) == UsageRefresh.UsageOutcome.Figures
+                && UsageRefresh.Outcome(printed, false, true) == UsageRefresh.UsageOutcome.Figures
+                && UsageRefresh.Outcome(printed, false, false) == UsageRefresh.UsageOutcome.NotSaved
+                && UsageRefresh.Outcome(other, true, true) == UsageRefresh.UsageOutcome.Saved
+                && UsageRefresh.Outcome(other, false, true) == UsageRefresh.UsageOutcome.None
+                && UsageRefresh.Outcome(head, true, true) == UsageRefresh.UsageOutcome.None
+                && UsageRefresh.Outcome("Error: not logged in", false, false) == UsageRefresh.UsageOutcome.None);
             Check("the same figures again replace the last one instead of piling up",
                 UsageTracker.SameFigures(new UsageAnchor { Five = 40, Week = 20, FiveResetMs = 1000000, WeekResetMs = 5000000 },
                                          new UsageAnchor { Five = 40, Week = 20, FiveResetMs = 1000000 + 60000, WeekResetMs = 5000000 })

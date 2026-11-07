@@ -180,6 +180,19 @@ namespace Semaphore
             return Figures(text) == null && (text ?? "").IndexOf("You are currently using", StringComparison.Ordinal) >= 0;
         }
 
+        internal enum UsageOutcome { Figures, Saved, NotSaved, None }
+
+        // How a run of /usage went. The figures the program uses are the ones Claude Code saves in ~/.claude.json; the
+        // printed answer only confirms them. Printed figures count once they are saved (changed, or saved a moment ago
+        // by another run): otherwise the reason to ask would stay and the next run would come as soon as the brake
+        // allows. An answer the program cannot read (another wording, another language) still counts when Claude Code
+        // saved new figures with it; one with only the header stays a run without figures.
+        internal static UsageOutcome Outcome(string text, bool changed, bool recent)
+        {
+            if (Figures(text) != null) return changed || recent ? UsageOutcome.Figures : UsageOutcome.NotSaved;
+            return changed && !OnlyHeader(text) ? UsageOutcome.Saved : UsageOutcome.None;
+        }
+
         // Runs /usage once (on a worker thread: it takes a few seconds) and says in the log how it went. Null when the
         // figures came, otherwise why not, in words for the user; "passing" when Claude Code worked but had no figures.
         internal static string Run(string chosen, out bool passing)
@@ -217,25 +230,30 @@ namespace Semaphore
                         return Loc.T("limits.auto.timeout");
                     }
                     string text = output.Result + "\n" + errors.Result;
-                    string figures = Figures(text);
-                    // Printed figures count only once Claude Code saved them where the program reads them: otherwise the
-                    // reason to ask would stay and the next run would come as soon as the brake allows.
                     long after = FetchedAt();
-                    bool saved = after != before || DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - after < 2 * 60 * 1000;
-                    if (figures != null && saved)
-                    {
-                        Log.Write("Usage limits: /usage in the background, " + figures + " in " + watch.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s");
-                        return null;
-                    }
-                    if (figures != null)
-                    {
-                        Log.Write("Usage limits: /usage in the background printed figures but ~/.claude.json did not change");
-                        return Loc.T("limits.auto.notsaved");
-                    }
+                    bool changed = after != 0 && after != before;
+                    bool recent = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - after < 2 * 60 * 1000;
+                    UsageOutcome outcome = Outcome(text, changed, recent);
+                    string seconds = watch.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
                     // The whole answer goes to the log, so that the reason can be seen; the user gets its first line.
                     string[] lines = text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToArray();
                     string all = string.Join(" | ", lines);
                     if (all.Length > 600) all = all.Substring(0, 600) + "...";
+                    if (outcome == UsageOutcome.Figures)
+                    {
+                        Log.Write("Usage limits: /usage in the background, " + Figures(text) + " in " + seconds + " s");
+                        return null;
+                    }
+                    if (outcome == UsageOutcome.Saved)
+                    {
+                        Log.Write("Usage limits: /usage in the background saved new figures in " + seconds + " s, its answer not recognised: " + all);
+                        return null;
+                    }
+                    if (outcome == UsageOutcome.NotSaved)
+                    {
+                        Log.Write("Usage limits: /usage in the background printed figures but ~/.claude.json did not change");
+                        return Loc.T("limits.auto.notsaved");
+                    }
                     passing = OnlyHeader(text);
                     Log.Write("Usage limits: /usage in the background gave no figures (exit " + p.ExitCode + (passing ? ", only the header" : "") + "): " + (all.Length > 0 ? all : "(no output)"));
                     string first = lines.Length > 0 ? lines[0] : "(no output)";

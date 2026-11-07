@@ -63,7 +63,7 @@ namespace Semaphore
                 {
                     Label paused = ResultLabel();
                     paused.Font = new Font(Font, FontStyle.Bold);
-                    SetResult(paused, Loc.T("notif.paused.until", new DateTime(cfg.DndUntilTicks).ToString("HH:mm")), Palette.StatusWarn);
+                    SetResult(paused, Loc.T("notif.paused.until", new DateTime(cfg.DndUntilTicks).ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)), Palette.StatusWarn);
                     c.Controls.Add(paused);
                     var resume = new Button { Text = Loc.T("btn.resume"), AutoSize = true, Margin = Ui.Pad(3, 0, 3, 8) };
                     resume.Click += (s, e) =>

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.12 (beta)
+
+**Fixed**
+- Times in the menu and the panels are written with a colon, 20:44, whatever the regional format of Windows (one with a dot made it 20.44), and the logs keep the usual calendar under a Thai, Arabic or Persian format.
+- The background `/usage` counted only an answer in English: one in another wording or language would have looked like a failure, with the notice "Could not refine the limits", though Claude Code had saved the figures. A run now counts by the figures Claude Code saved.
+
 ## 0.9.11 (beta)
 
 **New**

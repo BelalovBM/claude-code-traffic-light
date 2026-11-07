@@ -307,7 +307,7 @@ namespace Semaphore
         public void ShowPhoneSent(DateTime at)
         {
             if (phoneLabel == null || phoneLabel.Visible || Expired) return;
-            phoneLabel.Text = Loc.T("ask.sentphone", at.ToString("HH:mm"));
+            phoneLabel.Text = Loc.T("ask.sentphone", at.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
             phoneLabel.Visible = true;
             Reflow();
         }

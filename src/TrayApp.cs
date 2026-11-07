@@ -1093,7 +1093,7 @@ namespace Semaphore
             if (Paused)
             {
                 var resume = new GuardedItem(Config.NotificationsEnabled
-                    ? Loc.T("menu.pause.resume.until", new DateTime(Config.DndUntilTicks).ToString("HH:mm"))
+                    ? Loc.T("menu.pause.resume.until", new DateTime(Config.DndUntilTicks).ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture))
                     : Loc.T("menu.pause.resume"));
                 resume.ForeColor = Theme.Fore;
                 resume.Click += (o, e) =>

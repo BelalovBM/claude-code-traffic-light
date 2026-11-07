@@ -108,7 +108,7 @@ namespace Semaphore
                 lock (gate)
                 {
                     TrimToLastHalf(FilePath, 512 * 1024);
-                    File.AppendAllText(FilePath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + text + Environment.NewLine, Encoding.UTF8);
+                    File.AppendAllText(FilePath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ", System.Globalization.CultureInfo.InvariantCulture) + text + Environment.NewLine, Encoding.UTF8);
                 }
             }
             catch { }

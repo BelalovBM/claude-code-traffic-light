@@ -23,7 +23,7 @@ namespace Semaphore
         public static string Prepare()
         {
             Active = true;
-            string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
             string root = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "selfcheck-" + stamp);
             try { Directory.CreateDirectory(root); }
             catch { root = Path.Combine(Path.GetTempPath(), "ClaudeCodeTrafficLight-selfcheck-" + stamp); Directory.CreateDirectory(root); }
@@ -288,7 +288,7 @@ namespace Semaphore
             {
                 var sb = new StringBuilder();
                 sb.AppendLine("Claude Code Traffic Light self-check");
-                sb.AppendLine("version   " + AppInfo.Version + "   " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                sb.AppendLine("version   " + AppInfo.Version + "   " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture));
                 sb.AppendLine("windows   " + WindowsName() + "   (" + Environment.OSVersion.VersionString + ")");
                 sb.AppendLine(".net      " + Environment.Version + "   64-bit process: " + Environment.Is64BitProcess);
                 sb.AppendLine("language  program: " + Loc.Code + ", system: " + System.Globalization.CultureInfo.CurrentUICulture.Name);

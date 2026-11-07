@@ -148,7 +148,7 @@ namespace Semaphore
             else outcome = Loc.T("journal.screen");
 
             string what = p.Options != null ? p.Question : p.Tool + (string.IsNullOrEmpty(p.Summary) ? "" : ": " + Clip(p.Summary, 80));
-            string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + session + " · " + Clip(what, 120) + " -> " + outcome;
+            string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "  " + session + " · " + Clip(what, 120) + " -> " + outcome;
             if (AppPaths.Disabled) return;
             try
             {

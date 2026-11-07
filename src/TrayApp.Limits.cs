@@ -122,7 +122,7 @@ namespace Semaphore
             if (v.Reset == DateTime.MinValue) return "";
             DateTime local = v.Reset.ToLocalTime();
             string when = local.Date == DateTime.Today
-                ? Loc.T("limits.reset.at", local.ToString("HH:mm"))
+                ? Loc.T("limits.reset.at", local.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture))
                 : Loc.T("limits.reset.on", local.ToString("ddd HH:mm", LimitCulture()));
             return v.ResetApprox ? "≈ " + when : when;
         }
@@ -181,7 +181,7 @@ namespace Semaphore
             items.Add(LimitLine(Loc.T("limits.week"), s.Week));
             LimitView exact = s.Five.HasExact ? s.Five : s.Week.HasExact ? s.Week : null;
             if (exact != null && !(s.Five.Exact && s.Week.Exact))
-                items.Add(MutedLine(Loc.T("limits.menu.exact", exact.ExactAt.ToLocalTime().ToString("HH:mm"),
+                items.Add(MutedLine(Loc.T("limits.menu.exact", exact.ExactAt.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture),
                     (s.Five.HasExact ? Math.Round(s.Five.ExactPercent) + "%" : "?") + " / " + (s.Week.HasExact ? Math.Round(s.Week.ExactPercent) + "%" : "?"))));
             else if (exact == null)
                 items.Add(MutedLine(Loc.T("limits.menu.old")));
