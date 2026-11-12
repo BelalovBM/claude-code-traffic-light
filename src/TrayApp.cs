@@ -71,14 +71,16 @@ namespace Semaphore
             };
             tray.BalloonTipClosed += (s, e) => toastClick = null;
             askTimer.Start();
-            tray.ContextMenuStrip = menu;
+            // The menu is not given to the icon as its ContextMenuStrip: WinForms would open it at the mouse on a
+            // right click. Both buttons open it here, at the icon (a key on the icon in the tray arrives as a click
+            // too).
             tray.Visible = true;
             Native.TrayIcon = tray;
             hotkey.Pressed += OnHotkey;
             hotkey.Set(Config.Hotkey);
             tray.MouseClick += (s, e) =>
             {
-                if (e.Button == MouseButtons.Left) ShowMenu();
+                if (e.Button == MouseButtons.Left || e.Button == MouseButtons.Right) ShowMenu();
             };
             tray.DoubleClick += (s, e) =>
             {
@@ -1436,27 +1438,48 @@ namespace Semaphore
         // first command selected so the arrows and Enter work at once.
         void ShowMenuFromKeyboard()
         {
-            Rectangle icon = Native.TrayIconRect();
-            Rectangle area = Native.TrayScreen().WorkingArea;
-            Point at = icon.IsEmpty
-                ? new Point(area.Right - Ui.S(8), area.Bottom - Ui.S(8))
-                : new Point(icon.Left + icon.Width / 2, icon.Top);
-            Native.ActivateTrayWindow();
-            menu.Show(at, ToolStripDropDownDirection.AboveLeft);
+            ShowMenuAtIcon();
             ToolStripItem first = menu.Items.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.Enabled && i.Available);
             if (first != null) first.Select();
-            Log.Write("Menu opened from the keyboard at " + at.X + "," + at.Y);
+            Log.Write("Menu opened from the keyboard");
         }
 
+        // The menu opens in the same place every time, against the tray icon on the side away from the taskbar,
+        // instead of wherever the click was: Windows would put it at the mouse, so it moved from one opening to the
+        // next. An icon Windows gives no place for (in the overflow, on some versions) opens it at the mouse.
         void ShowMenu()
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            // WinForms has no public call for "the menu of this icon, placed like Windows does"; if a future version
-            // of the framework drops the private one, the menu opens at the mouse instead of failing.
-            var show = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (show != null) show.Invoke(tray, null);
-            else menu.Show(Cursor.Position);
+            ShowMenuAtIcon();
             Log.Write("Menu opened in " + watch.ElapsedMilliseconds + " ms");
+        }
+
+        void ShowMenuAtIcon()
+        {
+            Rectangle icon = Native.TrayIconRect();
+            Point at;
+            ToolStripDropDownDirection way = MenuPlace(icon, icon.IsEmpty ? Rectangle.Empty : Screen.FromRectangle(icon).Bounds,
+                icon.IsEmpty ? Rectangle.Empty : Screen.FromRectangle(icon).WorkingArea, out at);
+            if (icon.IsEmpty) { at = Cursor.Position; way = ToolStripDropDownDirection.AboveLeft; }
+            // As Windows does for the menu of a tray icon: the program comes to the front, so a click elsewhere
+            // closes the menu.
+            Native.ActivateTrayWindow();
+            menu.Show(at, way);
+        }
+
+        // Where the menu goes for an icon on a taskbar at any edge of the screen: from the middle of the icon's edge
+        // that faces the desktop, opening away from the taskbar.
+        internal static ToolStripDropDownDirection MenuPlace(Rectangle icon, Rectangle screen, Rectangle work, out Point at)
+        {
+            int cx = icon.Left + icon.Width / 2, cy = icon.Top + icon.Height / 2;
+            bool top = work.Top > screen.Top && cy < work.Top;
+            bool left = work.Left > screen.Left && cx < work.Left;
+            bool right = work.Right < screen.Right && cx > work.Right;
+            if (top) { at = new Point(cx, icon.Bottom); return ToolStripDropDownDirection.BelowLeft; }
+            if (left) { at = new Point(icon.Right, cy); return ToolStripDropDownDirection.AboveRight; }
+            if (right) { at = new Point(icon.Left, cy); return ToolStripDropDownDirection.AboveLeft; }
+            at = new Point(cx, icon.Top);
+            return ToolStripDropDownDirection.AboveLeft;
         }
 
         void ShowSettings(int page = 0)

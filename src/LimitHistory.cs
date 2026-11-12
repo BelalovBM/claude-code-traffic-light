@@ -126,6 +126,24 @@ namespace Semaphore
             return r;
         }
 
+        // The days the chart of the 5-hour windows shows, oldest first: each local day a used window touches (one that
+        // runs past midnight, both), and today; the days between with no window are left out. While there are fewer
+        // than "least", the days before the first are added, so the chart is as wide as before the history began.
+        internal static List<DateTime> UsedDays(IEnumerable<LimitWindow> fives, DateTime today, DateTime now, int least)
+        {
+            var set = new HashSet<DateTime> { today.Date };
+            foreach (LimitWindow w in fives)
+            {
+                if (w.Peak <= 0) continue;
+                DateTime end = (w.End < now ? w.End : now).AddTicks(-1);
+                if (end < w.Start) end = w.Start;
+                for (DateTime d = w.Start.ToLocalTime().Date; d <= end.ToLocalTime().Date && d <= today.Date; d = d.AddDays(1)) set.Add(d);
+            }
+            var days = set.OrderBy(d => d).ToList();
+            while (days.Count < least) days.Insert(0, days[0].AddDays(-1));
+            return days;
+        }
+
         // The share of the use of the days from "first" to "last" (local) in each hour of the day; null when the
         // transcripts tell of no use in them.
         internal static double[] HourShares(LimitHistoryReport r, DateTime first, DateTime last)

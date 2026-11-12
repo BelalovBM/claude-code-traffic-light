@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.13 (beta)
+
+**Changed**
+- **The tray menu opens in the same place every time**, against the icon on the side away from the taskbar, for the left and the right button alike; Windows put it wherever the mouse was, so it moved from one opening to the next.
+- **The chart of the 5-hour windows leaves out the days without one**, so the windows stand close; a double line marks where days are left out, and twenty days with work fit at a time.
+
 ## 0.9.12 (beta)
 
 **New**

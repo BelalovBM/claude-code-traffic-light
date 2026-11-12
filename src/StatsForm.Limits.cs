@@ -251,27 +251,55 @@ namespace Semaphore
         // window was, as high as its peak, red where it ran out; then the counts of the days in sight.
         int Fives(Painter c, int left, int y, int inner, DateTime now)
         {
-            DateTime today = DateTime.Today;
-            DateTime firstDay = history.Fives.Count > 0 ? history.Fives.Min(w => w.Start).ToLocalTime().Date : today;
-            fiveStrip.Count = Math.Max(VisibleDays, (int)(today - firstDay).TotalDays + 1);
+            // Only the days with a window are on the line, so the windows stand close however many days went by
+            // without Claude; where days are left out the line between two days is doubled.
+            List<DateTime> all = LimitHistory.UsedDays(history.Fives, DateTime.Today, now, VisibleDays);
+            fiveStrip.Count = all.Count;
             fiveStrip.Visible = VisibleDays;
             fiveStrip.Clamp();
-            DateTime viewFirst = today.AddDays(1 - VisibleDays - fiveStrip.Back);
-            DateTime from = viewFirst.ToUniversalTime(), to = viewFirst.AddDays(VisibleDays).ToUniversalTime();
+            List<DateTime> view = all.GetRange(fiveStrip.First, Math.Min(VisibleDays, all.Count - fiveStrip.First));
+            DateTime viewFirst = view[0], viewLast = view[view.Count - 1];
+            DateTime from = viewFirst.ToUniversalTime(), to = viewLast.AddDays(1).ToUniversalTime();
 
             int gutter = c.Width("100%") + Ui.S(8);
             int plotLeft = left + gutter, plotWidth = inner - gutter;
             int chart = Ui.S(90);
             int top = y + Font.Height / 2, bottom = top + chart;
-            double span = (to - from).TotalMinutes;
-            Func<DateTime, int> x = t => plotLeft + (int)Math.Round(plotWidth * Math.Max(0, Math.Min(1, (t - from).TotalMinutes / span)));
-            // Midnights, faint, so that the windows read against the days.
-            for (int d = 1; d < VisibleDays; d++)
-                c.Fill(x(viewFirst.AddDays(d).ToUniversalTime()), top, 1, chart, Theme.Border);
+            int dayWidth = plotWidth / VisibleDays;
+            var slot = new Dictionary<DateTime, int>();
+            for (int d = 0; d < view.Count; d++) slot[view[d]] = d;
+            // A moment's place: its day's slot and the time of day in it. A window going on into a day that is not on
+            // the line ends at the end of the slot of its own.
+            Func<DateTime, bool, int> x = (t, end) =>
+            {
+                DateTime local = t.ToLocalTime();
+                DateTime day = end && local.TimeOfDay == TimeSpan.Zero ? local.Date.AddDays(-1) : local.Date;
+                double into = end && local.TimeOfDay == TimeSpan.Zero ? 1 : local.TimeOfDay.TotalDays;
+                int k;
+                if (!slot.TryGetValue(day, out k))
+                {
+                    if (!end) return plotLeft;
+                    k = view.FindLastIndex(v => v < day);
+                    if (k < 0) return plotLeft;
+                    into = 1;
+                }
+                return plotLeft + (int)Math.Round(dayWidth * (k + into));
+            };
+            // Midnights, faint, so that the windows read against the days; doubled where days are left out.
+            for (int d = 1; d < view.Count; d++)
+            {
+                int mx = plotLeft + dayWidth * d;
+                if ((view[d] - view[d - 1]).TotalDays > 1)
+                {
+                    c.Fill(mx - Ui.S(2), top, 1, chart, Theme.Muted);
+                    c.Fill(mx + Ui.S(1), top, 1, chart, Theme.Muted);
+                }
+                else c.Fill(mx, top, 1, chart, Theme.Border);
+            }
             Marks(c, plotLeft, plotWidth, bottom, chart);
             foreach (LimitWindow w in history.Fives.Where(w => w.End > from && w.Start < to && w.Peak > 0))
             {
-                int x0 = x(w.Start), x1 = Math.Max(x0 + Ui.S(3), x(w.End) - 1);
+                int x0 = x(w.Start < from ? from : w.Start, false), x1 = Math.Max(x0 + Ui.S(3), x(w.End > to ? to : w.End, true) - 1);
                 int h = Math.Max(2, (int)Math.Round(chart * Math.Min(100, w.Peak) / 100));
                 c.Fill(x0, bottom - h, x1 - x0, h, w.OutAt.HasValue ? Palette.StatusError : Palette.AccentBar);
                 if (c.Painting)
@@ -279,15 +307,14 @@ namespace Semaphore
             }
             if (c.Painting) fiveStrip.Area = new Rectangle(plotLeft, top, plotWidth, chart + Font.Height + Ui.S(4));
             y = bottom + Ui.S(4);
-            int dayWidth = plotWidth / VisibleDays;
             int every = c.Width("00.00") + Ui.S(8) <= dayWidth ? 1 : 2;
-            for (int d = 0; d < VisibleDays; d += every)
-                c.Center(viewFirst.AddDays(d).ToString("dd.MM", Culture), plotLeft + dayWidth * d + dayWidth / 2, y, Theme.Muted);
+            for (int d = view.Count - 1; d >= 0; d -= every)
+                c.Center(view[d].ToString("dd.MM", Culture), plotLeft + dayWidth * d + dayWidth / 2, y, Theme.Muted);
             y = Scroll(c, fiveStrip, plotLeft, y + Font.Height + Ui.S(6), plotWidth) + Ui.S(6);
 
             // The figures of the days in sight, as the chart shows them: each window counted on the day it began.
             var shown = history.Fives.Where(w => w.Start >= from && w.Start < to && w.Peak > 0).ToList();
-            string shownDays = viewFirst.ToString("dd.MM", Culture) + "–" + viewFirst.AddDays(VisibleDays - 1).ToString("dd.MM", Culture);
+            string shownDays = viewFirst.ToString("dd.MM", Culture) + "–" + viewLast.ToString("dd.MM", Culture);
             if (shown.Count == 0) return c.Text(shownDays + ": " + Loc.T("stats.empty"), left, y, inner, Theme.Muted);
             var outs = shown.Where(w => w.OutAt.HasValue).ToList();
             TimeSpan lost = TimeSpan.Zero;
@@ -298,7 +325,7 @@ namespace Semaphore
             y = c.Text(Loc.T("stats.lim.avg", Math.Round(shown.Average(w => w.Peak)).ToString("0", Culture)), left, y + Ui.S(2), inner, Theme.Fore);
             // The five hours in a row (across midnight too) with the most of the use; only while the transcripts of
             // those days are still there.
-            double[] shares = LimitHistory.HourShares(history, viewFirst, viewFirst.AddDays(VisibleDays - 1));
+            double[] shares = LimitHistory.HourShares(history, viewFirst, viewLast);
             int best = 0;
             double most = 0;
             for (int h = 0; shares != null && h < 24; h++)

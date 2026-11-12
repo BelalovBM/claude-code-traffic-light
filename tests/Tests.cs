@@ -337,6 +337,24 @@ namespace Semaphore.Tests
 
         static void LimitHistoryChecks()
         {
+            {
+                // Local days, so the check holds in any time zone: windows on the 1st, from the 4th 22:00 into the
+                // 5th, an unused one on the 7th, and today the 10th.
+                Func<int, int, DateTime> at = (day, hour) => new DateTime(2026, 11, day, hour, 0, 0, DateTimeKind.Local).ToUniversalTime();
+                var fives = new List<LimitWindow>
+                {
+                    new LimitWindow { Start = at(1, 10), End = at(1, 15), Peak = 40 },
+                    new LimitWindow { Start = at(4, 22), End = at(5, 3), Peak = 70 },
+                    new LimitWindow { Start = at(7, 9), End = at(7, 14), Peak = 0 },
+                };
+                DateTime today = new DateTime(2026, 11, 10);
+                List<DateTime> used = LimitHistory.UsedDays(fives, today, at(10, 12), 0);
+                List<DateTime> padded = LimitHistory.UsedDays(fives, today, at(10, 12), 6);
+                Check("the chart of the 5-hour windows leaves out the days without one, today stays",
+                    used.SequenceEqual(new[] { new DateTime(2026, 11, 1), new DateTime(2026, 11, 4), new DateTime(2026, 11, 5), today })
+                    && padded.Count == 6 && padded[0] == new DateTime(2026, 10, 30) && padded[5] == today,
+                    string.Join(" ", used.Select(d => d.ToString("dd.MM"))) + " / " + string.Join(" ", padded.Select(d => d.ToString("dd.MM"))));
+            }
             DateTime now = new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc);
             var w = new UsageMath.Weights { Common = 0.001 };
             DateTime weekEnd = now.AddDays(3), r1 = now.AddHours(-20);
@@ -667,6 +685,20 @@ namespace Semaphore.Tests
                         string.Equals(AppPaths.RealPath(fileLink), Path.Combine(real, "app.exe"), StringComparison.OrdinalIgnoreCase));
                 else Console.WriteLine("  --    a link to the file needs the right to create one; not checked here");
                 try { Directory.Delete(link); Directory.Delete(root, true); } catch { }
+            }
+            {
+                var screen = new System.Drawing.Rectangle(0, 0, 1920, 1080);
+                System.Drawing.Point p;
+                var onBottom = TrayApp.MenuPlace(new System.Drawing.Rectangle(1800, 1050, 24, 24), screen, new System.Drawing.Rectangle(0, 0, 1920, 1040), out p);
+                bool okBottom = onBottom == System.Windows.Forms.ToolStripDropDownDirection.AboveLeft && p == new System.Drawing.Point(1812, 1050);
+                var onTop = TrayApp.MenuPlace(new System.Drawing.Rectangle(1800, 6, 24, 24), screen, new System.Drawing.Rectangle(0, 40, 1920, 1040), out p);
+                bool okTop = onTop == System.Windows.Forms.ToolStripDropDownDirection.BelowLeft && p == new System.Drawing.Point(1812, 30);
+                var onLeft = TrayApp.MenuPlace(new System.Drawing.Rectangle(8, 1000, 24, 24), screen, new System.Drawing.Rectangle(60, 0, 1860, 1080), out p);
+                bool okLeft = onLeft == System.Windows.Forms.ToolStripDropDownDirection.AboveRight && p == new System.Drawing.Point(32, 1012);
+                var onRight = TrayApp.MenuPlace(new System.Drawing.Rectangle(1888, 1000, 24, 24), screen, new System.Drawing.Rectangle(0, 0, 1860, 1080), out p);
+                bool okRight = onRight == System.Windows.Forms.ToolStripDropDownDirection.AboveLeft && p == new System.Drawing.Point(1888, 1012);
+                Check("the tray menu opens at the icon, away from the taskbar at any edge", okBottom && okTop && okLeft && okRight,
+                    okBottom + " " + okTop + " " + okLeft + " " + okRight);
             }
             string printed = head + "Current session: 30% used · resets 10pm";
             string other = "Sesión actual: 30 % usado\nSemana actual: 23 % usado";
