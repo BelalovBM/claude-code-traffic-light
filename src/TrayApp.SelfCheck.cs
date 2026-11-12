@@ -24,7 +24,7 @@ namespace Semaphore
         {
             Active = true;
             string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
-            string root = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "selfcheck-" + stamp);
+            string root = Path.Combine(Path.GetDirectoryName(AppPaths.ExePath), "selfcheck-" + stamp);
             try { Directory.CreateDirectory(root); }
             catch { root = Path.Combine(Path.GetTempPath(), "ClaudeCodeTrafficLight-selfcheck-" + stamp); Directory.CreateDirectory(root); }
             string data = Path.Combine(root, "data"), claude = Path.Combine(root, "claude");
@@ -40,7 +40,7 @@ namespace Semaphore
                     "{\"type\":\"ai-title\",\"aiTitle\":\"" + SelfCheckDemo.Titles[i] + "\",\"sessionId\":\"" + SelfCheckDemo.Ids[i] + "\"}\n"
                     + DemoReplies(i), utf8);
             // Claude Code's settings with this program's hooks, so the connection page shows the connected state.
-            string cmd = "\\\"" + Application.ExecutablePath.Replace('\\', '/') + "\\\" --hook trafficlight";
+            string cmd = "\\\"" + AppPaths.ExePath.Replace('\\', '/') + "\\\" --hook trafficlight";
             var hooks = new StringBuilder("{\"hooks\":{");
             string[] events = { "SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Notification", "Stop", "SessionEnd", "PreCompact", "PostCompact" };
             for (int i = 0; i < events.Length; i++)

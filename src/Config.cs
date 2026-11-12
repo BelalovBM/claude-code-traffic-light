@@ -57,9 +57,58 @@ namespace Semaphore
             get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClaudeCodeTrafficLight"); }
         }
 
+        static string exePath;
+
+        // The program's own file. Started through a symbolic link (winget makes one for a portable app where Windows
+        // lets it), it is the file the link points to: the data stay in the program's folder, not in winget's folder of
+        // links, and the hooks and autostart point at the program itself.
+        public static string ExePath
+        {
+            get
+            {
+                if (exePath == null) exePath = RealPath(System.Windows.Forms.Application.ExecutablePath);
+                return exePath;
+            }
+        }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        static extern uint GetFinalPathNameByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle file, StringBuilder path, uint size, uint flags);
+
+        internal static string RealPath(string path)
+        {
+            try
+            {
+                // Only a link on the way (the file, or a folder above it) changes anything; a plain path stays as it is,
+                // so a drive mapped by letter keeps the path the hooks were connected with.
+                bool linked = false;
+                for (var fi = new FileInfo(path) as FileSystemInfo; fi != null && !linked; fi = Parent(fi))
+                    linked = fi.Exists && fi.Attributes.HasFlag(FileAttributes.ReparsePoint);
+                if (!linked) return path;
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    var sb = new StringBuilder(1024);
+                    uint n = GetFinalPathNameByHandle(fs.SafeFileHandle, sb, (uint)sb.Capacity, 0);
+                    if (n == 0 || n >= sb.Capacity) return path;
+                    string real = sb.ToString();
+                    if (real.StartsWith(@"\\?\UNC\", StringComparison.Ordinal)) real = @"\\" + real.Substring(8);
+                    else if (real.StartsWith(@"\\?\", StringComparison.Ordinal)) real = real.Substring(4);
+                    // A link that leads to the same place (a file of OneDrive is one too) keeps the path as it was,
+                    // letter case included: the hooks are matched by it.
+                    return string.Equals(real, path, StringComparison.OrdinalIgnoreCase) ? path : real;
+                }
+            }
+            catch (Exception) { return path; }
+        }
+
+        static FileSystemInfo Parent(FileSystemInfo f)
+        {
+            var file = f as FileInfo;
+            return file != null ? (FileSystemInfo)file.Directory : ((DirectoryInfo)f).Parent;
+        }
+
         static string Resolve()
         {
-            string exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            string exeDir = Path.GetDirectoryName(ExePath);
             if (CanWrite(exeDir))
             {
                 MigrateLegacy(exeDir);

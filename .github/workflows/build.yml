@@ -82,6 +82,8 @@ jobs:
               '',
               '**Getting started:** download `ClaudeCodeTrafficLight.exe` below, run it, and answer **Yes** to "Connect to Claude Code". It is not code-signed, so Windows SmartScreen may warn on the first start: **More info → Run anyway**. Check the file against `SHA256SUMS.txt` if you like.',
               '',
+              'Or with winget: `winget install BelalovBM.ClaudeCodeTrafficLight` (or `winget upgrade` it), which starts without that warning; a new version reaches winget a few days after this page.',
+              '',
               "Everything else is explained in the program itself (the first-run window and the **About** page) and in the [README]($repo#readme). The source zip is only needed to build the program yourself."
           ) | Add-Content release-notes.md -Encoding utf8
 

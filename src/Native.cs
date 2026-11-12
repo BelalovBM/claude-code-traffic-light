@@ -356,7 +356,7 @@ namespace Semaphore
             {
                 using (var k = Registry.CurrentUser.CreateSubKey(RunKey))
                 {
-                    if (on) k.SetValue(RunValue, "\"" + System.Windows.Forms.Application.ExecutablePath + "\"");
+                    if (on) k.SetValue(RunValue, "\"" + AppPaths.ExePath + "\"");
                     else k.DeleteValue(RunValue, false);
                 }
             }

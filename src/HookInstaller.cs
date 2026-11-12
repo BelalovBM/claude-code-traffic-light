@@ -36,7 +36,7 @@ namespace Semaphore
         // where backslashes in an unquoted-escape path would be eaten.
         public static string Command
         {
-            get { return "\"" + Application.ExecutablePath.Replace('\\', '/') + "\" " + Marker; }
+            get { return "\"" + AppPaths.ExePath.Replace('\\', '/') + "\" " + Marker; }
         }
 
         // The permission hook only exists while answering from the phone is switched on, so with

@@ -2,7 +2,11 @@
 
 ## 0.9.12 (beta)
 
+**New**
+- **winget:** `winget install BelalovBM.ClaudeCodeTrafficLight`, and the program starts without the SmartScreen warning. A new version reaches winget a few days after the releases page.
+
 **Fixed**
+- Started through a link (winget makes one for the program where Windows lets it), the program now works from its own folder: the settings and the figures stay there, and the hooks and autostart point at the program itself, not at the link.
 - Times in the menu and the panels are written with a colon, 20:44, whatever the regional format of Windows (one with a dot made it 20.44), and the logs keep the usual calendar under a Thai, Arabic or Persian format.
 - The background `/usage` counted only an answer in English: one in another wording or language would have looked like a failure, with the notice "Could not refine the limits", though Claude Code had saved the figures. A run now counts by the figures Claude Code saved.
 

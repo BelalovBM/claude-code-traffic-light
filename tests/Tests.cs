@@ -645,6 +645,29 @@ namespace Semaphore.Tests
                 && UsageRefresh.Figures(head + "What's contributing to your limits usage?") == null);
             Check("an answer with only the header is no breakdown, anything else without figures is",
                 UsageRefresh.OnlyHeader(head) && !UsageRefresh.OnlyHeader("Error: not logged in") && !UsageRefresh.OnlyHeader(head + "Current session: 3% used"));
+            {
+                string root = Path.Combine(Path.GetTempPath(), "tl-realpath-" + Guid.NewGuid().ToString("N"));
+                string real = Path.Combine(root, "real"), link = Path.Combine(root, "link");
+                Directory.CreateDirectory(real);
+                File.WriteAllText(Path.Combine(real, "app.exe"), "x");
+                var mk = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe",
+                    "/d /c mklink /J \"" + link + "\" \"" + real + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true });
+                mk.WaitForExit();
+                Check("the program's file is found where a link points to, a plain path stays as it is",
+                    string.Equals(AppPaths.RealPath(Path.Combine(link, "app.exe")), Path.Combine(real, "app.exe"), StringComparison.OrdinalIgnoreCase)
+                    && AppPaths.RealPath(Path.Combine(real, "app.exe")) == Path.Combine(real, "app.exe"));
+                // A link to the file itself, as winget makes it, needs the right to create one (an administrator, or
+                // Developer Mode): checked where the tests have it, as on the build server.
+                string fileLink = Path.Combine(root, "linked.exe");
+                var mf = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe",
+                    "/d /c mklink \"" + fileLink + "\" \"" + Path.Combine(real, "app.exe") + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true });
+                mf.WaitForExit();
+                if (File.Exists(fileLink))
+                    Check("started through a link to the file, the program finds the file itself",
+                        string.Equals(AppPaths.RealPath(fileLink), Path.Combine(real, "app.exe"), StringComparison.OrdinalIgnoreCase));
+                else Console.WriteLine("  --    a link to the file needs the right to create one; not checked here");
+                try { Directory.Delete(link); Directory.Delete(root, true); } catch { }
+            }
             string printed = head + "Current session: 30% used · resets 10pm";
             string other = "Sesión actual: 30 % usado\nSemana actual: 23 % usado";
             Check("a run of /usage counts by the figures Claude Code saved, whatever language its answer is in",

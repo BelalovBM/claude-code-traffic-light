@@ -81,7 +81,7 @@ namespace Semaphore
             Info(Loc.T("uninstall.done"), MessageBoxIcon.Information);
             try
             {
-                System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + Application.ExecutablePath + "\"");
+                System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + AppPaths.ExePath + "\"");
             }
             catch { }
             app.Quit();

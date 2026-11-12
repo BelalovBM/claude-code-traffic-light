@@ -21,12 +21,13 @@ It works with Claude Code in the console and in the VS Code extension, and shows
 ## Quick start
 
 1. Download `ClaudeCodeTrafficLight.exe` from the [releases page](https://github.com/BelalovBM/claude-code-traffic-light/releases) and run it. No administrator rights are needed.
+   Or install it with winget: `winget install BelalovBM.ClaudeCodeTrafficLight`, then start `ClaudeCodeTrafficLight` (a new terminal finds it). `winget upgrade BelalovBM.ClaudeCodeTrafficLight` updates it, with the program closed; a new version reaches winget a few days after the releases page.
 2. Answer **Yes** to "Connect to Claude Code". The app adds hooks to `~/.claude/settings.json` (the original is backed up once as `settings.json.trafficlight.bak`).
 3. Start Claude Code as usual. Sessions started before connecting need a restart.
 
 Claude Code started inside WSL is not supported yet: it keeps its settings in the Linux home folder, out of reach of the hooks. If the program finds such an installation in a running WSL distribution, the **Claude Code** page of the settings says so.
 
-Windows SmartScreen may warn about an unsigned file: choose **More info → Run anyway**. The source code is here, and the build is a single script.
+Windows SmartScreen may warn about an unsigned file: choose **More info → Run anyway**. Installed with winget, the program starts without that warning: winget checks the file against the checksum in its catalog first. The source code is here, and the build is a single script.
 
 ## Features
 
@@ -168,7 +169,7 @@ As a fallback, the app also reads the small per-process files Claude Code keeps 
 ## Uninstall
 
 1. **Settings → Claude Code → Remove everything…** disconnects Claude Code (only this app's hooks are removed, other hooks stay), turns off autostart, removes the notification registration (the program shows its notifications under its own application id, a single key under `HKCU\Software\Classes\AppUserModelId`), deletes its settings, log, requests journal and the saved figures of the limits and contexts (they sit next to the .exe) and exits. The original `settings.json.trafficlight.bak` backup is kept.
-2. Delete the `.exe` (its folder opens automatically).
+2. Delete the `.exe` (its folder opens automatically). Installed with winget: `winget uninstall BelalovBM.ClaudeCodeTrafficLight` instead.
 
 To only disconnect from Claude Code and keep the program, use **Disconnect** on the same page.
 
@@ -182,6 +183,7 @@ The release files are not code-signed, so Windows SmartScreen may warn on the fi
 
 - Every release is built by GitHub Actions from the tagged source code (`.github/workflows/build.yml`), and the build is deterministic: building the same commit gives a byte-identical file.
 - `SHA256SUMS.txt` in each release lists the checksum of the exe. Compare it with `Get-FileHash ClaudeCodeTrafficLight.exe` in PowerShell.
+- winget checks the file against the same checksum, written in its catalog, before it installs it.
 
 The program sends nothing anywhere unless you set up the phone notifications; see [Privacy](#privacy).
 ## Self-check
