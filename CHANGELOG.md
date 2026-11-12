@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.14 (beta)
+
+**Changed**
+- The project page has the traffic light as its icon, in the browser's tab and for the sites that list the program from winget.
+
 ## 0.9.13 (beta)
 
 **Changed**
