@@ -1,6 +1,6 @@
 # Changelog
 
-## Next
+## 0.9.15 (beta)
 
 **Fixed**
 - **Claude Code's folder moved with `CLAUDE_CONFIG_DIR` is followed**: the hooks, the sessions, the transcripts and the figures of the limits are taken from there, also when the variable is set after the program started; the settings page names the real file. Until now the program kept to `~/.claude`, said it was connected and stayed silent.
