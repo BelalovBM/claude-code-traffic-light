@@ -22,7 +22,7 @@ It works with Claude Code in the console and in the VS Code extension, and shows
 
 1. Download `ClaudeCodeTrafficLight.exe` from the [releases page](https://github.com/BelalovBM/claude-code-traffic-light/releases) and run it. No administrator rights are needed.
    Or install it with winget: `winget install BelalovBM.ClaudeCodeTrafficLight`, then start `ClaudeCodeTrafficLight` (a new terminal finds it). `winget upgrade BelalovBM.ClaudeCodeTrafficLight` updates it, with the program closed; a new version reaches winget a few days after the releases page.
-2. Answer **Yes** to "Connect to Claude Code". The app adds hooks to `~/.claude/settings.json` (the original is backed up once as `settings.json.trafficlight.bak`).
+2. Answer **Yes** to "Connect to Claude Code". The app adds hooks to `~/.claude/settings.json` (the original is backed up once as `settings.json.trafficlight.bak`). If you moved Claude Code's folder with the `CLAUDE_CONFIG_DIR` variable, the app follows it there, and the settings page shows the real path.
 3. Start Claude Code as usual. Sessions started before connecting need a restart.
 
 Claude Code started inside WSL is not supported yet: it keeps its settings in the Linux home folder, out of reach of the hooks. If the program finds such an installation in a running WSL distribution, the **Claude Code** page of the settings says so.

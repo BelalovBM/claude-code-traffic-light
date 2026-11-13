@@ -117,10 +117,17 @@ namespace Semaphore
             var result = ResultLabel();
             var hint = new Label
             {
-                Text = Loc.T("hooks.hint"),
+                Text = Loc.T("hooks.hint", ClaudeHome.SettingsShown),
                 AutoSize = true,
                 MaximumSize = new Size(RowWidth, 0),
                 Margin = Ui.Pad(3, 4, 3, 6),
+            };
+            // The file can move while the window is open (CLAUDE_CONFIG_DIR set or removed).
+            refresher = () =>
+            {
+                paint();
+                string text = Loc.T("hooks.hint", ClaudeHome.SettingsShown);
+                if (hint.Text != text) hint.Text = text;
             };
 
             var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };

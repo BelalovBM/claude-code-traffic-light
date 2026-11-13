@@ -40,6 +40,7 @@ namespace Semaphore.Tests
             Group("log", LogFile);
             Group("shortcut", Shortcut);
             Group("languages", Languages);
+            Group("Claude Code's folder", ClaudeFolder);
 
             Console.WriteLine();
             Console.WriteLine(passed + " passed, " + failed + " failed");
@@ -835,6 +836,44 @@ namespace Semaphore.Tests
         static string Placeholders(string text)
         {
             return string.Join(",", Regex.Matches(text, @"\{(\d+)\}").Cast<Match>().Select(m => m.Groups[1].Value).Distinct().OrderBy(x => x));
+        }
+
+        static void ClaudeFolder()
+        {
+            string json;
+            bool moved;
+            string home = @"C:\Users\someone";
+            string d = ClaudeHome.Resolve(null, null, home, out json, out moved);
+            Check("without CLAUDE_CONFIG_DIR: ~/.claude and ~/.claude.json",
+                d == @"C:\Users\someone\.claude" && json == @"C:\Users\someone\.claude.json" && !moved, d + " | " + json);
+            d = ClaudeHome.Resolve(null, @" ""D:\Claude\work\"" ", home, out json, out moved);
+            Check("CLAUDE_CONFIG_DIR moves the folder and .claude.json goes inside it",
+                d == @"D:\Claude\work" && json == @"D:\Claude\work\.claude.json" && moved, d + " | " + json);
+            d = ClaudeHome.Resolve(null, "D:/Claude/second", home, out json, out moved);
+            Check("forward slashes are accepted", d == @"D:\Claude\second" && moved, d);
+            d = ClaudeHome.Resolve(null, @"\\server\share\claude", home, out json, out moved);
+            Check("a network folder is accepted", d == @"\\server\share\claude" && moved, d);
+            foreach (string bad in new[] { "", "   ", "claude", @"..\claude", @"\claude", "D:" })
+            {
+                d = ClaudeHome.Resolve(null, bad, home, out json, out moved);
+                Check("not an absolute path, so the usual place: \"" + bad + "\"", d == @"C:\Users\someone\.claude" && !moved, d);
+            }
+            Environment.SetEnvironmentVariable("TRAFFICLIGHT_TEST_HOME", @"E:\cfg");
+            d = ClaudeHome.Resolve(null, @"%TRAFFICLIGHT_TEST_HOME%\claude", home, out json, out moved);
+            Environment.SetEnvironmentVariable("TRAFFICLIGHT_TEST_HOME", null);
+            Check("variables inside it are expanded", d == @"E:\cfg\claude" && moved, d);
+            d = ClaudeHome.Resolve(@"X:\box\claude", @"D:\Claude\work", home, out json, out moved);
+            Check("the sandbox comes first, its .claude.json beside it",
+                d == @"X:\box\claude" && json == @"X:\box\.claude.json" && !moved, d + " | " + json);
+            Check("the program itself uses the sandbox", ClaudeHome.Dir == Path.Combine(box, "claude")
+                && HookInstaller.SettingsPath == Path.Combine(box, "claude", "settings.json") && ClaudeHome.ConfigDirForChild == null,
+                ClaudeHome.Dir);
+            foreach (string f in Directory.GetFiles(Path.Combine(repo, "lang"), "*.txt"))
+            {
+                string line = File.ReadAllLines(f, Encoding.UTF8).FirstOrDefault(l => l.StartsWith("hooks.hint=", StringComparison.Ordinal));
+                Check("the settings file is named by the program in " + Path.GetFileName(f),
+                    line != null && line.Contains("{0}") && !line.Contains(".claude"), line);
+            }
         }
 
         static void Languages()

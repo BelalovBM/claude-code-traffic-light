@@ -219,7 +219,7 @@ namespace Semaphore
         public event Action AnchorAdded;
 
         static string AnchorsPath { get { return Path.Combine(AppPaths.DataDir, "usage-limits.json"); } }
-        static string ClaudeJson { get { return Path.Combine(Path.GetDirectoryName(SessionRegistry.ClaudeDir.TrimEnd('\\', '/')), ".claude.json"); } }
+        static string ClaudeJson { get { return ClaudeHome.JsonPath; } }
 
         public void Start()
         {

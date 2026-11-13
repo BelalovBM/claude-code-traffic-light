@@ -148,7 +148,7 @@ namespace Semaphore
         {
             try
             {
-                string path = Path.Combine(Path.GetDirectoryName(SessionRegistry.ClaudeDir.TrimEnd('\\', '/')), ".claude.json");
+                string path = ClaudeHome.JsonPath;
                 string text;
                 using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                 using (var r = new StreamReader(fs, Encoding.UTF8))
@@ -215,6 +215,10 @@ namespace Semaphore
                 StandardErrorEncoding = Encoding.UTF8,
                 WorkingDirectory = AppPaths.DataDir,
             };
+            // A CLAUDE_CONFIG_DIR set after this program started is not in its environment: hand it on, or /usage
+            // would sign in from, and save its figures to, the usual folder instead.
+            string home = ClaudeHome.ConfigDirForChild;
+            if (home != null) psi.EnvironmentVariables["CLAUDE_CONFIG_DIR"] = home;
             var watch = Stopwatch.StartNew();
             try
             {

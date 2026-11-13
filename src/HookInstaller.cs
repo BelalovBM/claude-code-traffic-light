@@ -22,14 +22,7 @@ namespace Semaphore
 
         public static string SettingsPath
         {
-            get
-            {
-                // TRAFFICLIGHT_CLAUDE_DIR stands in for ~/.claude (tests).
-                string dir = Environment.GetEnvironmentVariable("TRAFFICLIGHT_CLAUDE_DIR");
-                if (string.IsNullOrEmpty(dir))
-                    dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
-                return Path.Combine(dir, "settings.json");
-            }
+            get { return Path.Combine(ClaudeHome.Dir, "settings.json"); }
         }
 
         // Forward slashes: Claude Code runs hook commands through a POSIX shell on Windows,

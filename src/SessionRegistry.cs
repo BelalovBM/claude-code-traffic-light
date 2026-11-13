@@ -20,16 +20,7 @@ namespace Semaphore
     // the main source of truth.
     static class SessionRegistry
     {
-        internal static string ClaudeDir
-        {
-            get
-            {
-                string dir = Environment.GetEnvironmentVariable("TRAFFICLIGHT_CLAUDE_DIR");
-                return string.IsNullOrEmpty(dir)
-                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude")
-                    : dir;
-            }
-        }
+        internal static string ClaudeDir { get { return ClaudeHome.Dir; } }
 
         // Set while files of running Claude Code processes exist but none of them has the fields this program reads:
         // the format has changed, and running sessions are then found through the hooks only.
